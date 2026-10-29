@@ -1,106 +1,179 @@
 <div align="center">
-
-<img src="docs/assets/logo_circle.png" width="136" height="136" alt="Dark Player Circular Logo" />
-
-# Dark Player
-
-**High-Performance Android Video Player with 1000% Intelligent Dolby DSP, Refractive Liquid Glass UI & NextLib FFmpeg Media3 Engine**
-
-[![Release](https://img.shields.io/github/v/release/xboyrex/DarkPlayer?style=for-the-badge&logo=github&label=LATEST%20RELEASE&color=FACC15&labelColor=090D16)](https://github.com/xboyrex/DarkPlayer/releases/latest)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/xboyrex/DarkPlayer/build.yml?style=for-the-badge&logo=githubactions&label=CI%20BUILD&color=10B981&labelColor=090D16)](https://github.com/xboyrex/DarkPlayer/actions)
-[![Platform](https://img.shields.io/badge/ANDROID-7.0%2B%20(API%2024--36)-38BDF8?style=for-the-badge&logo=android&labelColor=090D16)](https://github.com/xboyrex/DarkPlayer/releases/latest)
-[![Developer](https://img.shields.io/badge/AUTHOR-MAYANK%20(%40xboyrex)-FACC15?style=for-the-badge&logo=github&labelColor=090D16)](https://github.com/xboyrex)
-
-<br />
-
-<img src="docs/assets/banner.svg" width="100%" alt="Dark Player Hero Banner" />
-
+  <img src="docs/assets/dark-player/dark-player-mark.svg" width="112" height="112" alt="Dark Player logo" />
+  <h1>Dark Player</h1>
+  <p><strong>A high-control Android video player for local libraries, network media, and deeply configurable playback.</strong></p>
+  <p>NextLib + Media3 / FFmpeg engine · Dark-first interface · Liquid Glass-inspired surfaces</p>
+  <p>
+    <a href="https://github.com/xboyrex/DarkPlayer/releases"><img alt="GitHub releases" src="https://img.shields.io/github/v/release/xboyrex/DarkPlayer?style=for-the-badge&logo=github&label=release" /></a>
+    <a href="https://github.com/xboyrex/DarkPlayer/releases"><img alt="GitHub downloads" src="https://img.shields.io/github/downloads/xboyrex/DarkPlayer/total?style=for-the-badge&logo=android&label=downloads" /></a>
+    <a href="https://github.com/xboyrex/DarkPlayer/commits"><img alt="Last commit" src="https://img.shields.io/github/last-commit/xboyrex/DarkPlayer?style=for-the-badge&logo=git" /></a>
+    <img alt="Platform Android" src="https://img.shields.io/badge/platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
+  </p>
+  <p>
+    <a href="#features">Features</a> &nbsp;·&nbsp;
+    <a href="#interface-preview">Interface preview</a> &nbsp;·&nbsp;
+    <a href="#screenshots">Screenshots</a> &nbsp;·&nbsp;
+    <a href="#installation">Installation</a> &nbsp;·&nbsp;
+    <a href="#project-links">Project links</a>
+  </p>
 </div>
 
-<br />
+---
 
-## <img src="docs/assets/ic_download.svg" width="22" height="22" align="absmiddle" /> Direct APK Downloads
+## Interface preview
 
-Every push to `main` automatically compiles, signs, and publishes multi-ABI release APKs to the [Official GitHub Releases](https://github.com/xboyrex/DarkPlayer/releases/latest) page.
+<div align="center">
+  <img src="docs/assets/dark-player/dark-player-showcase.gif" alt="Animated preview made from Dark Player interface screenshots" width="960" />
+  <p><sub>Animated overview assembled from the supplied app screenshots. It demonstrates captured screens, not a live recording of interactions.</sub></p>
+</div>
 
-| Package Variant | Target Architecture | Recommended Devices | Direct Download |
-| :--- | :--- | :--- | :--- |
-| **ARM64 (`arm64-v8a`)** | 64-bit ARMv8-A | All modern Android phones & tablets (Recommended) | [**Download arm64-v8a APK**](https://github.com/xboyrex/DarkPlayer/releases/latest) |
-| **ARM32 (`armeabi-v7a`)** | 32-bit ARMv7-A | Older 32-bit Android phones & Android TV boxes | [**Download armeabi-v7a APK**](https://github.com/xboyrex/DarkPlayer/releases/latest) |
-| **x86_64 (`x86_64`)** | 64-bit Intel / AMD | Chromebooks, PC Emulators & x86 tablets | [**Download x86_64 APK**](https://github.com/xboyrex/DarkPlayer/releases/latest) |
-| **Universal (`universal`)** | All ABIs Combined | Any Android device (`arm64` + `armv7` + `x86` + `x86_64`) | [**Download Universal APK**](https://github.com/xboyrex/DarkPlayer/releases/latest) |
+## Overview
 
-<br />
+**Dark Player** is an Android video-player project focused on direct access to media, configurable playback, and a high-contrast dark interface. The supplied UI captures show a folder-oriented media library, a dedicated Hub, full-screen playback controls, subtitle and decoder selectors, network-stream setup, playlists, and granular settings.
 
-## <img src="docs/assets/ic_audio.svg" width="22" height="22" align="absmiddle" /> 1000% Intelligent Dolby Audio & Bass Booster Engine
+The visual system uses black surfaces, restrained yellow accents, clear iconography, and compact navigation. The app-icon assets supplied with this repository package are preserved in their original Android, iOS, and web variants; an editable SVG mark is included for README and web use.
 
-Dark Player features a custom hardware + psychoacoustic multi-stage audio pipeline (`DolbyVolumeBoosterEngine`) engineered for maximum loudness without speaker crackle or digital clipping:
+## Features
 
-| DSP Stage | Hardware / API Module | Acoustic Function |
-| :--- | :--- | :--- |
-| **Stage 1: Master Pre-Amp (`0%`–`1000%`)** | `LoudnessEnhancer` + `DynamicsProcessing` | Seamless right-side vertical swipe and slider scaling from `0%`–`100%` system volume up to `1000%` (`+30 dB` / `+3000 mB` hardware target gain). |
-| **Stage 2: 5-Band Psychoacoustic EQ** | `DynamicsProcessing.Eq` | Dedicated sub-bass harmonic lift (`90 Hz`–`250 Hz`), dialogue presence isolation (`1.2 kHz`–`4 kHz`), and high-frequency air (`16 kHz`). |
-| **Stage 3: Sub-Bass Harmonic Exciter** | `BassBoost` (`0`–`1000` strength) | Deep low-end punch adjustable from `0%` to `100%` inside the player overlay or Hub. |
-| **Stage 4: 3D Surround Spatializer** | `Virtualizer` (`850` stage width) | Expands stereo width for an immersive cinema soundstage on both stereo speakers and headphones. |
-| **Stage 5: Brickwall Anti-Clip Limiter** | `DynamicsProcessing.Limiter` | `1 ms` fast attack, `45 ms` release, `18:1` ratio ceiling at `-1.2 dBFS` to eliminate harsh distortion at `400%`–`1000%` boost. |
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/dark-player/icons/library.svg" width="32" height="32" alt="Library icon" />
+      <h3>Local media library</h3>
+      Folder-first browsing, media counts, storage context, and a dedicated view for files within a folder.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/dark-player/icons/video.svg" width="32" height="32" alt="Video icon" />
+      <h3>Playback controls</h3>
+      Full-screen landscape playback plus a decoder-selection interface captured in the supplied screenshots.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/dark-player/icons/network.svg" width="32" height="32" alt="Network icon" />
+      <h3>Network media</h3>
+      The connection screen lists SMB, FTP, SFTP, and WebDAV for browsing and playing media over a network.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/dark-player/icons/subtitles.svg" width="32" height="32" alt="Subtitle icon" />
+      <h3>Audio and subtitles</h3>
+      Dedicated subtitle-track selection and configurable audio/subtitle sections in Settings.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/dark-player/icons/playlist.svg" width="32" height="32" alt="Playlist icon" />
+      <h3>Playlists</h3>
+      A separate Playlists destination; the empty-state copy references local playlists and M3U sources.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/dark-player/icons/audio.svg" width="32" height="32" alt="Audio icon" />
+      <h3>Audio hub</h3>
+      A dedicated audio-booster panel is visible in the screenshots. Extreme gain may introduce clipping and unsafe listening levels.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/dark-player/icons/settings.svg" width="32" height="32" alt="Settings icon" />
+      <h3>Granular settings</h3>
+      Player, gestures, audio, subtitles, appearance, media library, general, and About sections.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/dark-player/icons/vault.svg" width="32" height="32" alt="Vault icon" />
+      <h3>Hub shortcuts</h3>
+      The captured Hub screen surfaces Vault, file picking, stream URL, auto-update, trash, and app settings entries.
+    </td>
+  </tr>
+</table>
 
-### Built-In Sound Profiles
-- **Dolby Cinema**: Balanced 3D surround soundstage, deep sub-bass (`70%`), and vocal clarity enhancement.
-- **1000% Extreme**: Maximum `+30 dB` pre-amp amplification locked with brickwall anti-clip limiting.
-- **Bass Punch**: Maximum `100%` harmonic sub-bass exciter with warm low-end dynamics.
-- **Dialogue Boost**: Midrange vocal isolation (`1 kHz`–`4 kHz`) for quiet movie dialogue and night listening.
+## Screenshots
 
-<br />
+All 16 supplied screenshots are included below and stored under [`docs/assets/dark-player/screenshots`](docs/assets/dark-player/screenshots). Open any image in a new tab for full resolution.
 
-## <img src="docs/assets/ic_glass.svg" width="22" height="22" align="absmiddle" /> Liquid Glass & Solid AMOLED Dual-Mode Interface
+### Library and navigation
 
-- **Real-Time Switchable UI (`Liquid Glass` / `Solid UI`)**: Instant one-tap toggle in the **Hub** header and **Settings -> Appearance** to switch between refractive AGSL **Liquid Glass** (`LiquidBottomTabs` with lens refraction, vibrancy, and damped spring physics) and **Solid Matte AMOLED** surfaces.
-- **True Pure AMOLED Black (`#000000`) + Cyber Yellow (`#FACC15`)**: Out-of-the-box pure black background with high-contrast white typography and Cyber Yellow accents on active navigation tabs, floating action buttons, and folder video count badges.
-- **Translucent Liquid Glass Player Controls & Overlays**: Semi-transparent dark glass buttons and side/bottom overlay sheets (`Select decoders`, `Select audio track`, `Select subtitle track`, `Chapters`, `Now playing`, `Sleep timer`, and `1000% Dolby Audio Booster`) that let active video playback shine through softly.
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-library-home.png" width="220" alt="Dark Player library home" /><br /><sub>Library home</sub></td>
+    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-library-main.png" width="220" alt="Dark Player main library list" /><br /><sub>Main library</sub></td>
+    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-library-compact.png" width="220" alt="Dark Player compact library view" /><br /><sub>Compact library view</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-library-grid.png" width="220" alt="Dark Player library with bottom navigation" /><br /><sub>Library navigation</sub></td>
+    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-video-list.png" width="220" alt="Dark Player folder video list" /><br /><sub>Folder video list</sub></td>
+    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-hub.png" width="220" alt="Dark Player Hub tools" /><br /><sub>Hub and shortcuts</sub></td>
+  </tr>
+</table>
 
-<br />
+### Playback and media controls
 
-## <img src="docs/assets/ic_video.svg" width="22" height="22" align="absmiddle" /> Playback, Decoders & Smart Tools
+<table>
+  <tr>
+    <td align="center" width="50%"><img src="docs/assets/dark-player/screenshots/dark-player-player-landscape.png" width="430" alt="Dark Player landscape video playback" /><br /><sub>Landscape playback</sub></td>
+    <td align="center" width="50%"><img src="docs/assets/dark-player/screenshots/dark-player-player-controls.png" width="430" alt="Dark Player playback controls" /><br /><sub>Playback controls</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-decoder-picker.png" width="430" alt="Dark Player decoder selection overlay" /><br /><sub>Decoder selection</sub></td>
+    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-subtitle-picker.png" width="430" alt="Dark Player subtitle track selection overlay" /><br /><sub>Subtitle selection</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-audio-booster.png" width="430" alt="Dark Player audio booster panel" /><br /><sub>Audio booster panel</sub></td>
+    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-playlists-empty.png" width="220" alt="Dark Player empty playlists screen" /><br /><sub>Playlists empty state</sub></td>
+  </tr>
+</table>
 
-- **Triple-Mode Decoder Pipeline (`HW` / `SW+` / `SW`)**: Instant runtime switching and automatic fallback between Hardware MediaCodec (`HW`), Android Software MediaCodec (`SW+`), and bundled **NextLib FFmpeg** (`SW`) for 10-bit HEVC, AV1, VP9, MKV, MP4, AVI, TS, FLV, and Dolby AC-3 / E-AC-3 / DTS / TrueHD audio.
-- **Instant First-Frame Keyframe Thumbnails**: Hardware keyframe extraction (`ThumbnailGenerationStrategy.FIRST_FRAME`) with RGB_565 memory optimization and Coil disk/memory caching for zero-lag scrolling.
-- **One-Tap Video Frame Screenshot Capture**: Captures the exact current video frame directly to `Pictures/DarkPlayer` and registers it with the Android MediaStore gallery.
-- **Built-In Sleep Timer**: Live countdown timer (`10m`, `15m`, `30m`, `45m`, `60m`, `90m`, `120m`) inside the video player that automatically pauses playback when time expires.
-- **Fine Playback Speed (`0.25x` – `8.0x`) & Skip Silence**: Precision `0.05x` increment slider, quick preset pills, long-press `2.0x` boost gesture, and automatic silence skipping.
+### Network, settings, and about
 
-<br />
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-network-stream.png" width="220" alt="Dark Player network stream setup" /><br /><sub>Network stream</sub></td>
+    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-settings.png" width="220" alt="Dark Player Settings screen" /><br /><sub>Settings</sub></td>
+    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-settings-categories.png" width="220" alt="Dark Player settings categories" /><br /><sub>Settings categories</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-about-links.png" width="220" alt="Dark Player About and ecosystem links" /><br /><sub>About and project links</sub></td>
+    <td align="center" colspan="2"><img src="docs/assets/dark-player/dark-player-logo.png" width="220" alt="Dark Player official app icon supplied via IconKitchen" /><br /><sub>Supplied app icon</sub></td>
+  </tr>
+</table>
 
-## <img src="docs/assets/ic_shield.svg" width="22" height="22" align="absmiddle" /> Biometric Private Vault & Network Streaming
+## Visual identity
 
-- **Biometric & PIN Encrypted Vault**: Hide sensitive videos behind a 4-digit PIN and hardware Fingerprint / Face Unlock biometric authentication, backed by isolated local storage and Recycle Bin (`Trash`) recovery.
-- **Multi-Protocol Network Streaming**: Stream directly from **SMB (Samba)**, **FTP**, **SFTP**, **WebDAV**, and direct **HTTP / HTTPS / HLS (`.m3u8`) / DASH (`.mpd`) / RTSP** URLs.
-- **In-App GitHub OTA Auto-Updater**: Check for the latest GitHub release, inspect release notes, and download the matching architecture APK directly from the **Hub** tab.
+- **Palette:** black and charcoal surfaces with yellow accents, reflecting the supplied UI captures.
+- **Iconography:** local SVG line icons for the feature overview and an editable SVG app mark.
+- **Motion:** the showcase GIF cycles through actual supplied screenshots with restrained crossfades. It is a README presentation asset, not a claim about in-app animation behavior.
+- **App icons:** original IconKitchen output is retained in [`assets/app-icons/icon-kitchen`](assets/app-icons/icon-kitchen), including Android mipmap variants, iOS app icons, and web icons.
 
-<br />
+## Installation
 
-## <img src="docs/assets/ic_changelog.svg" width="22" height="22" align="absmiddle" /> Release Changelog
+1. Open the [latest GitHub release](https://github.com/xboyrex/DarkPlayer/releases/latest).
+2. Download the Android package attached to the release, if one is published.
+3. Install it on a compatible Android device. Android may ask you to approve installation from your selected download source.
 
-### v1.2.0 — Dolby 1000% DSP & Dual-Mode Liquid Glass Release
-- **Added**: **1000% Intelligent Dolby Audio & Bass Booster Engine** (`DolbyVolumeBoosterEngine`) with `0%`–`1000%` swipe gesture support, 5-band psychoacoustic EQ, sub-bass harmonic exciter, 3D surround virtualizer, and brickwall anti-clip limiter.
-- **Added**: **In-Player & Hub 1000% Dolby Booster Sheet** with instant presets (`100%`, `200%`, `400%`, `600%`, `800%`, `1000% MAX`) and 4 acoustic profiles (`Dolby Cinema`, `1000% Extreme`, `Bass Punch`, `Dialogue Boost`).
-- **Added**: **One-Tap Liquid Glass / Solid UI Switcher** in both the **Hub** header and **Settings -> Appearance**.
-- **Added**: **In-App GitHub OTA Update Checker** and **Direct Network Stream URL Launcher** in the redesigned compact **Hub** tab.
-- **Updated**: Replaced blue navigation/badge highlights with **Cyber Yellow (`#FACC15`)** on Pure AMOLED Black (`#000000`) while keeping player controls and overlays in translucent Liquid Glass with crisp white typography.
-- **Automated**: Configured GitHub Actions CI/CD to automatically publish and update the `latest` GitHub Release with multi-ABI APKs and SHA-256 checksums on every push.
+If the Releases page has no installable package, use the repository's current build instructions rather than assuming an APK is available.
 
-<br />
+## Project links
 
-## <img src="docs/assets/ic_dev.svg" width="22" height="22" align="absmiddle" /> Developer & Ecosystem
+- **Source and releases:** [github.com/xboyrex/DarkPlayer](https://github.com/xboyrex/DarkPlayer)
+- **Maintainer profile:** [github.com/xboyrex](https://github.com/xboyrex)
+- **Telegram updates:** [t.me/AnmolK2200](https://t.me/AnmolK2200)
+- **Mayank Droid:** [mayank-droid.pages.dev](https://mayank-droid.pages.dev)
+- **Onyx Services:** [onyx-services.pages.dev](https://onyx-services.pages.dev)
+- **Otaku Hub:** [otaku-hub.pages.dev](https://otaku-hub.pages.dev)
 
-Crafted and maintained by **ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (`@xboyrex`)**.
+For bugs or feature requests, use the repository's [GitHub Issues](https://github.com/xboyrex/DarkPlayer/issues) page.
 
-| Platform / Project | Link |
-| :--- | :--- |
-| **GitHub Profile** | [github.com/xboyrex](https://github.com/xboyrex) |
-| **Dark Player Repository** | [github.com/xboyrex/DarkPlayer](https://github.com/xboyrex/DarkPlayer) |
-| **Telegram Channel** | [t.me/RoranoaxZORO](https://t.me/RoranoaxZORO) |
-| **Mayank Droid** | [mayank-droid.pages.dev](https://mayank-droid.pages.dev) |
-| **Onyx Services** | [onyx-services.pages.dev](https://onyx-services.pages.dev) |
-| **Otaku Hub Pro** | [otaku-hub-pro.pages.dev](https://otaku-hub-pro.pages.dev) |
-| **Portfolio HBO** | [portfolio-hbo.pages.dev](https://portfolio-hbo.pages.dev) |
-| **Mi Unlock Portal** | [mi-unlock.pages.dev](https://mi-unlock.pages.dev) |
+## Update and publish documentation
+
+The repository includes a guarded Termux publisher for maintainers. After downloading and extracting the documentation pack, run `bash START-TERMUX.sh`. The script backs up the current README and package-owned asset folders, stages only the documentation paths, checks the staged changes, then asks before committing and pushing. It does not alter Android source code or build an APK. See [`README-PUSH-TERMUX.md`](README-PUSH-TERMUX.md) for authentication and recovery details.
+
+## Repository notes
+
+This README pack is a documentation and branding overlay. It does not contain the Android application source code or build outputs. The feature summary is based on the supplied description and the screenshots included with this pack; verify code-level availability against the current app source before treating every visible control as a production-ready feature.
+
+No license terms are asserted here. Follow the repository's `LICENSE` file, if present, before redistributing the app or its assets.
+
+---
+
+<div align="center">
+  <sub>Dark Player · Documentation and screenshot refresh</sub>
+</div>
