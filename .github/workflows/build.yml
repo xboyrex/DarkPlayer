@@ -1,0 +1,98 @@
+name: DarkPlayer Release CI
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: darkplayer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Publish DarkPlayer Release APKs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          validate-wrappers: false
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Verify Gradle Configuration
+        run: ./gradlew help --no-daemon
+
+      - name: Build Signed Release APKs
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Prepare Release Artifacts & Checksums
+        run: |
+          mkdir -p release-apks
+          cp app/build/outputs/apk/release/app-universal-release.apk release-apks/DarkPlayer-v1.2.0-universal.apk || true
+          cp app/build/outputs/apk/release/app-arm64-v8a-release.apk release-apks/DarkPlayer-v1.2.0-arm64-v8a.apk || true
+          cp app/build/outputs/apk/release/app-armeabi-v7a-release.apk release-apks/DarkPlayer-v1.2.0-armeabi-v7a.apk || true
+          cp app/build/outputs/apk/release/app-x86_64-release.apk release-apks/DarkPlayer-v1.2.0-x86_64.apk || true
+          cd release-apks && sha256sum *.apk > SHA256SUMS.txt
+          ls -lh
+
+      - name: Upload APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DarkPlayer-v1.2.0-APKs
+          path: |
+            release-apks/*.apk
+            release-apks/SHA256SUMS.txt
+
+      - name: Publish & Auto-Update Official GitHub Release
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.2.0
+          name: "Dark Player v1.2.0 — 1000% Dolby DSP & Liquid Glass Edition (Build #${{ github.run_number }})"
+          make_latest: true
+          body: |
+            <div align="center">
+              <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/docs/assets/logo_circle.png" width="116" height="116" alt="Dark Player Logo" />
+              <h2>Dark Player v1.2.0 (Build #${{ github.run_number }})</h2>
+              <p><strong>Crafted by ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (<code>@xboyrex</code>)</strong></p>
+              <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/docs/assets/banner.svg" width="100%" alt="Dark Player Banner" />
+            </div>
+
+            ### What's New in v1.2.0
+            - **1000% Intelligent Dolby Audio & Bass Booster Engine**: Hardware `LoudnessEnhancer` (`+3000 mB`) + 5-band psychoacoustic `DynamicsProcessing` EQ + `BassBoost` harmonic exciter + 3D `Virtualizer` + brickwall anti-clip limiter, integrated into both right-side swipe gestures (`0%`–`1000%`) and the in-player / Hub booster sheet.
+            - **Switchable Liquid Glass & Solid AMOLED UI**: Instant one-tap toggle between refractive AGSL **Liquid Glass** and **Solid AMOLED** surfaces with **Cyber Yellow (`#FACC15`)** active accents on Pure AMOLED Black (`#000000`).
+            - **Translucent Liquid Glass Player & Overlay Sheets**: High-contrast white typography on semi-transparent dark glass overlays (`Select decoders`, `Select audio track`, `Select subtitle track`, `Chapters`, `Now playing`, `Sleep timer`, and `1000% Dolby Audio Booster`).
+            - **Compact Hub & OTA Auto-Updater**: Redesigned compact Hub with 1000% Dolby quick presets, direct Network Stream URL launcher, one-tap video frame screenshot capture, built-in Sleep Timer, and GitHub OTA update checker.
+
+            ### Direct APK Architecture Guide
+            | File | Architecture | Target Devices |
+            | :--- | :--- | :--- |
+            | `DarkPlayer-v1.2.0-arm64-v8a.apk` | **64-bit ARM (`arm64-v8a`)** | Recommended for all modern Android phones & tablets |
+            | `DarkPlayer-v1.2.0-armeabi-v7a.apk` | **32-bit ARM (`armeabi-v7a`)** | Older 32-bit Android phones & Android TV boxes |
+            | `DarkPlayer-v1.2.0-x86_64.apk` | **64-bit x86 (`x86_64`)** | Chromebooks & Android emulators |
+            | `DarkPlayer-v1.2.0-universal.apk` | **Universal (`All ABIs`)** | Works on every Android device |
+          files: |
+            release-apks/*.apk
+            release-apks/SHA256SUMS.txt
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
