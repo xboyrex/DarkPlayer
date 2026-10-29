@@ -1,4 +1,5 @@
-name: DarkPlayer Release CI
+name: DarkPlayer | Android CI & Release
+run-name: "DarkPlayer | Build & Release #${{ github.run_number }}"
 
 on:
   push:
