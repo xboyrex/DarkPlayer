@@ -99,8 +99,7 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
-            keepDebugSymbols.add("**/libandroidx.graphics.path.so")
-            keepDebugSymbols.add("**/libdatastore_shared_counter.so")
+            keepDebugSymbols.add("**/*.so")
         }
         resources {
             excludes.add("/META-INF/{AL2.0,LGPL2.1}")
