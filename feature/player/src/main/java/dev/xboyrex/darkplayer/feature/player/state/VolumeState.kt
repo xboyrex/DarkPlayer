@@ -168,8 +168,12 @@ class VolumeState(
         }
     }
 
-    private fun calculateVolumePercentage(): Int =
-        ((currentVolume.toFloat() / systemMaxVolume) * 100).toInt()
+    private fun calculateVolumePercentage(): Int {
+        if (systemMaxVolume <= 0) return 0
+        return ((currentVolume.toFloat() / systemMaxVolume) * 100)
+            .toInt()
+            .coerceIn(0, maxVolumePercentage)
+    }
 
     private fun setVolume(volume: Int) {
         val clampedVolume = volume.coerceIn(
