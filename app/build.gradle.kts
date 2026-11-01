@@ -5,6 +5,14 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.koin.compiler)
+    alias(libs.plugins.aboutLibraries)
+}
+
+aboutLibraries {
+    offlineMode.set(false)
+    export {
+        excludeFields.addAll("generated")
+    }
 }
 
 android {
@@ -91,6 +99,8 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
+            keepDebugSymbols.add("**/libandroidx.graphics.path.so")
+            keepDebugSymbols.add("**/libdatastore_shared_counter.so")
         }
         resources {
             excludes.add("/META-INF/{AL2.0,LGPL2.1}")

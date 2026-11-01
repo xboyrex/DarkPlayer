@@ -12,17 +12,6 @@ plugins {
     alias(libs.plugins.ksp) apply false
 }
 
-subprojects {
-    apply(plugin = rootProject.libs.plugins.aboutLibraries.get().pluginId)
-
-    configure<com.mikepenz.aboutlibraries.plugin.AboutLibrariesExtension> {
-        offlineMode.set(true)
-        export {
-            excludeFields.addAll("generated")
-        }
-    }
-}
-
 allprojects {
     tasks.withType<Test>().configureEach {
         testLogging {
