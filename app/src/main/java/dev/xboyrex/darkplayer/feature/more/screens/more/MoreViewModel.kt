@@ -7,7 +7,6 @@ import dev.xboyrex.darkplayer.core.model.ApplicationPreferences
 import dev.xboyrex.darkplayer.core.model.Video
 import dev.xboyrex.darkplayer.core.ui.base.DataState
 import dev.xboyrex.darkplayer.core.ui.base.MviViewModel
-import dev.xboyrex.darkplayer.navigation.GlassQuality
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,7 +38,6 @@ class MoreViewModel(
         }
         viewModelScope.launch {
             preferencesRepository.applicationPreferences.collect { preferences ->
-                GlassQuality.userEnabled = preferences.useLiquidGlass
                 stateInternal.update { it.copy(preferences = preferences) }
             }
         }
@@ -52,15 +50,6 @@ class MoreViewModel(
             is MoreAction.OpenSettings -> output.openSettings()
             is MoreAction.OpenTrash -> output.openTrash()
             is MoreAction.OpenVault -> output.openVault()
-            is MoreAction.ToggleLiquidGlass -> {
-                val next = !GlassQuality.userEnabled
-                GlassQuality.userEnabled = next
-                viewModelScope.launch {
-                    preferencesRepository.updateApplicationPreferences {
-                        it.copy(useLiquidGlass = next)
-                    }
-                }
-            }
         }
     }
 
@@ -84,5 +73,4 @@ sealed interface MoreAction {
     data object OpenSettings : MoreAction
     data object OpenTrash : MoreAction
     data object OpenVault : MoreAction
-    data object ToggleLiquidGlass : MoreAction
 }

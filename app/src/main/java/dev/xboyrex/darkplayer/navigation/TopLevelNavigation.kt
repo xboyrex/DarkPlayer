@@ -3,7 +3,6 @@ package dev.xboyrex.darkplayer.navigation
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -56,7 +55,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -90,12 +88,12 @@ import dev.xboyrex.darkplayer.core.ui.components.TopLevelFabState
 import dev.xboyrex.darkplayer.core.ui.components.thenIf
 import dev.xboyrex.darkplayer.core.ui.components.tvFocusRing
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
+import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
+import dev.xboyrex.darkplayer.core.ui.glass.Motion
 import dev.xboyrex.darkplayer.feature.more.navigation.MoreRoute
 import dev.xboyrex.darkplayer.feature.network.navigation.NetworkRoute
 import dev.xboyrex.darkplayer.feature.playlist.navigation.PlaylistListRoute
 import dev.xboyrex.darkplayer.feature.videopicker.navigation.MediaPickerRoute
-
-internal val YtxEmphasizedEasing = CubicBezierEasing(0.2f, 0.9f, 0.2f, 1f)
 
 enum class TopLevelDestination(
     val route: NavKey,
@@ -245,20 +243,20 @@ internal fun TopLevelNavState.navigationTransition(
         return (
             fadeIn(
                 animationSpec = tween(
-                    durationMillis = 220,
-                    easing = YtxEmphasizedEasing,
+                    durationMillis = Motion.PageEnterMs,
+                    easing = Motion.Emphasized,
                 ),
             ) + slideInVertically(
                 animationSpec = tween(
-                    durationMillis = 280,
-                    easing = YtxEmphasizedEasing,
+                    durationMillis = Motion.PageRiseMs,
+                    easing = Motion.Emphasized,
                 ),
                 initialOffsetY = { (it / 35).coerceIn(8, 24) },
             )
             ) togetherWith
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 90,
+                    durationMillis = Motion.PageExitMs,
                 ),
             )
     }
@@ -271,7 +269,7 @@ internal fun TopLevelNavState.navigationTransition(
             initialOffsetX = { if (isPop) -(it * 0.28f).toInt() else it },
             animationSpec = tween(
                 durationMillis = 280,
-                easing = YtxEmphasizedEasing,
+                easing = Motion.Emphasized,
             ),
         ) + fadeIn(tween(120))
         ) togetherWith (
@@ -279,7 +277,7 @@ internal fun TopLevelNavState.navigationTransition(
             targetOffsetX = { if (isPop) it else -(it * 0.28f).toInt() },
             animationSpec = tween(
                 durationMillis = 240,
-                easing = YtxEmphasizedEasing,
+                easing = Motion.Emphasized,
             ),
         ) + fadeOut(tween(180))
         )
@@ -295,7 +293,9 @@ fun NextNavigationBar(
     backdrop: Backdrop = rememberLayerBackdrop(),
 ) {
     val isTv = LocalContext.current.isTelevision
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val bgLum = MaterialTheme.colorScheme.background.luminance()
+    val isLightTheme = bgLum >= 0.5f
+    val isAmoled = bgLum < 0.002f
 
     Box(
         modifier = Modifier
@@ -340,43 +340,39 @@ fun NextNavigationBar(
 
             fabState?.let { fab ->
                 val glassEnabled = GlassQuality.effectsSupported
-                val accentFill = Color(0xFF10131C).copy(alpha = if (isDark) 0.48f else 0.62f)
+                val fabContainerColor = when {
+                    !glassEnabled -> MaterialTheme.colorScheme.primaryContainer
+                    isAmoled -> Color(0xFF000000).copy(alpha = 0.45f)
+                    isLightTheme -> Color(0xFFFAFAFA).copy(alpha = 0.4f)
+                    else -> Color(0xFF121212).copy(alpha = 0.4f)
+                }
+                val fabIconTint = when {
+                    !glassEnabled -> MaterialTheme.colorScheme.onPrimaryContainer
+                    isLightTheme -> Color.Black
+                    else -> Color.White
+                }
                 val fabGlassModifier = if (glassEnabled) {
-                    Modifier
-                        .drawBackdrop(
-                            backdrop = backdrop,
-                            shape = { Capsule() },
-                            effects = {
-                                vibrancy()
-                                blur(12.dp.toPx())
-                                lens(18.dp.toPx(), 24.dp.toPx(), chromaticAberration = true)
-                            },
-                            highlight = { Highlight.Default },
-                            onDrawSurface = {
-                                drawRect(accentFill)
-                                drawRect(Color(0xFFFACC15).copy(alpha = 0.16f))
-                            },
-                        )
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.verticalGradient(
-                                listOf(
-                                    Color(0xFFFACC15).copy(alpha = 0.55f),
-                                    Color.White.copy(alpha = 0.12f),
-                                ),
-                            ),
-                            shape = CircleShape,
-                        )
+                    Modifier.drawBackdrop(
+                        backdrop = backdrop,
+                        shape = { Capsule() },
+                        effects = {
+                            vibrancy()
+                            blur(8f.dp.toPx())
+                            lens(24f.dp.toPx(), 24f.dp.toPx(), chromaticAberration = true)
+                        },
+                        highlight = { Highlight.Default },
+                        onDrawSurface = { drawRect(fabContainerColor) },
+                    )
                 } else {
                     Modifier
                         .clip(CircleShape)
-                        .background(Color(0xFFFACC15))
-                        .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
+                        .background(fabContainerColor)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                 }
 
                 Box(
                     modifier = Modifier
-                        .size(58.dp)
+                        .size(60.dp)
                         .testTag(tag = "top_level_fab")
                         .focusRequester(focusRequester = fabFocusRequester)
                         .tvFocusRing(shape = CircleShape)
@@ -426,8 +422,8 @@ fun NextNavigationBar(
                         Icon(
                             imageVector = fabItem.icon,
                             contentDescription = null,
-                            tint = if (GlassQuality.effectsSupported) Color(0xFFFACC15) else Color(0xFF090D16),
-                            modifier = Modifier.size(26.dp),
+                            tint = fabIconTint,
+                            modifier = Modifier.size(25.dp),
                         )
                     }
                 }

@@ -1,9 +1,11 @@
 package dev.xboyrex.darkplayer.core.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerBasedShape
@@ -48,15 +50,24 @@ fun NextSegmentedListItem(
 
     val focusInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
     val isFocused by focusInteractionSource.collectIsFocusedAsState()
-    val focusScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.01f else 1f,
-        label = "focusScale",
+    val isPressed by focusInteractionSource.collectIsPressedAsState()
+    val interactiveScale by animateFloatAsState(
+        targetValue = when {
+            isPressed -> 0.975f
+            isFocused -> 1.01f
+            else -> 1f
+        },
+        animationSpec = spring(
+            dampingRatio = 0.65f,
+            stiffness = if (isPressed) 850f else 420f,
+        ),
+        label = "interactiveScale",
     )
 
     SegmentedListItem(
         modifier = modifier
             .zIndex(zIndex = if (isFocused) 1f else 0f)
-            .scale(scale = focusScale)
+            .scale(scale = interactiveScale)
             .then(
                 other = if (isFocused) {
                     Modifier.border(

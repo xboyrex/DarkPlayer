@@ -1,50 +1,110 @@
 package dev.xboyrex.darkplayer.feature.player.ui
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.FastForward
+import androidx.compose.material.icons.rounded.FastRewind
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.xboyrex.darkplayer.core.model.DoubleTapGesture
 import dev.xboyrex.darkplayer.core.ui.R
-import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
+import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
+import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
+import dev.xboyrex.darkplayer.core.ui.glass.LocalGlassBackdrop
+import dev.xboyrex.darkplayer.core.ui.glass.Motion
+import dev.xboyrex.darkplayer.core.ui.glass.RollingText
+import dev.xboyrex.darkplayer.core.ui.glass.glassOverlayFill
+import dev.xboyrex.darkplayer.core.ui.glass.glassSpec
+import dev.xboyrex.darkplayer.core.ui.glass.liquidGlass
+import dev.xboyrex.darkplayer.core.ui.glass.rememberReducedMotion
+import dev.xboyrex.darkplayer.core.ui.theme.DarkPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.state.TapGestureState
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.launch
 
 @Composable
 fun DoubleTapIndicator(modifier: Modifier = Modifier, tapGestureState: TapGestureState) {
     if (tapGestureState.seekMillis == 0L) return
+    val isForward = tapGestureState.seekMillis > 0
+    val seconds = abs(tapGestureState.seekMillis.milliseconds.inWholeSeconds).toInt()
+    val backdrop = LocalGlassBackdrop.current
+    val reduced = rememberReducedMotion()
+
+    val squishX = remember { Animatable(1f) }
+    val squishY = remember { Animatable(1f) }
+    val dash = remember { Animatable(0f) }
+    val sparks = remember { Animatable(1f) }
+
+    LaunchedEffect(tapGestureState.seekMillis) {
+        if (reduced) return@LaunchedEffect
+        launch { squishX.animateTo(1f, keyframes { durationMillis = 420; 1.14f at 110; 0.96f at 260 }) }
+        launch { squishY.animateTo(1f, keyframes { durationMillis = 420; 0.88f at 110; 1.04f at 260 }) }
+        launch { dash.animateTo(0f, keyframes { durationMillis = 360; 1f at 110 }) }
+        launch {
+            sparks.snapTo(0f)
+            sparks.animateTo(1f, tween(520, easing = Motion.Emphasized))
+        }
+    }
+
+    val scale by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = spring(dampingRatio = 0.52f, stiffness = 500f),
+        label = "seekBurstScale",
+    )
+    val sparkColor = MaterialTheme.colorScheme.primary
+
     Box(
         modifier = modifier.fillMaxSize(),
-        contentAlignment = if (tapGestureState.seekMillis > 0) {
+        contentAlignment = if (isForward) {
             Alignment.CenterEnd
         } else {
             Alignment.CenterStart
@@ -62,13 +122,13 @@ fun DoubleTapIndicator(modifier: Modifier = Modifier, tapGestureState: TapGestur
                     },
                 )
                 .clip(
-                    shape = if (tapGestureState.seekMillis > 0) {
+                    shape = if (isForward) {
                         RightSideOvalShape()
                     } else {
                         LeftSideOvalShape()
                     },
                 )
-                .background(Color.White.copy(alpha = 0.2f))
+                .background(Color.White.copy(alpha = 0.14f))
                 .indication(
                     tapGestureState.interactionSource,
                     indication = ripple(),
@@ -78,12 +138,85 @@ fun DoubleTapIndicator(modifier: Modifier = Modifier, tapGestureState: TapGestur
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                DoubleTapSeekTriangles(isForward = tapGestureState.seekMillis > 0)
-                Text(
-                    text = "${tapGestureState.seekMillis.milliseconds.inWholeSeconds} seconds",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White,
-                )
+                Row(
+                    modifier = Modifier
+                        .graphicsLayer {
+                            scaleX = scale * squishX.value
+                            scaleY = scale * squishY.value
+                        }
+                        .drawBehind {
+                            val t = sparks.value
+                            if (t >= 1f) return@drawBehind
+                            val reach = size.width / 2f + 16.dp.toPx()
+                            for (i in 0 until 8) {
+                                val a = (i / 8f + 1f / 16f) * 2f * PI.toFloat()
+                                val from = Offset(cos(a) * size.width * 0.36f, sin(a) * 12.dp.toPx())
+                                val to = Offset(cos(a) * reach, sin(a) * reach * 0.62f)
+                                drawCircle(
+                                    color = (if (i % 2 == 0) sparkColor else Color.White).copy(alpha = 1f - t),
+                                    radius = 3.5.dp.toPx() * (1f - 0.65f * t),
+                                    center = center + from + (to - from) * t,
+                                )
+                            }
+                        }
+                        .height(46.dp)
+                        .clip(CircleShape)
+                        .then(
+                            if (backdrop != null && GlassSettings.quality != GlassQuality.Off) {
+                                Modifier.liquidGlass(
+                                    backdrop = backdrop,
+                                    spec = glassSpec(
+                                        shape = CircleShape,
+                                        tint = glassOverlayFill(0.46f),
+                                        blur = 18.dp,
+                                        refractionHeight = 10.dp,
+                                        refractionAmount = 16.dp,
+                                    ),
+                                )
+                            } else {
+                                Modifier
+                                    .background(Color.Black.copy(alpha = 0.48f))
+                                    .border(
+                                        width = 0.8.dp,
+                                        brush = Brush.verticalGradient(
+                                            listOf(
+                                                Color.White.copy(alpha = 0.28f),
+                                                Color.White.copy(alpha = 0.08f),
+                                            ),
+                                        ),
+                                        shape = CircleShape,
+                                    )
+                            },
+                        )
+                        .padding(start = 14.dp, end = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = if (isForward) Icons.Rounded.FastForward else Icons.Rounded.FastRewind,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(26.dp)
+                            .graphicsLayer {
+                                translationX = (if (isForward) 1 else -1) * 6.dp.toPx() * dash.value
+                            },
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = if (isForward) "+" else "−",
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 18.sp,
+                    )
+                    RollingText(
+                        text = "${seconds}s",
+                        color = Color.White,
+                        up = true,
+                        fontSize = 18.sp,
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                DoubleTapSeekTriangles(isForward = isForward)
             }
         }
     }
@@ -209,7 +342,7 @@ private fun DoubleTapArrow(alpha: Float) {
         painter = painterResource(R.drawable.ic_play),
         contentDescription = null,
         modifier = Modifier
-            .size(20.dp)
+            .size(18.dp)
             .graphicsLayer { this.alpha = alpha },
         tint = Color.White,
     )
@@ -218,7 +351,7 @@ private fun DoubleTapArrow(alpha: Float) {
 @Preview
 @Composable
 private fun OvalShapePreview() {
-    NextPlayerTheme {
+    DarkPlayerTheme {
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier

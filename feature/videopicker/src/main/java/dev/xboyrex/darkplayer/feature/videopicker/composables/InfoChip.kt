@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 fun InfoChip(
     text: String,
     modifier: Modifier = Modifier,
-    backgroundColor: Color = Color.White.copy(alpha = 0.08f),
-    contentColor: Color = Color.White.copy(alpha = 0.90f),
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
     shape: Shape = RoundedCornerShape(6.dp),
 ) {
     Text(
@@ -31,7 +31,7 @@ fun InfoChip(
             .background(color = backgroundColor)
             .border(
                 width = 0.6.dp,
-                color = Color.White.copy(alpha = 0.12f),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                 shape = shape,
             )
             .padding(

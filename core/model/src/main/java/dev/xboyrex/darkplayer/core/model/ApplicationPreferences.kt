@@ -10,17 +10,15 @@ data class ApplicationPreferences(
     val useHighContrastDarkTheme: Boolean = true,
     val useDynamicColors: Boolean = false,
     val useLiquidGlass: Boolean = true,
+    val themeAccentSeed: String = "#FACC15",
+    val useSystemFont: Boolean = false,
     val markLastPlayedMedia: Boolean = true,
     val isHistoryPaused: Boolean = false,
     val includeNetworkWatchHistory: Boolean = true,
-    val excludeFolders: List<String> = emptyList(),
+    val newVideoThresholdDays: Int = DEFAULT_NEW_VIDEO_THRESHOLD_DAYS,
     val mediaViewMode: MediaViewMode = MediaViewMode.FOLDERS,
     val mediaLayoutMode: MediaLayoutMode = MediaLayoutMode.LIST,
-
-    // Network browser
-    val networkSortBy: Sort.By = Sort.By.TITLE,
-    val networkSortOrder: Sort.Order = Sort.Order.ASCENDING,
-    val networkMediaLayoutMode: MediaLayoutMode = MediaLayoutMode.LIST,
+    val excludeFolders: List<String> = emptyList(),
 
     // Fields
     val showDurationField: Boolean = true,
@@ -32,7 +30,7 @@ data class ApplicationPreferences(
     val showThumbnailField: Boolean = true,
     val showPlayedProgress: Boolean = true,
 
-    val newVideoThresholdDays: Int = 7,
+    val isVaultBiometricUnlocked: Boolean = false,
 
     // Thumbnail generation
     val thumbnailGenerationStrategy: ThumbnailGenerationStrategy =
@@ -41,6 +39,7 @@ data class ApplicationPreferences(
 ) {
 
     companion object {
+        const val DEFAULT_NEW_VIDEO_THRESHOLD_DAYS = 7
         const val DEFAULT_THUMBNAIL_FRAME_POSITION = 0.33f
     }
 }

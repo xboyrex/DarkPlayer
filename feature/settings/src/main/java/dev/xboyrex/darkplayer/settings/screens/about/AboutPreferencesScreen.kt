@@ -114,7 +114,7 @@ private fun AboutPreferencesScreenContent(
             EcosystemPortal(
                 iconRes = R.drawable.ic_portal_code,
                 vectorIcon = null,
-                title = "Mayank (@xboyrex) GitHub",
+                title = "ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (@xboyrex)",
                 subtitle = "github.com/xboyrex",
                 url = "https://github.com/xboyrex",
                 accent = Color(0xFF38BDF8),
@@ -122,50 +122,50 @@ private fun AboutPreferencesScreenContent(
             EcosystemPortal(
                 iconRes = R.drawable.ic_telegram,
                 vectorIcon = null,
-                title = "Telegram Channel & Updates",
-                subtitle = "t.me/RoranoaxZORO",
-                url = "https://t.me/RoranoaxZORO",
+                title = "Mayank Droid Telegram",
+                subtitle = "t.me/MayankDroid7",
+                url = "https://t.me/MayankDroid7",
                 accent = Color(0xFF38BDF8),
+            ),
+            EcosystemPortal(
+                iconRes = R.drawable.ic_telegram,
+                vectorIcon = null,
+                title = "Onyx Hub Telegram",
+                subtitle = "t.me/OnyxHub7",
+                url = "https://t.me/OnyxHub7",
+                accent = Color(0xFF06B6D4),
+            ),
+            EcosystemPortal(
+                iconRes = null,
+                vectorIcon = NextIcons.Player,
+                title = "Mayank Droid YouTube",
+                subtitle = "youtube.com/@mayankdroid",
+                url = "https://youtube.com/@mayankdroid",
+                accent = Color(0xFFEF4444),
+            ),
+            EcosystemPortal(
+                iconRes = null,
+                vectorIcon = NextIcons.Video,
+                title = "Onyx Droid YouTube",
+                subtitle = "youtube.com/@onyxdroid89",
+                url = "https://youtube.com/@onyxdroid89",
+                accent = Color(0xFFF97316),
             ),
             EcosystemPortal(
                 iconRes = R.drawable.ic_portal_web,
                 vectorIcon = null,
-                title = "Mayank Droid",
-                subtitle = "mayank-droid.pages.dev",
-                url = "https://mayank-droid.pages.dev",
-                accent = Color(0xFF10B981),
-            ),
-            EcosystemPortal(
-                iconRes = null,
-                vectorIcon = NextIcons.Decoder,
-                title = "Onyx Services",
-                subtitle = "onyx-services.pages.dev",
-                url = "https://onyx-services.pages.dev",
-                accent = Color(0xFF38BDF8),
+                title = "Instagram (@mayank.zx7)",
+                subtitle = "instagram.com/mayank.zx7",
+                url = "https://www.instagram.com/mayank.zx7",
+                accent = Color(0xFFEC4899),
             ),
             EcosystemPortal(
                 iconRes = R.drawable.ic_portal_hub,
                 vectorIcon = null,
-                title = "Otaku Hub Pro",
-                subtitle = "otaku-hub-pro.pages.dev",
-                url = "https://otaku-hub-pro.pages.dev",
-                accent = Color(0xFF38BDF8),
-            ),
-            EcosystemPortal(
-                iconRes = null,
-                vectorIcon = NextIcons.Work,
-                title = "Portfolio HBO",
-                subtitle = "portfolio-hbo.pages.dev",
-                url = "https://portfolio-hbo.pages.dev",
-                accent = Color(0xFF3B82F6),
-            ),
-            EcosystemPortal(
-                iconRes = R.drawable.ic_portal_shield,
-                vectorIcon = null,
-                title = "Mi Unlock Portal",
-                subtitle = "mi-unlock.pages.dev",
-                url = "https://mi-unlock.pages.dev",
-                accent = Color(0xFF06B6D4),
+                title = "Developer Contact Email",
+                subtitle = "xboyrex496@gmail.com",
+                url = "mailto:xboyrex496@gmail.com",
+                accent = Color(0xFF10B981),
             ),
         )
     }
@@ -210,7 +210,7 @@ private fun AboutPreferencesScreenContent(
                 },
                 onLibrariesClick = { onAction(AboutPreferencesAction.OpenLibraries) },
             )
-            ListSectionTitle(text = "DEVELOPER & ECOSYSTEM")
+            ListSectionTitle(text = "DEVELOPER & OFFICIAL LINKS")
             Column(
                 verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
             ) {
@@ -281,7 +281,8 @@ fun AboutApp(
     onGithubClick: () -> Unit,
     onLibrariesClick: () -> Unit,
 ) {
-    val transition = rememberInfiniteTransition()
+    val c = MaterialTheme.colorScheme
+    val transition = rememberInfiniteTransition(label = "aboutGradient")
     val fraction by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
@@ -289,6 +290,7 @@ fun AboutApp(
             animation = tween(durationMillis = 5000),
             repeatMode = RepeatMode.Reverse,
         ),
+        label = "aboutFraction",
     )
     val cornerRadius = 24.dp
 
@@ -299,9 +301,9 @@ fun AboutApp(
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFF0A84FF).copy(alpha = 0.24f),
-                        Color.White.copy(alpha = 0.08f),
-                        MaterialTheme.colorScheme.surfaceContainerHigh,
+                        c.primary.copy(alpha = 0.22f),
+                        c.surfaceContainerHigh,
+                        c.surfaceContainerHighest,
                     ),
                     start = Offset(
                         x = fraction * 900f,
@@ -315,7 +317,7 @@ fun AboutApp(
             )
             .border(
                 width = 1.dp,
-                color = Color(0xFF0A84FF).copy(alpha = 0.35f),
+                color = c.primary.copy(alpha = 0.35f),
                 shape = RoundedCornerShape(cornerRadius),
             )
             .padding(all = 20.dp)
@@ -339,7 +341,7 @@ fun AboutApp(
                     text = stringResource(id = R.string.app_name),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = c.onSurface,
                 )
 
                 Row(
@@ -349,7 +351,7 @@ fun AboutApp(
                     Text(
                         text = appVersion,
                         style = MaterialTheme.typography.titleSmall,
-                        color = Color(0xFF0A84FF),
+                        color = c.primary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                     )
@@ -360,15 +362,15 @@ fun AboutApp(
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = c.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Text(
-                    text = "Mayank · @xboyrex · Open Source Media Engine",
+                    text = "Android Modding · Web / App Developer (@xboyrex)",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = c.onSurfaceVariant,
                 )
             }
         }
@@ -380,8 +382,8 @@ fun AboutApp(
             Button(
                 onClick = onLibrariesClick,
                 colors = ButtonDefaults.buttonColors(
-                    contentColor = Color.White,
-                    containerColor = Color(0xFF0A84FF),
+                    contentColor = c.onPrimary,
+                    containerColor = c.primary,
                 ),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
@@ -403,8 +405,8 @@ fun AboutApp(
             Button(
                 onClick = onGithubClick,
                 colors = ButtonDefaults.buttonColors(
-                    contentColor = Color.White,
-                    containerColor = Color.White.copy(alpha = 0.14f),
+                    contentColor = c.onSurface,
+                    containerColor = c.surfaceContainerHighest,
                 ),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier

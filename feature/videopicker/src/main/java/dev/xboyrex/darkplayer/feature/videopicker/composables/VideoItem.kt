@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
@@ -123,9 +124,17 @@ fun VideoListItem(
         selected = selected,
         contentPadding = PaddingValues(8.dp),
         colors = ListItemDefaults.segmentedColors(
-            contentColor = Color.White,
-            supportingContentColor = Color.White.copy(alpha = 0.64f),
-            selectedContainerColor = Color.White.copy(alpha = 0.14f),
+            contentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            supportingContentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
         ),
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
@@ -185,8 +194,8 @@ fun VideoListItem(
                             if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
                                 InfoChip(
                                     text = "RESUME",
-                                    backgroundColor = Color(0xFF38BDF8).copy(alpha = 0.18f),
-                                    contentColor = Color(0xFF7DD3FC),
+                                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                 )
                             }
                         }
@@ -218,9 +227,17 @@ fun VideoGridItem(
         selected = selected,
         contentPadding = PaddingValues(8.dp),
         colors = ListItemDefaults.segmentedColors(
-            contentColor = Color.White,
-            supportingContentColor = Color.White.copy(alpha = 0.64f),
-            selectedContainerColor = Color.White.copy(alpha = 0.14f),
+            contentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            supportingContentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
         ),
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
@@ -245,7 +262,11 @@ fun VideoGridItem(
                     style = textStyle.copy(lineBreak = LineBreak.Heading),
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
-                    color = Color.White,
+                    color = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                 )
             }
         },
@@ -286,7 +307,7 @@ private fun ThumbnailView(
     }
     Box(
         modifier = modifier
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
             .aspectRatio(ratio = 16f / 10f),
     ) {
@@ -319,7 +340,7 @@ private fun ThumbnailView(
                 modifier = Modifier
                     .padding(5.dp)
                     .align(Alignment.BottomEnd),
-                backgroundColor = Color.Black.copy(alpha = 0.6f),
+                backgroundColor = Color.Black.copy(alpha = 0.72f),
                 contentColor = Color.White,
                 shape = MaterialTheme.shapes.extraSmall,
             )
@@ -331,7 +352,7 @@ private fun ThumbnailView(
                 modifier = Modifier
                     .padding(5.dp)
                     .align(Alignment.TopStart),
-                backgroundColor = Color(0xFF0A0E17).copy(alpha = 0.72f),
+                backgroundColor = Color(0xFF0A0E17).copy(alpha = 0.78f),
                 contentColor = Color.White,
                 shape = MaterialTheme.shapes.extraSmall,
             )

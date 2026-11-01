@@ -3,6 +3,7 @@ package dev.xboyrex.darkplayer.feature.player
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -33,11 +34,11 @@ import androidx.media3.ui.compose.state.rememberProgressStateWithTickInterval
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.ui.components.requestFocusUntilLanded
 import dev.xboyrex.darkplayer.core.ui.components.thenIf
+import dev.xboyrex.darkplayer.core.ui.glass.Motion
 import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
 import dev.xboyrex.darkplayer.feature.player.state.SeekGestureState
 import dev.xboyrex.darkplayer.feature.player.state.TapGestureState
 import dev.xboyrex.darkplayer.feature.player.state.VideoZoomAndContentScaleState
-import dev.xboyrex.darkplayer.feature.player.state.VolumeState
 import dev.xboyrex.darkplayer.feature.player.state.rememberChaptersState
 import dev.xboyrex.darkplayer.feature.player.state.rememberMediaPresentationState
 import dev.xboyrex.darkplayer.feature.player.state.rememberMetadataState
@@ -59,7 +60,7 @@ internal fun MediaPlayerControls(
     tapGestureState: TapGestureState,
     seekGestureState: SeekGestureState,
     videoZoomAndContentScaleState: VideoZoomAndContentScaleState,
-    volumeState: VolumeState? = null,
+    dpadUpDown: Int? = null,
     isPipSupported: Boolean,
     onPictureInPictureClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -76,6 +77,7 @@ internal fun MediaPlayerControls(
         player = player,
         controls = controlsVisibilityState,
         seekIncrementMs = playerPreferences.seekIncrement.seconds.inWholeMilliseconds,
+        dpadUpDown = dpadUpDown,
     )
     var overlayView by remember { mutableStateOf<OverlayView?>(value = null) }
     LaunchedEffect(metadataState.mediaId) {
@@ -136,13 +138,13 @@ internal fun MediaPlayerControls(
                 visible =
                     controlsVisibilityState.controlsVisible &&
                         !controlsVisibilityState.controlsLocked,
-                enter = fadeIn(),
-                exit = fadeOut(),
+                enter = fadeIn(tween(220, easing = Motion.Emphasized)),
+                exit = fadeOut(tween(180, easing = Motion.Emphasized)),
             ) {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f)),
+                        .background(Color.Black.copy(alpha = 0.32f)),
                 )
             }
             if (mediaPresentationState.isBuffering) {
@@ -196,7 +198,6 @@ internal fun MediaPlayerControls(
                 overlayView = overlayView,
                 chapters = chaptersState.chapters,
                 currentChapterIndex = chaptersState.currentChapterIndex,
-                volumeState = volumeState,
                 onChapterSelected = { chapter ->
                     if (player.isCurrentMediaItemSeekable) {
                         player.seekTo(chapter.startTimeMs)

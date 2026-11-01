@@ -1,7 +1,9 @@
 package dev.xboyrex.darkplayer.feature.player
 
 import android.annotation.SuppressLint
+import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -20,38 +22,47 @@ import androidx.core.util.Consumer
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
+import androidx.media3.session.SessionResult
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
 import dev.xboyrex.darkplayer.core.common.extensions.getInitialDirectoryUri
 import dev.xboyrex.darkplayer.core.common.extensions.getMediaContentUri
 import dev.xboyrex.darkplayer.core.common.service.registerForSuspendActivityResult
 import dev.xboyrex.darkplayer.core.data.repository.PlaylistRepository
 import dev.xboyrex.darkplayer.core.ui.R as coreUiR
-import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
+import dev.xboyrex.darkplayer.core.ui.theme.DarkPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.extensions.OpenDocumentAtInitialUri
-import dev.xboyrex.darkplayer.feature.player.extensions.setExtras
 import dev.xboyrex.darkplayer.feature.player.extensions.uriToSubtitleConfiguration
+import dev.xboyrex.darkplayer.feature.player.service.CustomCommands
+import dev.xboyrex.darkplayer.feature.player.service.PlayerService
 import dev.xboyrex.darkplayer.feature.player.service.addAudioTrack
 import dev.xboyrex.darkplayer.feature.player.service.addSubtitleTrack
 import dev.xboyrex.darkplayer.feature.player.service.decoderServiceState
+import dev.xboyrex.darkplayer.feature.player.service.retainPlaybackUriPermissions
 import dev.xboyrex.darkplayer.feature.player.service.setAudioDecoderMode
 import dev.xboyrex.darkplayer.feature.player.service.setVideoDecoderMode
+import dev.xboyrex.darkplayer.feature.player.service.startBackgroundPlayback
 import dev.xboyrex.darkplayer.feature.player.service.stopPlayerSession
 import dev.xboyrex.darkplayer.feature.player.service.tryDecoderFallback
 import dev.xboyrex.darkplayer.feature.player.state.rememberMediaController
 import dev.xboyrex.darkplayer.feature.player.utils.DisplaySyncEngine
 import dev.xboyrex.darkplayer.feature.player.utils.PlayerApi
 import dev.xboyrex.darkplayer.feature.player.utils.PlaylistPlaybackContract
-import dev.xboyrex.darkplayer.feature.player.utils.asExplicitPlaylistItem
 import dev.xboyrex.darkplayer.feature.player.utils.toMediaQueue
+import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
@@ -78,23 +89,48 @@ class PlayerActivity : ComponentActivity() {
         CopyOnWriteArrayList<Consumer<WindowManager.LayoutParams?>>()
 
     private var isPlaybackFinished = false
+    private var hasPlaybackStarted = false
+    private var playbackFailed = false
+    private var lastDuration = C.TIME_UNSET
+    private var lastPosition = C.TIME_UNSET
+    private var lastMediaUri: Uri? = null
+    private var lastDecoder: DecoderMode? = null
     private var playInBackground: Boolean = false
     private var isIntentNew: Boolean = true
+    private var backgroundLaunchAccepted = false
+    private var activityCreated = false
+    private var backgroundControllerFuture: ListenableFuture<MediaController>? = null
 
-    private var mediaController by mutableStateOf<MediaController?>(value = null)
-    private lateinit var playerApi: PlayerApi
+    private var mediaController by mutableStateOf<MediaController?>(null)
+    private var playerApi by mutableStateOf(PlayerApi(Intent()))
     private var playbackRequestJob: Job? = null
 
     private val playbackStateListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             intent.data = mediaItem?.localConfiguration?.uri
+            isPlaybackFinished = false
+            playbackFailed = false
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             updateKeepScreenOnFlag()
         }
 
+        override fun onPlayerError(error: PlaybackException) {
+            playbackFailed = true
+            if (playerApi.suppressErrorMessage) {
+                val controller = mediaController ?: return
+                if (controller.hasNextMediaItem()) {
+                    controller.seekToNextMediaItem()
+                    controller.prepare()
+                } else {
+                    finishAndStopPlayerSession()
+                }
+            }
+        }
+
         override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_READY) hasPlaybackStarted = true
             if (playbackState == Player.STATE_ENDED) {
                 isPlaybackFinished = mediaController?.playbackState == Player.STATE_ENDED
                 finishAndStopPlayerSession()
@@ -118,11 +154,34 @@ class PlayerActivity : ComponentActivity() {
         registerForSuspendActivityResult(contract = OpenDocumentAtInitialUri())
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val request = PlayerApi(intent)
+        if (request.launchInBackground) setTheme(R.style.DarkPlayer_Background)
         super.onCreate(savedInstanceState)
+        activityCreated = true
+        playerApi = request
+        if (request.launchInBackground && intent.data == null) {
+            playbackFailed = true
+            finish()
+            return
+        }
         isIntentNew = savedInstanceState?.getBoolean(
             "isIntentNew",
             true,
         ) ?: true
+        hasPlaybackStarted = savedInstanceState?.getBoolean("hasPlaybackStarted") ?: false
+        playbackFailed = savedInstanceState?.getBoolean("playbackFailed") ?: false
+        lastDuration = savedInstanceState?.getLong(
+            "lastDuration",
+            C.TIME_UNSET,
+        ) ?: C.TIME_UNSET
+        lastPosition = savedInstanceState?.getLong(
+            "lastPosition",
+            C.TIME_UNSET,
+        ) ?: C.TIME_UNSET
+        lastMediaUri = savedInstanceState?.getString("lastMediaUri")?.let(Uri::parse)
+        lastDecoder = savedInstanceState?.getString("lastDecoder")?.let { name ->
+            DecoderMode.entries.find { it.name == name }
+        }
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
@@ -130,7 +189,11 @@ class PlayerActivity : ComponentActivity() {
 
         viewModel.output = playerOutput()
         DisplaySyncEngine.enableHighRefreshWindow(this)
-        playerApi = PlayerApi(activity = this)
+        playerApi = PlayerApi(intent)
+        if (playerApi.launchInBackground) {
+            connectBackgroundController()
+            return
+        }
         setContent {
             val player = rememberMediaController(
                 onBeforeRelease = ::onControllerStopped,
@@ -148,18 +211,54 @@ class PlayerActivity : ComponentActivity() {
                         player.sessionExtras.decoderServiceState(),
                     ),
                 )
-                player.addListener(playbackStateListener)
+                if (!playerApi.launchInBackground) player.addListener(playbackStateListener)
                 updateKeepScreenOnFlag()
                 startPlayback()
             }
 
-            NextPlayerTheme(darkTheme = true) {
-                MediaPlayerScreen(
-                    viewModel = viewModel,
-                    player = player,
-                )
+            if (!playerApi.launchInBackground) {
+                DarkPlayerTheme(darkTheme = true) {
+                    MediaPlayerScreen(
+                        viewModel = viewModel,
+                        player = player,
+                        api = playerApi,
+                    )
+                }
             }
         }
+    }
+
+    private fun connectBackgroundController() {
+        val future = MediaController.Builder(
+            applicationContext,
+            SessionToken(
+                applicationContext,
+                ComponentName(
+                    applicationContext,
+                    PlayerService::class.java,
+                ),
+            ),
+        ).buildAsync()
+        backgroundControllerFuture = future
+        lifecycleScope.launch {
+            try {
+                mediaController = future.await()
+                startPlayback()
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                playbackFailed = true
+                finish()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        backgroundControllerFuture?.let {
+            MediaController.releaseFuture(it)
+            mediaController = null
+        }
+        backgroundControllerFuture = null
+        super.onDestroy()
     }
 
     private fun playerOutput() = PlayerViewModel.Output(
@@ -244,9 +343,14 @@ class PlayerActivity : ComponentActivity() {
     private fun onControllerStopped() {
         playbackRequestJob?.cancel()
         mediaController?.run {
-            viewModel.onAction(PlayerAction.UpdatePlayWhenReady(playWhenReady = playWhenReady))
+            lastDuration = duration
+            lastPosition = currentPosition
+            lastMediaUri = currentMediaItem?.localConfiguration?.uri
+            lastDecoder = sessionExtras.decoderServiceState().videoMode
+            viewModel.onAction(PlayerAction.UpdatePlayWhenReady(playWhenReady))
             removeListener(playbackStateListener)
-            val shouldPlayInBackground = playInBackground || playerPreferences.autoBackgroundPlay
+            val shouldPlayInBackground =
+                playInBackground || (playerApi.sticky ?: playerPreferences.autoBackgroundPlay)
             if (subtitleFileSuspendLauncher.isAwaitingResult ||
                 audioFileSuspendLauncher.isAwaitingResult ||
                 !shouldPlayInBackground
@@ -276,8 +380,9 @@ class PlayerActivity : ComponentActivity() {
 
         val returningFromBackground = !isIntentNew
         val currentUri = controller.currentMediaItem?.localConfiguration?.uri
-        val hasExplicitPlaylist = intent.hasExtra(PlayerApi.API_PLAYLIST) ||
-            intent.hasExtra(PlaylistPlaybackContract.EXTRA_PLAYLIST_ID)
+        val hasExplicitPlaylist =
+            playerApi.isApiAccess || intent.hasExtra(PlayerApi.API_PLAYLIST) ||
+                intent.hasExtra(PlaylistPlaybackContract.EXTRA_PLAYLIST_ID)
         isIntentNew = false
 
         if (shouldResumeExistingPlayback(
@@ -302,6 +407,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private suspend fun playVideo(uri: Uri, playlistId: Long?) = withContext(Dispatchers.Default) {
+        val request = playerApi
         val savedQueue = playlistId
             ?.let { playlistRepository.getPlaylist(playlistId = it) }
             ?.toMediaQueue(selectedUri = uri.toString())
@@ -316,21 +422,18 @@ class PlayerActivity : ComponentActivity() {
             val startIndex = savedQueue?.startIndex ?: 0
             ensureActive()
             withContext(Dispatchers.Main) {
-                mediaController?.run {
-                    setMediaItems(
-                        mediaItems,
-                        startIndex,
-                        C.TIME_UNSET,
-                    )
-                    playWhenReady = viewModel.state.value.playWhenReady
-                    prepare()
-                }
+                startQueue(
+                    request,
+                    mediaItems,
+                    startIndex,
+                    C.TIME_UNSET,
+                )
             }
             return@withContext
         }
 
-        val mediaContentUri = getMediaContentUri(uri = uri)
-        val explicitPlaylist = playerApi.getPlaylist()
+        val mediaContentUri = if (request.isApiAccess) null else getMediaContentUri(uri)
+        val explicitPlaylist = request.getPlaylist()
         val playlist = explicitPlaylist.takeIf { it.isNotEmpty() }
             ?: mediaContentUri?.let { mediaUri ->
                 viewModel.getPlaylistFromUri(uri = mediaUri)
@@ -350,42 +453,93 @@ class PlayerActivity : ComponentActivity() {
             it == (mediaContentUri ?: uri).toString()
         }.takeIf { it >= 0 } ?: 0
 
-        val mediaItems = playlist.mapIndexed { index, uri ->
-            MediaItem.Builder().apply {
-                setUri(uri)
-                setMediaId(uri)
-                if (index == mediaItemIndexToPlay) {
-                    setMediaMetadata(
-                        MediaMetadata.Builder().apply {
-                            setTitle(playerApi.title)
-                            setExtras(positionMs = playerApi.position?.toLong())
-                        }.build(),
-                    )
-                    val apiSubs = playerApi.getSubs().map { subtitle ->
-                        uriToSubtitleConfiguration(
-                            uri = subtitle.uri,
-                            subtitleEncoding = playerPreferences.subtitleTextEncoding,
-                            isSelected = subtitle.isSelected,
-                        )
-                    }
-                    setSubtitleConfigurations(apiSubs)
-                }
-            }.build().let { item ->
-                if (explicitPlaylist.isNotEmpty()) item.asExplicitPlaylistItem() else item
-            }
+        val apiSubs = request.getSubs().map { subtitle ->
+            uriToSubtitleConfiguration(
+                uri = subtitle.uri,
+                subtitleEncoding = playerPreferences.subtitleTextEncoding,
+                isSelected = subtitle.isSelected,
+                label = subtitle.name,
+                filename = subtitle.filename,
+                useMediaSourceForNetwork = true,
+            )
         }
+        val mediaItems = request.createMediaItems(
+            playlist,
+            mediaItemIndexToPlay,
+            apiSubs,
+        )
+        ensureActive()
 
         withContext(Dispatchers.Main) {
-            mediaController?.run {
-                setMediaItems(
-                    mediaItems,
-                    mediaItemIndexToPlay,
-                    playerApi.position?.toLong() ?: C.TIME_UNSET,
-                )
-                playWhenReady = viewModel.state.value.playWhenReady
-                prepare()
-            }
+            startQueue(
+                request,
+                mediaItems,
+                mediaItemIndexToPlay,
+                request.position?.toLong() ?: C.TIME_UNSET,
+            )
         }
+    }
+
+    private suspend fun startQueue(
+        request: PlayerApi,
+        items: List<MediaItem>,
+        index: Int,
+        position: Long,
+    ) {
+        val controller = mediaController ?: return
+        if (!request.launchInBackground) {
+            controller.setMediaItems(
+                items,
+                index,
+                position,
+            )
+            request.applyPlaybackSpeed(controller)
+            controller.playWhenReady = viewModel.state.value.playWhenReady
+            controller.prepare()
+            return
+        }
+        // This explicit background launch must survive activity release even when sticky=false.
+        playInBackground = true
+        try {
+            val result = controller.startBackgroundPlayback(
+                items,
+                index,
+                position,
+                request.playbackSpeed,
+            )
+            currentCoroutineContext().ensureActive()
+            if (request !== playerApi) return
+            if (result.resultCode == SessionResult.RESULT_SUCCESS) {
+                try {
+                    retainPlaybackUriPermissions(
+                        intent,
+                        items,
+                    )
+                } catch (error: Exception) {
+                    controller.stopPlayerSession()
+                    throw error
+                }
+                backgroundLaunchAccepted = true
+                playbackFailed = false
+                lastMediaUri = result.extras.getString(
+                    CustomCommands.BACKGROUND_MEDIA_URI_KEY,
+                )?.let(Uri::parse)
+                lastPosition = result.extras.getLong(
+                    CustomCommands.BACKGROUND_POSITION_KEY,
+                    C.TIME_UNSET,
+                )
+                lastDuration = result.extras.getLong(
+                    CustomCommands.BACKGROUND_DURATION_KEY,
+                    C.TIME_UNSET,
+                )
+            } else {
+                playbackFailed = true
+            }
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            playbackFailed = true
+        }
+        finish()
     }
 
     private fun Intent.playlistIdOrNull(): Long? = getLongExtra(
@@ -397,11 +551,40 @@ class PlayerActivity : ComponentActivity() {
         if (playerApi.shouldReturnResult) {
             val result = playerApi.getResult(
                 isPlaybackFinished = isPlaybackFinished,
-                duration = mediaController?.duration ?: C.TIME_UNSET,
-                position = mediaController?.currentPosition ?: C.TIME_UNSET,
+                duration = if (playerApi.launchInBackground) {
+                    lastDuration
+                } else {
+                    mediaController?.duration
+                        ?: lastDuration
+                },
+                position = if (playerApi.launchInBackground) {
+                    lastPosition
+                } else {
+                    mediaController?.currentPosition
+                        ?: lastPosition
+                },
+                uri = if (playerApi.launchInBackground) {
+                    lastMediaUri ?: intent.data
+                } else {
+                    mediaController?.currentMediaItem?.localConfiguration?.uri ?: lastMediaUri
+                        ?: intent.data
+                },
+                usedDecoder =
+                    if (playerApi.launchInBackground) {
+                        null
+                    } else {
+                        mediaController?.sessionExtras?.decoderServiceState()?.videoMode
+                            ?: lastDecoder
+                    },
             )
             setResult(
-                RESULT_OK,
+                when {
+                    playbackFailed -> RESULT_FIRST_USER
+                    backgroundLaunchAccepted -> RESULT_OK
+                    mediaController?.playerError != null -> RESULT_FIRST_USER
+                    hasPlaybackStarted || isPlaybackFinished -> RESULT_OK
+                    else -> RESULT_CANCELED
+                },
                 result,
             )
         }
@@ -411,9 +594,27 @@ class PlayerActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (intent.data != null) {
+            val previousBackgroundMode = playerApi.launchInBackground
+            playbackRequestJob?.cancel()
             setIntent(intent)
+            playerApi = PlayerApi(intent)
+            if (playerApi.launchInBackground) mediaController?.removeListener(playbackStateListener)
+            isPlaybackFinished = false
+            hasPlaybackStarted = false
+            playbackFailed = false
+            lastDuration = C.TIME_UNSET
+            lastPosition = C.TIME_UNSET
+            lastMediaUri = null
+            lastDecoder = null
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            playInBackground = false
+            backgroundLaunchAccepted = false
             isIntentNew = true
-            startPlayback()
+            if (activityCreated && previousBackgroundMode != playerApi.launchInBackground) {
+                recreate()
+            } else {
+                startPlayback()
+            }
         }
     }
 
@@ -422,11 +623,41 @@ class PlayerActivity : ComponentActivity() {
             "isIntentNew",
             isIntentNew,
         )
+        outState.putBoolean(
+            "hasPlaybackStarted",
+            hasPlaybackStarted,
+        )
+        outState.putBoolean(
+            "playbackFailed",
+            playbackFailed,
+        )
+        outState.putLong(
+            "lastDuration",
+            mediaController?.duration ?: lastDuration,
+        )
+        outState.putLong(
+            "lastPosition",
+            mediaController?.currentPosition ?: lastPosition,
+        )
+        outState.putString(
+            "lastMediaUri",
+            (
+                mediaController?.currentMediaItem?.localConfiguration?.uri
+                    ?: lastMediaUri
+                )?.toString(),
+        )
+        outState.putString(
+            "lastDecoder",
+            (
+                mediaController?.sessionExtras?.decoderServiceState()?.videoMode
+                    ?: lastDecoder
+                )?.name,
+        )
         super.onSaveInstanceState(outState)
     }
 
     private fun updateKeepScreenOnFlag() {
-        if (mediaController?.isPlaying == true) {
+        if (!playerApi.launchInBackground && mediaController?.isPlaying == true) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

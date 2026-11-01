@@ -2,8 +2,11 @@ package dev.xboyrex.darkplayer.feature.player
 
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +20,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.state.ProgressStateWithTickInterval
 import dev.xboyrex.darkplayer.core.model.ControlButtonsPosition
 import dev.xboyrex.darkplayer.core.model.PlayerPreferences
+import dev.xboyrex.darkplayer.core.ui.glass.Motion
 import dev.xboyrex.darkplayer.feature.player.extensions.nameRes
 import dev.xboyrex.darkplayer.feature.player.state.ChaptersState
 import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
@@ -59,8 +63,10 @@ fun PlayerControls(
         Column {
             AnimatedVisibility(
                 visible = controlsVisibilityState.controlsVisible,
-                enter = fadeIn(),
-                exit = fadeOut(),
+                enter = fadeIn(tween(220, easing = Motion.Emphasized)) +
+                    slideInVertically(tween(240, easing = Motion.Emphasized)) { -it / 4 },
+                exit = fadeOut(tween(180, easing = Motion.Emphasized)) +
+                    slideOutVertically(tween(200, easing = Motion.Emphasized)) { -it / 4 },
             ) {
                 ControlsTopView(
                     title = title,
@@ -77,8 +83,10 @@ fun PlayerControls(
                 visible =
                     controlsVisibilityState.controlsVisible &&
                         !controlsVisibilityState.controlsLocked,
-                enter = fadeIn(),
-                exit = fadeOut(),
+                enter = fadeIn(tween(220, easing = Motion.Emphasized)) +
+                    slideInVertically(tween(240, easing = Motion.Emphasized)) { it / 4 },
+                exit = fadeOut(tween(180, easing = Motion.Emphasized)) +
+                    slideOutVertically(tween(200, easing = Motion.Emphasized)) { it / 4 },
             ) {
                 ControlsBottomView(
                     player = player,
@@ -98,7 +106,6 @@ fun PlayerControls(
                     onPlaybackSpeedClick = { onShowOverlay(OverlayView.PLAYBACK_SPEED) },
                     onPlayInBackgroundClick = onPlayInBackgroundClick,
                     onSleepTimerClick = { onShowOverlay(OverlayView.SLEEP_TIMER) },
-                    onVolumeBoosterClick = { onShowOverlay(OverlayView.VOLUME_BOOSTER) },
                     onLockControlsClick = {
                         controlsVisibilityState.showControls()
                         controlsVisibilityState.lockControls()

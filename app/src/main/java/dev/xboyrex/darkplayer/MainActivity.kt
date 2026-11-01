@@ -25,22 +25,22 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -66,25 +66,31 @@ import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.common.service.system.SystemService
-import dev.xboyrex.darkplayer.core.media.services.MediaOperationsService
+import dev.xboyrex.darkplayer.core.media.services.MediaService
+import dev.xboyrex.darkplayer.core.media.sync.MediaSynchronizer
 import dev.xboyrex.darkplayer.core.model.ThemeConfig
 import dev.xboyrex.darkplayer.core.ui.components.LocalNavigationBottomPadding
 import dev.xboyrex.darkplayer.core.ui.components.LocalTopLevelBottomBarVisibleSetter
 import dev.xboyrex.darkplayer.core.ui.components.LocalTopLevelFabSetter
 import dev.xboyrex.darkplayer.core.ui.components.TopLevelFabState
 import dev.xboyrex.darkplayer.core.ui.components.thenIf
-import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
-import dev.xboyrex.darkplayer.navigation.GlassQuality
+import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
+import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
+import dev.xboyrex.darkplayer.core.ui.glass.Motion
+import dev.xboyrex.darkplayer.core.ui.theme.DarkPlayerTheme
+import dev.xboyrex.darkplayer.core.ui.theme.ThemeState
+import dev.xboyrex.darkplayer.core.ui.updater.UpdateOverlayDialog
+import dev.xboyrex.darkplayer.core.ui.updater.rememberUpdateState
+import dev.xboyrex.darkplayer.feature.playlist.navigation.PlaylistDetailRoute
 import dev.xboyrex.darkplayer.navigation.NextNavigationBar
 import dev.xboyrex.darkplayer.navigation.NextNavigationRail
 import dev.xboyrex.darkplayer.navigation.TopLevelDestination
 import dev.xboyrex.darkplayer.navigation.TopLevelNavState
-import dev.xboyrex.darkplayer.navigation.YtxEmphasizedEasing
+import dev.xboyrex.darkplayer.navigation.ensureRoot
 import dev.xboyrex.darkplayer.navigation.mediaNavGraph
 import dev.xboyrex.darkplayer.navigation.moreNavGraph
 import dev.xboyrex.darkplayer.navigation.navigationTransition
 import dev.xboyrex.darkplayer.navigation.networkNavGraph
-import dev.xboyrex.darkplayer.navigation.openPlaylist
 import dev.xboyrex.darkplayer.navigation.playlistNavGraph
 import dev.xboyrex.darkplayer.navigation.rememberTopLevelNavState
 import dev.xboyrex.darkplayer.navigation.settingsNavGraph
@@ -93,10 +99,9 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : FragmentActivity() {
 
-    private val mediaOperationsService: MediaOperationsService by inject()
-
+    private val synchronizer: MediaSynchronizer by inject()
+    private val mediaService: MediaService by inject()
     private val systemService: SystemService by inject()
-
     private val viewModel: MainViewModel by viewModel()
 
     private var pendingPlaylistId by mutableStateOf<Long?>(value = null)
@@ -127,25 +132,36 @@ class MainActivity : FragmentActivity() {
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        GlassSettings.init(this)
         GlassQuality.init(this)
         enableHighRefreshRate()
         if (savedInstanceState == null) {
             pendingPlaylistId = PlaylistShortcut.playlistId(intent = intent)
         }
-        systemService.initialize(activity = this@MainActivity)
-        mediaOperationsService.initialize(activity = this@MainActivity)
+        synchronizer.startSync()
+        mediaService.initialize(activity = this)
+        systemService.initialize(activity = this)
 
-        installSplashScreen().setKeepOnScreenCondition {
+        val splashScreen = installSplashScreen()
+        splashScreen.setKeepOnScreenCondition {
             viewModel.state.value is MainActivityUiState.Loading
         }
 
         setContent {
             val state by viewModel.state.collectAsStateWithLifecycle()
             val shouldUseDarkTheme = shouldUseDarkTheme(state = state)
+            val updateState = rememberUpdateState()
+
+            LaunchedEffect(Unit) {
+                updateState.check(context = this@MainActivity, manual = false)
+            }
+
             LaunchedEffect(state) {
                 val currentState = state
                 if (currentState is MainActivityUiState.Success) {
                     GlassQuality.userEnabled = currentState.preferences.useLiquidGlass
+                    ThemeState.accentSeed = currentState.preferences.themeAccentSeed
+                    ThemeState.useSystemFont = currentState.preferences.useSystemFont
                 }
             }
 
@@ -164,122 +180,135 @@ class MainActivity : FragmentActivity() {
                 )
             }
 
-            NextPlayerTheme(
+            DarkPlayerTheme(
                 darkTheme = shouldUseDarkTheme,
                 highContrastDarkTheme = shouldUseHighContrastDarkTheme(state = state),
                 dynamicColor = shouldUseDynamicTheming(state = state),
+                accentSeed = (state as? MainActivityUiState.Success)?.preferences?.themeAccentSeed
+                    ?: ThemeState.accentSeed,
             ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    val navState = rememberTopLevelNavState()
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        val navState = rememberTopLevelNavState()
 
-                    LaunchedEffect(key1 = pendingPlaylistId) {
-                        pendingPlaylistId?.let { playlistId ->
-                            navState.openPlaylist(playlistId = playlistId)
+                        LaunchedEffect(key1 = pendingPlaylistId) {
+                            val playlistId = pendingPlaylistId ?: return@LaunchedEffect
                             pendingPlaylistId = null
+                            val playlistRoute = TopLevelDestination.PLAYLISTS.route
+                            val playlistStack = navState.backStacks.getValue(playlistRoute)
+                            playlistStack.clear()
+                            playlistStack.ensureRoot(playlistRoute)
+                            playlistStack.add(element = PlaylistDetailRoute(playlistId = playlistId))
+                            navState.switchTo(route = playlistRoute)
                         }
-                    }
 
-                    val mediaStack = navState.backStacks.getValue(TopLevelDestination.MEDIA.route)
-                    val playlistStack = navState.backStacks.getValue(
-                        TopLevelDestination.PLAYLISTS.route,
-                    )
-                    val networkStack = navState.backStacks.getValue(
-                        TopLevelDestination.NETWORK.route,
-                    )
-                    val moreStack = navState.backStacks.getValue(TopLevelDestination.MORE.route)
-
-                    val provider = entryProvider {
-                        mediaNavGraph(
-                            context = this@MainActivity,
-                            backStack = mediaStack,
-                        )
-                        playlistNavGraph(
-                            context = this@MainActivity,
-                            backStack = playlistStack,
-                        )
-                        networkNavGraph(
-                            context = this@MainActivity,
-                            backStack = networkStack,
-                        )
-                        moreNavGraph(
-                            context = this@MainActivity,
-                            backStack = moreStack,
-                        )
-                        settingsNavGraph(backStack = navState.currentStack)
-                    }
-
-                    val topLevelFabStates =
-                        remember { mutableStateMapOf<String, TopLevelFabState>() }
-                    var showTopLevelBottomBar by remember { mutableStateOf(value = true) }
-                    NavigationLayout(
-                        state = navState,
-                        fabStates = topLevelFabStates,
-                        showBottomBar = showTopLevelBottomBar,
-                    ) { layoutPaddingValues ->
-                        val railPadding = layoutPaddingValues.calculateStartPadding(
-                            LocalLayoutDirection.current,
-                        )
-                        val navigationInsetsDecorator = remember(
-                            navState,
-                            railPadding,
-                        ) {
-                            NavEntryDecorator<NavKey> { entry ->
-                                Box(
-                                    Modifier.thenIf(
-                                        navState.topLevelContentKeys.contains(entry.contentKey),
-                                    ) {
-                                        padding(start = railPadding)
-                                            .consumeWindowInsets(
-                                                WindowInsets.displayCutout.only(
-                                                    WindowInsetsSides.Start,
-                                                ),
-                                            )
-                                    },
-                                ) { entry.Content() }
-                            }
+                        val showNavigation by remember(navState) {
+                            derivedStateOf { navState.currentStack.size <= 1 }
                         }
+                        val layoutDirection = LocalLayoutDirection.current
+                        val fabStates = remember { mutableStateMapOf<String, TopLevelFabState>() }
+                        var showBottomBar by remember { mutableStateOf(value = true) }
+
                         CompositionLocalProvider(
-                            LocalNavigationBottomPadding provides
-                                layoutPaddingValues.calculateBottomPadding(),
-                            LocalTopLevelBottomBarVisibleSetter provides
-                                { showTopLevelBottomBar = it },
-                            LocalTopLevelFabSetter provides { key, state ->
-                                if (state == null) {
-                                    topLevelFabStates.remove(key = key)
+                            LocalTopLevelFabSetter provides { key, fabState ->
+                                if (fabState != null) {
+                                    fabStates[key] = fabState
                                 } else {
-                                    topLevelFabStates[key] = state
+                                    fabStates.remove(key = key)
                                 }
                             },
+                            LocalTopLevelBottomBarVisibleSetter provides { visible ->
+                                showBottomBar = visible
+                            },
                         ) {
-                            NavDisplay(
-                                entries = navState.rememberEntries(
-                                    entryProvider = provider,
-                                    entryDecorator = navigationInsetsDecorator,
-                                ),
-                                onBack = { navState.goBack() },
-                                transitionSpec = {
-                                    navState.navigationTransition(
-                                        initialState = initialState,
-                                        targetState = targetState,
+                            NavigationLayout(
+                                state = navState,
+                                fabStates = fabStates,
+                                showNavigation = showNavigation,
+                                showBottomBar = showBottomBar,
+                            ) { contentPadding ->
+                                val railPadding = contentPadding.calculateStartPadding(
+                                    layoutDirection = layoutDirection,
+                                )
+                                val bottomPadding = contentPadding.calculateBottomPadding()
+                                val navEntryDecorator = remember(
+                                    navState,
+                                    railPadding,
+                                ) {
+                                    NavEntryDecorator<NavKey> { entry ->
+                                        Box(
+                                            Modifier.thenIf(
+                                                navState.topLevelContentKeys.contains(entry.contentKey),
+                                            ) {
+                                                padding(start = railPadding)
+                                            },
+                                        ) {
+                                            entry.Content()
+                                        }
+                                    }
+                                }
+                                CompositionLocalProvider(
+                                    value = LocalNavigationBottomPadding provides bottomPadding,
+                                ) {
+                                    NavDisplay(
+                                        entries = navState.rememberEntries(
+                                            entryDecorator = navEntryDecorator,
+                                            entryProvider = entryProvider {
+                                                mediaNavGraph(
+                                                    context = this@MainActivity,
+                                                    backStack = navState.currentStack,
+                                                )
+                                                playlistNavGraph(
+                                                    context = this@MainActivity,
+                                                    backStack = navState.currentStack,
+                                                )
+                                                networkNavGraph(
+                                                    context = this@MainActivity,
+                                                    backStack = navState.currentStack,
+                                                )
+                                                moreNavGraph(
+                                                    context = this@MainActivity,
+                                                    backStack = navState.currentStack,
+                                                )
+                                                settingsNavGraph(backStack = navState.currentStack)
+                                            },
+                                        ),
+                                        onBack = { navState.goBack() },
+                                        transitionSpec = {
+                                            navState.navigationTransition(
+                                                initialState = initialState,
+                                                targetState = targetState,
+                                            )
+                                        },
+                                        popTransitionSpec = {
+                                            navState.navigationTransition(
+                                                initialState = initialState,
+                                                targetState = targetState,
+                                            )
+                                        },
+                                        predictivePopTransitionSpec = {
+                                            navState.navigationTransition(
+                                                initialState = initialState,
+                                                targetState = targetState,
+                                            )
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .consumeWindowInsets(
+                                                PaddingValues(
+                                                    start = railPadding,
+                                                    bottom = bottomPadding,
+                                                ),
+                                            ),
                                     )
-                                },
-                                popTransitionSpec = {
-                                    navState.navigationTransition(
-                                        initialState = initialState,
-                                        targetState = targetState,
-                                    )
-                                },
-                                predictivePopTransitionSpec = {
-                                    navState.navigationTransition(
-                                        initialState = initialState,
-                                        targetState = targetState,
-                                    )
-                                },
-                            )
+                                }
+                            }
                         }
+
+                        UpdateOverlayDialog(state = updateState)
                     }
                 }
             }
@@ -288,12 +317,12 @@ class MainActivity : FragmentActivity() {
 }
 
 @Composable
-fun NavigationLayout(
-    modifier: Modifier = Modifier,
+private fun NavigationLayout(
     state: TopLevelNavState,
-    fabStates: SnapshotStateMap<String, TopLevelFabState>,
+    fabStates: Map<String, TopLevelFabState>,
+    showNavigation: Boolean,
     showBottomBar: Boolean,
-    windowSizeClass: WindowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass,
+    modifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val isTv = LocalContext.current.isTelevision
@@ -306,15 +335,14 @@ fun NavigationLayout(
     var railWidth by remember(density) { mutableStateOf(0.dp) }
     val contentFocusRequester = remember { FocusRequester() }
     val fabFocusRequester = remember { FocusRequester() }
-    val showNavRail = windowSizeClass.isWidthAtLeastBreakpoint(
+    val adaptiveInfo = currentWindowAdaptiveInfoV2()
+    val showNavRail = adaptiveInfo.windowSizeClass.isWidthAtLeastBreakpoint(
         WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND,
+    ) || !adaptiveInfo.windowSizeClass.isHeightAtLeastBreakpoint(
+        WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND,
     )
-    val showNavigation =
-        state.currentStack.lastOrNull()?.let { state.topLevelContentKeys.contains(element = it) } ==
-            true
-    val selectedFabState = state.destinations[state.selectedIndex].fabKey?.let(
-        block = fabStates::get,
-    )
+    val selectedFabKey = state.destinations.getOrNull(state.selectedIndex)?.fabKey
+    val selectedFabState = selectedFabKey?.let { fabStates[it] }
     var displayedFabState by remember { mutableStateOf<TopLevelFabState?>(value = null) }
     LaunchedEffect(key1 = selectedFabState) { selectedFabState?.let { displayedFabState = it } }
 
@@ -329,12 +357,12 @@ fun NavigationLayout(
     LaunchedEffect(Unit) { launched = true }
     val launchAlpha by androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (launched) 1f else 0f,
-        animationSpec = tween(durationMillis = 360, easing = YtxEmphasizedEasing),
+        animationSpec = tween(durationMillis = 320, easing = Motion.Emphasized),
         label = "launchAlpha",
     )
     val launchScale by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (launched) 1f else 0.96f,
-        animationSpec = tween(durationMillis = 420, easing = YtxEmphasizedEasing),
+        targetValue = if (launched) 1f else 0.97f,
+        animationSpec = tween(durationMillis = 380, easing = Motion.Emphasized),
         label = "launchScale",
     )
 
@@ -376,8 +404,8 @@ fun NavigationLayout(
 
         AnimatedVisibility(
             visible = showNavigation && showBottomBar,
-            enter = slideInVertically(tween(260, easing = YtxEmphasizedEasing)) { it } + fadeIn(tween(160)),
-            exit = slideOutVertically(tween(200, easing = YtxEmphasizedEasing)) { it } + fadeOut(tween(140)),
+            enter = slideInVertically(tween(260, easing = Motion.Emphasized)) { it } + fadeIn(tween(160)),
+            exit = slideOutVertically(tween(200, easing = Motion.Emphasized)) { it } + fadeOut(tween(140)),
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
             NextNavigationBar(
@@ -394,13 +422,16 @@ fun NavigationLayout(
             visible = showNavRail && showNavigation,
             enter = fadeIn() + expandHorizontally(expandFrom = Alignment.Start),
             exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start),
+            modifier = Modifier.align(Alignment.CenterStart),
         ) {
             NextNavigationRail(
                 state = state,
-                modifier = Modifier.onSizeChanged {
-                    railWidth =
-                        with(receiver = density) { it.width.toDp() }
-                },
+                modifier = Modifier
+                    .onSizeChanged { railWidth = with(density) { it.width.toDp() } }
+                    .focusProperties {
+                        if (isTv) right = contentFocusRequester
+                    }
+                    .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Start)),
             )
         }
     }
@@ -408,7 +439,7 @@ fun NavigationLayout(
 
 @Composable
 fun shouldUseDarkTheme(state: MainActivityUiState): Boolean = when (state) {
-    MainActivityUiState.Loading -> true
+    MainActivityUiState.Loading -> isSystemInDarkTheme()
 
     is MainActivityUiState.Success -> when (state.preferences.themeConfig) {
         ThemeConfig.SYSTEM -> isSystemInDarkTheme()

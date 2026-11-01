@@ -108,9 +108,19 @@ private fun FolderListItem(
         selected = selected,
         contentPadding = PaddingValues(8.dp),
         colors = ListItemDefaults.segmentedColors(
-            contentColor = Color.White,
-            supportingContentColor = Color.White.copy(alpha = 0.64f),
-            selectedContainerColor = Color.White.copy(alpha = 0.14f),
+            contentColor = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            supportingContentColor = if (isRecentlyPlayedFolder &&
+                preferences.markLastPlayedMedia
+            ) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
         ),
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
@@ -121,7 +131,7 @@ private fun FolderListItem(
                 Icon(
                     imageVector = ImageVector.vectorResource(id = R.drawable.folder_thumb),
                     contentDescription = "",
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
                     modifier = Modifier
                         .width(
                             width = min(
@@ -140,7 +150,7 @@ private fun FolderListItem(
                             .padding(5.dp)
                             .padding(bottom = 3.dp)
                             .align(Alignment.BottomEnd),
-                        backgroundColor = Color.Black.copy(alpha = 0.6f),
+                        backgroundColor = Color.Black.copy(alpha = 0.72f),
                         contentColor = Color.White,
                         shape = MaterialTheme.shapes.extraSmall,
                     )
@@ -229,16 +239,16 @@ private fun FolderGridItem(
             contentColor = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
                 MaterialTheme.colorScheme.primary
             } else {
-                ListItemDefaults.segmentedColors().contentColor
+                MaterialTheme.colorScheme.onSurface
             },
             supportingContentColor = if (isRecentlyPlayedFolder &&
                 preferences.markLastPlayedMedia
             ) {
                 MaterialTheme.colorScheme.primary
             } else {
-                ListItemDefaults.colors().supportingContentColor
+                MaterialTheme.colorScheme.onSurfaceVariant
             },
-            selectedContainerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f),
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
         ),
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
@@ -254,7 +264,7 @@ private fun FolderGridItem(
                     Icon(
                         imageVector = ImageVector.vectorResource(id = R.drawable.folder_thumb),
                         contentDescription = "",
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
                         modifier = Modifier
                             .width(
                                 width = min(
@@ -273,7 +283,7 @@ private fun FolderGridItem(
                                 .padding(5.dp)
                                 .padding(bottom = 3.dp)
                                 .align(Alignment.BottomEnd),
-                            backgroundColor = Color.Black.copy(alpha = 0.6f),
+                            backgroundColor = Color.Black.copy(alpha = 0.72f),
                             contentColor = Color.White,
                             shape = MaterialTheme.shapes.extraSmall,
                         )
@@ -301,7 +311,7 @@ private fun FolderGridItem(
                         color = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
                             MaterialTheme.colorScheme.primary
                         } else {
-                            ListItemDefaults.colors().contentColor
+                            MaterialTheme.colorScheme.onSurface
                         },
                         textAlign = TextAlign.Center,
                     )
@@ -368,7 +378,7 @@ private fun NewVideosCountBadge(count: Int, modifier: Modifier = Modifier) {
             .defaultMinSize(minWidth = 20.dp)
             .height(20.dp)
             .clip(shape = CircleShape)
-            .background(Color(0xFFFACC15))
+            .background(MaterialTheme.colorScheme.primary)
             .semantics { contentDescription = description }
             .padding(horizontal = 6.dp),
         contentAlignment = Alignment.Center,
@@ -379,7 +389,7 @@ private fun NewVideosCountBadge(count: Int, modifier: Modifier = Modifier) {
                 fontWeight = FontWeight.Bold,
                 fontSize = 10.sp,
             ),
-            color = Color(0xFF090D16),
+            color = MaterialTheme.colorScheme.onPrimary,
             maxLines = 1,
             softWrap = false,
         )

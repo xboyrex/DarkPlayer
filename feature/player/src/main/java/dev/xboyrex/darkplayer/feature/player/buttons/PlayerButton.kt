@@ -1,10 +1,14 @@
 package dev.xboyrex.darkplayer.feature.player.buttons
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,12 +22,15 @@ import androidx.compose.material3.RippleConfiguration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -31,15 +38,22 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.unit.dp
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.ui.components.tvFocusRing
+import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
+import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
+import dev.xboyrex.darkplayer.core.ui.glass.LocalGlassBackdrop
+import dev.xboyrex.darkplayer.core.ui.glass.glassOverlayFill
+import dev.xboyrex.darkplayer.core.ui.glass.glassSpec
+import dev.xboyrex.darkplayer.core.ui.glass.liquidGlass
+import dev.xboyrex.darkplayer.core.ui.glass.rememberReducedMotion
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
-val PlayerButtonBlackAlpha = Color(0xFF0A0E17).copy(alpha = 0.52f)
+val PlayerButtonBlackAlpha = Color(0xFF0A0E17).copy(alpha = 0.48f)
 private val PlayerGlassBorderBrush = Brush.verticalGradient(
     colors = listOf(
-        Color.White.copy(alpha = 0.24f),
-        Color.White.copy(alpha = 0.07f),
+        Color.White.copy(alpha = 0.28f),
+        Color.White.copy(alpha = 0.08f),
     ),
 )
 
@@ -50,6 +64,7 @@ fun PlayerButton(
     enabled: Boolean = true,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
+    shape: Shape = CircleShape,
     containerColor: Color = PlayerButtonBlackAlpha,
     contentPadding: PaddingValues = PaddingValues(8.dp),
     content: @Composable BoxScope.() -> Unit,
@@ -59,6 +74,18 @@ fun PlayerButton(
     val hapticFeedback = LocalHapticFeedback.current
     val context = LocalContext.current
     val isTv = remember { context.isTelevision }
+    val backdrop = LocalGlassBackdrop.current
+    val reduced = rememberReducedMotion()
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && !reduced) 0.90f else 1f,
+        animationSpec = if (reduced) {
+            tween(0)
+        } else {
+            spring(dampingRatio = 0.55f, stiffness = if (isPressed) 900f else 420f)
+        },
+        label = "playerBtnScale",
+    )
 
     LaunchedEffect(key1 = interactionSource) {
         var isLongPressClicked = false
@@ -109,14 +136,38 @@ fun PlayerButton(
     ) {
         Box(
             modifier = modifier
-                .clip(shape = CircleShape)
-                .background(
-                    color = if (enabled) resolvedContainerColor else resolvedContainerColor.copy(alpha = 0.28f),
-                )
-                .border(
-                    width = 0.8.dp,
-                    brush = PlayerGlassBorderBrush,
-                    shape = CircleShape,
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .clip(shape = shape)
+                .then(
+                    if (backdrop != null && GlassSettings.quality != GlassQuality.Off) {
+                        Modifier.liquidGlass(
+                            backdrop = backdrop,
+                            spec = glassSpec(
+                                shape = shape,
+                                tint = glassOverlayFill(if (enabled) 0.42f else 0.24f),
+                                blur = 16.dp,
+                                refractionHeight = 9.dp,
+                                refractionAmount = 15.dp,
+                            ),
+                        )
+                    } else {
+                        Modifier
+                            .background(
+                                color = if (enabled) {
+                                    resolvedContainerColor
+                                } else {
+                                    resolvedContainerColor.copy(alpha = 0.28f)
+                                },
+                            )
+                            .border(
+                                width = 0.8.dp,
+                                brush = PlayerGlassBorderBrush,
+                                shape = shape,
+                            )
+                    },
                 )
                 .clickable(
                     interactionSource = interactionSource,

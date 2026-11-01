@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
@@ -49,7 +51,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.ui.components.requestFocusUntilLanded
-import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
+import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
+import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
+import dev.xboyrex.darkplayer.core.ui.glass.LocalGlassBackdrop
+import dev.xboyrex.darkplayer.core.ui.glass.Motion
+import dev.xboyrex.darkplayer.core.ui.glass.glassFill
+import dev.xboyrex.darkplayer.core.ui.glass.glassSpec
+import dev.xboyrex.darkplayer.core.ui.glass.liquidGlass
+import dev.xboyrex.darkplayer.core.ui.theme.DarkPlayerTheme
 
 @Composable
 fun BoxScope.OverlayView(
@@ -62,6 +71,7 @@ fun BoxScope.OverlayView(
     val context = LocalContext.current
     val isTv = remember { context.isTelevision }
     val layoutDirection = LocalLayoutDirection.current
+    val backdrop = LocalGlassBackdrop.current
     val endPadding = WindowInsets.safeDrawing
         .asPaddingValues()
         .calculateEndPadding(layoutDirection = layoutDirection)
@@ -73,7 +83,8 @@ fun BoxScope.OverlayView(
         }
     }
 
-    val sheetShape = RoundedCornerShape(26.dp)
+    val sheetShape = RoundedCornerShape(28.dp)
+    val useRealGlass = backdrop != null && GlassSettings.quality != GlassQuality.Off
 
     AnimatedVisibility(
         modifier = Modifier.align(
@@ -85,37 +96,56 @@ fun BoxScope.OverlayView(
         ),
         visible = show,
         enter = if (configuration.isPortrait) {
-            slideInVertically(tween(260)) { it } + fadeIn(tween(200))
+            slideInVertically(tween(260, easing = Motion.Emphasized)) { it } +
+                fadeIn(tween(200, easing = Motion.Emphasized))
         } else {
-            slideInHorizontally(tween(260)) { it } + fadeIn(tween(200))
+            slideInHorizontally(tween(260, easing = Motion.Emphasized)) { it } +
+                fadeIn(tween(200, easing = Motion.Emphasized))
         },
         exit = if (configuration.isPortrait) {
-            slideOutVertically(tween(220)) { it } + fadeOut(tween(160))
+            slideOutVertically(tween(220, easing = Motion.Emphasized)) { it } +
+                fadeOut(tween(160, easing = Motion.Emphasized))
         } else {
-            slideOutHorizontally(tween(220)) { it } + fadeOut(tween(160))
+            slideOutHorizontally(tween(220, easing = Motion.Emphasized)) { it } +
+                fadeOut(tween(160, easing = Motion.Emphasized))
         },
     ) {
         Surface(
             shape = sheetShape,
-            color = Color(0xFF070A12).copy(alpha = 0.68f),
+            color = if (useRealGlass) Color.Transparent else Color(0xFF070A12).copy(alpha = 0.72f),
             contentColor = Color.White,
             modifier = modifier
                 .padding(if (configuration.isPortrait) 8.dp else 10.dp)
-                .border(
-                    width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.24f),
-                            Color.White.copy(alpha = 0.06f),
-                        ),
-                    ),
-                    shape = sheetShape,
+                .then(
+                    if (useRealGlass) {
+                        Modifier.liquidGlass(
+                            backdrop = backdrop!!,
+                            spec = glassSpec(
+                                shape = sheetShape,
+                                tint = glassFill(0.62f),
+                                blur = 26.dp,
+                                refractionHeight = 18.dp,
+                                refractionAmount = 24.dp,
+                            ),
+                        )
+                    } else {
+                        Modifier.border(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.24f),
+                                    Color.White.copy(alpha = 0.06f),
+                                ),
+                            ),
+                            shape = sheetShape,
+                        )
+                    },
                 )
                 .then(
                     other = if (configuration.isPortrait) {
                         Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(fraction = 0.54f)
+                            .fillMaxHeight(fraction = 0.56f)
                     } else {
                         Modifier
                             .fillMaxWidth(fraction = 0.45f)
@@ -136,13 +166,21 @@ fun BoxScope.OverlayView(
                         )
                         .focusRequester(focusRequester = focusRequester)
                         .focusGroup()
-                        .padding(top = 20.dp)
+                        .padding(top = 12.dp)
                         .padding(end = endPadding),
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .size(width = 36.dp, height = 4.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.32f)),
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         color = Color.White,
                         modifier = Modifier.padding(horizontal = 24.dp),
                     )
@@ -152,7 +190,7 @@ fun BoxScope.OverlayView(
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp)
                             .height(0.8.dp)
-                            .background(Color.White.copy(alpha = 0.12f)),
+                            .background(Color.White.copy(alpha = 0.14f)),
                     )
                     Spacer(modifier = Modifier.size(12.dp))
                     content()
@@ -165,7 +203,7 @@ fun BoxScope.OverlayView(
 @Preview
 @Composable
 private fun PreviewOverlayView() {
-    NextPlayerTheme {
+    DarkPlayerTheme {
         Box(modifier = Modifier.fillMaxSize()) {
             OverlayView(
                 modifier = Modifier.align(Alignment.BottomCenter),
