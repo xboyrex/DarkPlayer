@@ -1,6 +1,11 @@
 package dev.xboyrex.darkplayer.feature.player.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.annotation.OptIn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -10,14 +15,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.FolderOpen
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,11 +40,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -59,6 +74,7 @@ fun BoxScope.SubtitleSelectorView(
     onEvent: (SubtitleOptionsEvent) -> Unit = {},
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
     val subtitleTracksState = rememberTracksState(
         player = player,
         C.TRACK_TYPE_TEXT,
@@ -71,54 +87,150 @@ fun BoxScope.SubtitleSelectorView(
     OverlayView(
         modifier = modifier,
         show = show,
-        title = stringResource(R.string.select_subtitle_track),
+        title = "Subtitle",
     ) {
         Column(
             modifier = Modifier
                 .verticalScroll(state = rememberScrollState())
                 .padding(bottom = 24.dp)
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 20.dp)
                 .selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            subtitleTracksState.tracks.forEachIndexed { index, track ->
+            // 1. Subtitle tracks list inside iOS rounded card
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .border(0.8.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+            ) {
+                subtitleTracksState.tracks.forEachIndexed { index, track ->
+                    RadioButtonRow(
+                        selected = track.isSelected,
+                        text = track.mediaTrackGroup.getName(
+                            C.TRACK_TYPE_TEXT,
+                            index = index,
+                        ),
+                        onClick = {
+                            subtitleTracksState.switchTrack(index = index)
+                            onDismiss()
+                        },
+                    )
+                }
                 RadioButtonRow(
-                    selected = track.isSelected,
-                    text = track.mediaTrackGroup.getName(
-                        C.TRACK_TYPE_TEXT,
-                        index = index,
-                    ),
+                    selected = subtitleTracksState.tracks.none { it.isSelected },
+                    text = stringResource(R.string.disable),
                     onClick = {
-                        subtitleTracksState.switchTrack(index = index)
+                        subtitleTracksState.switchTrack(index = -1)
                         onDismiss()
                     },
                 )
             }
-            RadioButtonRow(
-                selected = subtitleTracksState.tracks.none { it.isSelected },
-                text = stringResource(R.string.disable),
-                onClick = {
-                    subtitleTracksState.switchTrack(index = -1)
-                    onDismiss()
-                },
-            )
-            Spacer(modifier = Modifier.size(16.dp))
-            FilledTonalButton(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    onSelectSubtitleClick()
-                    onDismiss()
-                },
-            ) { Text(text = stringResource(R.string.open_subtitle)) }
-            Spacer(modifier = Modifier.size(16.dp))
-            DelayInput(
-                value = subtitleOptionsState.delayMilliseconds,
-                onValueChange = { subtitleOptionsState.setDelay(delayMillis = it) },
-            )
-            Spacer(modifier = Modifier.size(16.dp))
-            SpeedInput(
-                value = subtitleOptionsState.speedMultiplier,
-                onValueChange = { subtitleOptionsState.setSpeed(speed = it) },
-            )
+
+            // 2. Open & Online Subtitles iOS rows (matching 24075_c798dc.png)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .border(0.8.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(18.dp)),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onSelectSubtitleClick()
+                            onDismiss()
+                        }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = "Open",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                    )
+                    Icon(
+                        imageVector = Icons.Rounded.FolderOpen,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.72f),
+                        modifier = Modifier.size(19.dp),
+                    )
+                }
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val rawTitle = player.mediaMetadata.displayTitle?.toString()
+                                ?: player.currentMediaItem?.mediaMetadata?.title?.toString()
+                                ?: ""
+                            val cleanQuery = rawTitle
+                                .substringBeforeLast(".")
+                                .replace(Regex("[._\\-]+"), " ")
+                                .trim()
+                            val searchUrl = "https://www.opensubtitles.org/en/search2/moviename-" +
+                                Uri.encode(cleanQuery.ifBlank { "movie" })
+                            runCatching {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl)).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
+                                )
+                            }
+                            onDismiss()
+                        }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text(
+                            text = "Online subtitles",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                        )
+                        Text(
+                            text = "Search & download matching subtitles online",
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.65f),
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Rounded.Language,
+                        contentDescription = null,
+                        tint = Color(0xFF38BDF8),
+                        modifier = Modifier.size(19.dp),
+                    )
+                }
+            }
+
+            // 3. Subtitle Delay & Speed controls inside iOS card
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .border(0.8.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                DelayInput(
+                    value = subtitleOptionsState.delayMilliseconds,
+                    onValueChange = { subtitleOptionsState.setDelay(delayMillis = it) },
+                )
+                SpeedInput(
+                    value = subtitleOptionsState.speedMultiplier,
+                    onValueChange = { subtitleOptionsState.setSpeed(speed = it) },
+                )
+            }
         }
     }
 }

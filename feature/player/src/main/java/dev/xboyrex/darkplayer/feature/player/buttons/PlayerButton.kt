@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -42,10 +43,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
 val PlayerButtonBlackAlpha = Color(0xFF0A0E17).copy(alpha = 0.56f)
-private val PlayerGlassBorderBrush = Brush.verticalGradient(
+private val PlayerLiquidGlassFillBrush = Brush.verticalGradient(
     colors = listOf(
-        Color.White.copy(alpha = 0.24f),
-        Color.White.copy(alpha = 0.08f),
+        Color.White.copy(alpha = 0.20f),
+        Color(0xFF0A0E17).copy(alpha = 0.62f),
+    ),
+)
+private val PlayerLiquidGlassBorderBrush = Brush.verticalGradient(
+    colors = listOf(
+        Color.White.copy(alpha = 0.44f),
+        Color.White.copy(alpha = 0.12f),
     ),
 )
 
@@ -55,6 +62,7 @@ fun PlayerButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isPrimaryAction: Boolean = false,
+    isActive: Boolean = false,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     shape: Shape = CircleShape,
@@ -69,8 +77,8 @@ fun PlayerButton(
     val isTv = remember { context.isTelevision }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.91f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 750f),
+        targetValue = if (isPressed && enabled) 0.90f else 1f,
+        animationSpec = spring(dampingRatio = 0.58f, stiffness = 780f),
         label = "playerButtonScale",
     )
 
@@ -97,11 +105,7 @@ fun PlayerButton(
         }
     }
 
-    val resolvedContainerColor = if (containerColor == Color.Transparent) {
-        PlayerButtonBlackAlpha
-    } else {
-        containerColor
-    }
+    val activeAccent = Color(0xFFFACC15)
 
     val rippleConfiguration = RippleConfiguration(
         color = Color.White,
@@ -114,10 +118,10 @@ fun PlayerButton(
     )
 
     CompositionLocalProvider(
-        LocalContentColor provides if (enabled) {
-            Color.White
-        } else {
-            Color.White.copy(alpha = 0.42f)
+        LocalContentColor provides when {
+            !enabled -> Color.White.copy(alpha = 0.40f)
+            isActive -> activeAccent
+            else -> Color.White
         },
         LocalRippleConfiguration provides rippleConfiguration,
     ) {
@@ -127,17 +131,44 @@ fun PlayerButton(
                     scaleX = scale
                     scaleY = scale
                 }
+                .shadow(
+                    elevation = if (enabled) 6.dp else 0.dp,
+                    shape = shape,
+                    ambientColor = Color.Black.copy(alpha = 0.55f),
+                    spotColor = Color.Black.copy(alpha = 0.65f),
+                )
                 .clip(shape = shape)
                 .background(
-                    color = if (enabled) {
-                        resolvedContainerColor
+                    brush = if (isActive) {
+                        Brush.verticalGradient(
+                            listOf(
+                                activeAccent.copy(alpha = 0.28f),
+                                Color(0xFF0A0E17).copy(alpha = 0.72f),
+                            ),
+                        )
+                    } else if (enabled) {
+                        PlayerLiquidGlassFillBrush
                     } else {
-                        resolvedContainerColor.copy(alpha = 0.28f)
+                        Brush.verticalGradient(
+                            listOf(
+                                Color(0xFF0A0E17).copy(alpha = 0.25f),
+                                Color(0xFF0A0E17).copy(alpha = 0.25f),
+                            ),
+                        )
                     },
                 )
                 .border(
-                    width = 0.8.dp,
-                    brush = PlayerGlassBorderBrush,
+                    width = 1.dp,
+                    brush = if (isActive) {
+                        Brush.verticalGradient(
+                            listOf(
+                                activeAccent.copy(alpha = 0.75f),
+                                activeAccent.copy(alpha = 0.25f),
+                            ),
+                        )
+                    } else {
+                        PlayerLiquidGlassBorderBrush
+                    },
                     shape = shape,
                 )
                 .clickable(

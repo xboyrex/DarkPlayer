@@ -1,8 +1,5 @@
 package dev.xboyrex.darkplayer.feature.player.ui.controls
 
-import android.content.Intent
-import android.media.audiofx.AudioEffect
-import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.horizontalScroll
@@ -22,6 +19,9 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.NavigateNext
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -29,8 +29,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -44,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -53,6 +56,7 @@ import androidx.media3.ui.compose.state.rememberProgressStateWithTickInterval
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.model.VideoContentScale
 import dev.xboyrex.darkplayer.core.ui.R
+import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
 import dev.xboyrex.darkplayer.core.ui.extensions.copy
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.buttons.LoopButton
@@ -101,6 +105,8 @@ fun ControlsBottomView(
     val captureScope = rememberCoroutineScope()
     val isTv = remember { context.isTelevision }
     val timeButtonFocusRequester = remember { FocusRequester() }
+    var isMuted by remember(player) { mutableStateOf((player?.volume ?: 1f) == 0f) }
+
     Column(
         modifier = modifier
             .padding(systemBarsPadding.copy(top = 0.dp))
@@ -217,6 +223,7 @@ fun ControlsBottomView(
             onSeek = { onSeek(it.toLong()) },
             onSeekFinished = { onSeekEnd() },
         )
+        // Liquid Glass circular icon buttons row with all options from 24073_c798dc.jpg & 24066_c798dc.jpg
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -230,7 +237,7 @@ fun ControlsBottomView(
             PlayerButton(onClick = onLockControlsClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_lock_open),
-                    contentDescription = null,
+                    contentDescription = "Lock Controls",
                 )
             }
             PlayerButton(
@@ -239,21 +246,79 @@ fun ControlsBottomView(
             ) {
                 Icon(
                     painter = painterResource(videoContentScale.drawableRes()),
-                    contentDescription = null,
+                    contentDescription = "Aspect Ratio",
                 )
             }
             if (isPipSupported) {
                 PlayerButton(onClick = onPictureInPictureClick) {
                     Icon(
                         painter = painterResource(R.drawable.ic_pip),
-                        contentDescription = null,
+                        contentDescription = "Picture in Picture",
                     )
                 }
+            }
+            PlayerButton(
+                isActive = HardwareDolbyAndEqualizerEngine.equalizerEnabled ||
+                    HardwareDolbyAndEqualizerEngine.dolbyEnabled,
+                onClick = onVolumeBoosterClick,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_equalizer),
+                    contentDescription = "Equalizer & Dolby Atmos",
+                )
+            }
+            PlayerButton(
+                isActive = HardwareDolbyAndEqualizerEngine.nightModeEnabled,
+                onClick = { HardwareDolbyAndEqualizerEngine.toggleNightMode() },
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.DarkMode,
+                    contentDescription = "Night Mode",
+                )
+            }
+            PlayerButton(
+                isActive = isMuted,
+                onClick = {
+                    player?.let { p ->
+                        val nextMuted = !isMuted
+                        p.volume = if (nextMuted) 0f else 1f
+                        isMuted = nextMuted
+                    }
+                },
+            ) {
+                Icon(
+                    imageVector = if (isMuted) {
+                        Icons.AutoMirrored.Rounded.VolumeOff
+                    } else {
+                        Icons.AutoMirrored.Rounded.VolumeUp
+                    },
+                    contentDescription = "Mute",
+                )
+            }
+            val abStart = HardwareDolbyAndEqualizerEngine.abRepeatStartMs
+            val abEnd = HardwareDolbyAndEqualizerEngine.abRepeatEndMs
+            PlayerButton(
+                isActive = abStart != null,
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                onClick = {
+                    HardwareDolbyAndEqualizerEngine.cycleAbRepeat(progressState.currentPositionMs)
+                },
+            ) {
+                Text(
+                    text = when {
+                        abStart != null && abEnd != null -> "A-B"
+                        abStart != null -> "A-"
+                        else -> "A-B"
+                    },
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (abStart != null) Color(0xFFFACC15) else Color.White,
+                )
             }
             PlayerButton(onClick = onPlayInBackgroundClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_headset),
-                    contentDescription = null,
+                    contentDescription = "Background Play",
                 )
             }
             PlayerButton(
@@ -273,15 +338,7 @@ fun ControlsBottomView(
             PlayerButton(onClick = onSleepTimerClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_timer),
-                    contentDescription = "Sleep timer",
-                )
-            }
-            PlayerButton(
-                onClick = onVolumeBoosterClick,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_equalizer),
-                    contentDescription = "1000% Dolby Audio Booster",
+                    contentDescription = "Sleep Timer",
                 )
             }
             LoopButton(player = player)

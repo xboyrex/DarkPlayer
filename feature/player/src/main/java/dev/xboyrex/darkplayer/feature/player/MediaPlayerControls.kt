@@ -31,6 +31,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.state.rememberProgressStateWithTickInterval
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
+import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
 import dev.xboyrex.darkplayer.core.ui.components.requestFocusUntilLanded
 import dev.xboyrex.darkplayer.core.ui.components.thenIf
 import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
@@ -82,6 +83,16 @@ internal fun MediaPlayerControls(
     var overlayView by remember { mutableStateOf<OverlayView?>(value = null) }
     LaunchedEffect(metadataState.mediaId) {
         if (overlayView == OverlayView.CHAPTERS) overlayView = null
+        HardwareDolbyAndEqualizerEngine.clearAbRepeat()
+    }
+
+    // Enforce A - B Repeat seamlessly during playback
+    val abStart = HardwareDolbyAndEqualizerEngine.abRepeatStartMs
+    val abEnd = HardwareDolbyAndEqualizerEngine.abRepeatEndMs
+    LaunchedEffect(progressState.currentPositionMs, abStart, abEnd) {
+        if (abStart != null && abEnd != null && progressState.currentPositionMs >= abEnd) {
+            player.seekTo(abStart)
+        }
     }
 
     fun showOverlay(overlay: OverlayView) {
@@ -90,6 +101,10 @@ internal fun MediaPlayerControls(
     }
 
     val context = LocalContext.current
+    LaunchedEffect(context) {
+        HardwareDolbyAndEqualizerEngine.init(context)
+    }
+
     val isTv = remember { context.isTelevision }
     val rootFocusRequester = remember { FocusRequester() }
     val middleControlsFocusRequester = remember { FocusRequester() }
@@ -134,6 +149,19 @@ internal fun MediaPlayerControls(
                         }
                 },
         ) {
+            // Eye-comfort Night Mode overlay when enabled from quick actions
+            if (HardwareDolbyAndEqualizerEngine.nightModeEnabled) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Color(0xFF140C00).copy(
+                                alpha = HardwareDolbyAndEqualizerEngine.nightModeAlpha,
+                            ),
+                        ),
+                )
+            }
+
             AnimatedVisibility(
                 visible =
                     controlsVisibilityState.controlsVisible &&

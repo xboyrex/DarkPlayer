@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.dp
 import dev.xboyrex.darkplayer.core.ui.R
 import dev.xboyrex.darkplayer.feature.player.model.DecoderTrackType
 import dev.xboyrex.darkplayer.feature.player.model.descriptionRes
-import dev.xboyrex.darkplayer.feature.player.model.labelRes
 import dev.xboyrex.darkplayer.feature.player.model.selectableDecoderModes
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 
@@ -53,14 +52,14 @@ fun BoxScope.DecoderSelectorView(
     OverlayView(
         modifier = modifier,
         show = show,
-        title = stringResource(R.string.select_decoders),
+        title = "Select decoder",
     ) {
         Column(
             modifier = Modifier
                 .verticalScroll(state = rememberScrollState())
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 20.dp)
                 .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             DecoderTrackTypeSelector(
                 selectedTrackType = selectedTrackType,
@@ -153,17 +152,23 @@ private fun DecoderModeGroup(selectedMode: DecoderMode?, onModeSelected: (Decode
 
 @Composable
 private fun DecoderModeRow(mode: DecoderMode, selected: Boolean, onClick: () -> Unit) {
-    val rowShape = RoundedCornerShape(14.dp)
+    val rowShape = RoundedCornerShape(16.dp)
+    val accentBlue = Color(0xFF38BDF8)
+    val decoderTitle = when (mode) {
+        DecoderMode.HARDWARE_ONLY -> "HW decoder"
+        DecoderMode.PREFER_DEVICE -> "HW+ decoder"
+        DecoderMode.PREFER_SOFTWARE, DecoderMode.SOFTWARE_ONLY -> "SW decoder"
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape = rowShape)
             .background(
-                if (selected) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.04f),
+                if (selected) accentBlue.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.05f),
             )
             .border(
                 width = 1.dp,
-                color = if (selected) Color.White.copy(alpha = 0.26f) else Color.White.copy(alpha = 0.08f),
+                color = if (selected) accentBlue.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.10f),
                 shape = rowShape,
             )
             .selectable(
@@ -172,31 +177,31 @@ private fun DecoderModeRow(mode: DecoderMode, selected: Boolean, onClick: () -> 
                 role = Role.RadioButton,
             )
             .padding(
-                horizontal = 12.dp,
-                vertical = 10.dp,
+                horizontal = 14.dp,
+                vertical = 12.dp,
             ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         RadioButton(
             selected = selected,
             onClick = null,
             colors = RadioButtonDefaults.colors(
-                selectedColor = Color.White,
+                selectedColor = accentBlue,
                 unselectedColor = Color.White.copy(alpha = 0.52f),
             ),
         )
         Column {
             Text(
-                text = stringResource(mode.labelRes),
+                text = decoderTitle,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White,
             )
             Text(
                 text = stringResource(mode.descriptionRes),
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.72f),
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.70f),
             )
         }
     }

@@ -1,5 +1,7 @@
 package dev.xboyrex.darkplayer.feature.player.service
 
+import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
+
 import android.app.PendingIntent
 import android.content.ContentResolver
 import android.content.Intent
@@ -480,7 +482,7 @@ class PlayerService : MediaSessionService() {
         override fun onAudioSessionIdChanged(audioSessionId: Int) {
             super.onAudioSessionIdChanged(audioSessionId)
             if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
-            runCatching { DolbyVolumeBoosterEngine.attachSession(audioSessionId) }
+            runCatching { HardwareDolbyAndEqualizerEngine.attachSession(audioSessionId) }
             if (!playerPreferences.enableVolumeBoost) return
             try {
                 loudnessEnhancer?.release()
@@ -496,7 +498,6 @@ class PlayerService : MediaSessionService() {
     }
 
     private fun setEnhancerTargetGain(gain: Int) {
-        runCatching { DolbyVolumeBoosterEngine.setGainMillibels(gain) }
         val enhancer = loudnessEnhancer ?: return
 
         try {

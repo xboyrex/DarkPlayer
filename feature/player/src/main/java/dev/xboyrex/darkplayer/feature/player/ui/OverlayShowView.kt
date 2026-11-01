@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.media3.common.Player
 import androidx.media3.extractor.metadata.Chapter
 import dev.xboyrex.darkplayer.core.model.VideoContentScale
+import dev.xboyrex.darkplayer.core.ui.audio.EqualizerAndDolbyStudioContent
 import dev.xboyrex.darkplayer.feature.player.extensions.noRippleClickable
 import dev.xboyrex.darkplayer.feature.player.state.SubtitleOptionsEvent
 import dev.xboyrex.darkplayer.feature.player.state.VolumeState
@@ -47,6 +48,8 @@ fun BoxScope.OverlayShowView(
     AudioTrackSelectorView(
         show = overlayView == OverlayView.AUDIO_SELECTOR,
         player = player,
+        audioMode = audioDecoderMode,
+        onAudioModeSelected = onAudioModeSelected,
         onSelectAudioClick = onSelectAudioClick,
         onDismiss = onDismiss,
     )
@@ -56,7 +59,7 @@ fun BoxScope.OverlayShowView(
         videoMode = videoDecoderMode,
         audioMode = audioDecoderMode,
         onVideoModeSelected = onVideoDecoderModeSelected,
-        onAudioModeSelected = onAudioDecoderModeSelected,
+        onAudioModeSelected = onAudioModeSelected,
     )
 
     SubtitleSelectorView(
@@ -97,11 +100,12 @@ fun BoxScope.OverlayShowView(
         onDismiss = onDismiss,
     )
 
-    VolumeBoosterSelectorView(
+    OverlayView(
         show = overlayView == OverlayView.VOLUME_BOOSTER,
-        volumeState = volumeState,
-        onDismiss = onDismiss,
-    )
+        title = "Equalizer & Dolby Atmos",
+    ) {
+        EqualizerAndDolbyStudioContent()
+    }
 }
 
 val Configuration.isPortrait: Boolean

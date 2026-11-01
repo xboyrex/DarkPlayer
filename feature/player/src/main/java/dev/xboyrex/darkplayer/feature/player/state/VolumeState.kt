@@ -20,7 +20,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
-import dev.xboyrex.darkplayer.feature.player.service.DolbyVolumeBoosterEngine
 import dev.xboyrex.darkplayer.feature.player.service.getLoudnessGain
 import dev.xboyrex.darkplayer.feature.player.service.isLoudnessGainSupported
 import dev.xboyrex.darkplayer.feature.player.service.setLoudnessGain
@@ -102,7 +101,6 @@ class VolumeState(
             maximumValue = maxVolumePercentage.coerceAtLeast(100),
         )
         volumePercentage = clampedPercentage
-        DolbyVolumeBoosterEngine.setVolumePercentage(clampedPercentage)
 
         val newVolume = ((clampedPercentage * systemMaxVolume) / 100f).roundToInt()
         setVolumeInternal(
@@ -211,7 +209,6 @@ class VolumeState(
         currentVolume = clampedVolume
         if (!preserveExactPercentage) {
             volumePercentage = calculateVolumePercentage()
-            DolbyVolumeBoosterEngine.setVolumePercentage(volumePercentage)
         }
 
         if (clampedVolume <= systemMaxVolume) {
