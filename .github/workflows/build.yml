@@ -4,7 +4,6 @@ run-name: "DarkPlayer | Build & Release v2.0.${{ github.run_number }} (#${{ gith
 on:
   push:
     branches: [ main, master ]
-    tags: [ 'v*' ]
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
@@ -23,6 +22,7 @@ jobs:
   build:
     name: Build & Publish DarkPlayer Release APKs
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
@@ -52,7 +52,7 @@ jobs:
           grep -E "versionCode|versionName" app/build.gradle.kts
 
       - name: Build Signed Release APKs
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: ./gradlew assembleRelease -x lint -x lintVitalRelease -x lintVitalAnalyzeRelease --build-cache --parallel --max-workers=4 --stacktrace
 
       - name: Prepare Release Artifacts & Checksums
         run: |

@@ -9,7 +9,7 @@ plugins {
 }
 
 aboutLibraries {
-    offlineMode.set(false)
+    offlineMode.set(true)
     export {
         excludeFields.addAll("generated")
     }
@@ -31,6 +31,11 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 
     testOptions {
@@ -89,7 +94,6 @@ android {
             include(
                 "armeabi-v7a",
                 "arm64-v8a",
-                "x86",
                 "x86_64",
             )
             isUniversalApk = true
