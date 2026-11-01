@@ -17,12 +17,17 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.media3.common.Player
-import kotlinx.coroutines.launch
 import androidx.media3.session.MediaController
+import dev.xboyrex.darkplayer.feature.player.service.DolbyVolumeBoosterEngine
 import dev.xboyrex.darkplayer.feature.player.service.getLoudnessGain
 import dev.xboyrex.darkplayer.feature.player.service.isLoudnessGainSupported
 import dev.xboyrex.darkplayer.feature.player.service.setLoudnessGain
+import kotlin.math.roundToInt
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun rememberVolumeState(
@@ -30,16 +35,16 @@ fun rememberVolumeState(
     showVolumePanelIfHeadsetIsOn: Boolean,
     enableVolumeBoost: Boolean = false,
 ): VolumeState {
-    val activity = LocalActivity.current
-    val volumeState = remember {
+    val context = LocalActivity.current ?: LocalContext.current
+    val volumeState = remember(player) {
         VolumeState(
             player = player,
-            activity = activity!!,
+            activity = context,
             showVolumePanelIfHeadsetIsOn = showVolumePanelIfHeadsetIsOn,
             enableVolumeBoost = enableVolumeBoost,
         )
     }
-    DisposableEffect(key1 = activity) { volumeState.handleListeners(disposableEffectScope = this) }
+    DisposableEffect(key1 = context) { volumeState.handleListeners(disposableEffectScope = this) }
     LaunchedEffect(
         key1 = player,
         key2 = enableVolumeBoost,
@@ -59,12 +64,12 @@ class VolumeState(
     private val systemVolume: Int
         get() = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
 
-    private val isHeadsetConnected: Boolean
-        get() = audioManager.isWiredHeadsetOn || audioManager.isBluetoothA2dpOn
-
-    private val systemMaxVolume: Int = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+    private val systemMaxVolume: Int =
+        audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
 
     private var isLoudnessGainSupported: Boolean by mutableStateOf(value = false)
+
+    var isDraggingVolume: Boolean = false
 
     val maxVolume: Int
         get() = if (isLoudnessGainSupported) systemMaxVolume * 2 else systemMaxVolume
@@ -82,24 +87,42 @@ class VolumeState(
     var volumePercentage: Int by mutableIntStateOf(value = calculateVolumePercentage())
         private set
 
+    fun syncWithSystem() {
+        if (currentVolume > systemMaxVolume) return
+        val sysVol = systemVolume
+        if (sysVol != currentVolume) {
+            currentVolume = sysVol
+            volumePercentage = calculateVolumePercentage()
+        }
+    }
+
     fun updateVolumePercentage(percentage: Int) {
         val clampedPercentage = percentage.coerceIn(
             minimumValue = 0,
-            maximumValue = maxVolumePercentage,
+            maximumValue = maxVolumePercentage.coerceAtLeast(100),
         )
-        val newVolume = (clampedPercentage * systemMaxVolume) / 100
-        setVolume(volume = newVolume)
+        volumePercentage = clampedPercentage
+        DolbyVolumeBoosterEngine.setVolumePercentage(clampedPercentage)
+
+        val newVolume = ((clampedPercentage * systemMaxVolume) / 100f).roundToInt()
+        setVolumeInternal(
+            volume = newVolume,
+            preserveExactPercentage = true,
+            showVolumePanel = false,
+        )
     }
 
     fun handleListeners(disposableEffectScope: DisposableEffectScope): DisposableEffectResult =
         with(disposableEffectScope) {
             val receiver = object : BroadcastReceiver() {
                 override fun onReceive(context: Context, intent: Intent) {
-                    if (intent.action == VOLUME_CHANGED_ACTION) {
+                    if (intent.action == VOLUME_CHANGED_ACTION && !isDraggingVolume) {
                         val newSystemVolume = systemVolume
                         if (currentVolume <= systemMaxVolume) {
-                            currentVolume = newSystemVolume
-                            volumePercentage = calculateVolumePercentage()
+                            if (newSystemVolume != currentVolume) {
+                                currentVolume = newSystemVolume
+                                volumePercentage = calculateVolumePercentage()
+                            }
                         } else if (newSystemVolume < systemMaxVolume) {
                             currentVolume = newSystemVolume
                             volumePercentage = calculateVolumePercentage()
@@ -115,11 +138,11 @@ class VolumeState(
             )
 
             onDispose {
-                activity.unregisterReceiver(receiver)
+                runCatching { activity.unregisterReceiver(receiver) }
             }
         }
 
-    suspend fun initializeVolumeBoost() = kotlinx.coroutines.coroutineScope {
+    suspend fun initializeVolumeBoost() = coroutineScope {
         val player = player as? MediaController ?: return@coroutineScope
         val scope = this
         val listener = object : Player.Listener {
@@ -132,7 +155,7 @@ class VolumeState(
         player.addListener(listener)
         try {
             updateVolumeBoostState(player = player)
-            kotlinx.coroutines.awaitCancellation()
+            awaitCancellation()
         } finally {
             player.removeListener(listener)
         }
@@ -166,20 +189,35 @@ class VolumeState(
     }
 
     private fun calculateVolumePercentage(): Int =
-        ((currentVolume.toFloat() / systemMaxVolume) * 100).toInt()
+        ((currentVolume.toFloat() / systemMaxVolume) * 100f).roundToInt()
 
     private fun setVolume(volume: Int) {
+        setVolumeInternal(
+            volume = volume,
+            preserveExactPercentage = false,
+            showVolumePanel = false,
+        )
+    }
+
+    private fun setVolumeInternal(
+        volume: Int,
+        preserveExactPercentage: Boolean,
+        showVolumePanel: Boolean,
+    ) {
         val clampedVolume = volume.coerceIn(
             minimumValue = 0,
             maximumValue = maxVolume,
         )
         currentVolume = clampedVolume
-        volumePercentage = calculateVolumePercentage()
+        if (!preserveExactPercentage) {
+            volumePercentage = calculateVolumePercentage()
+            DolbyVolumeBoosterEngine.setVolumePercentage(volumePercentage)
+        }
 
         if (clampedVolume <= systemMaxVolume) {
             setSystemVolume(
                 volume = clampedVolume,
-                showVolumePanel = showVolumePanelIfHeadsetIsOn && isHeadsetConnected,
+                showVolumePanel = showVolumePanel,
             )
             applyVolumeBoost(volume = 0)
         } else {
@@ -214,23 +252,19 @@ class VolumeState(
     }
 
     fun increaseVolume(showVolumePanel: Boolean = false) {
-        setVolume(volume = currentVolume + 1)
-        if (showVolumePanel && currentVolume <= systemMaxVolume) {
-            setSystemVolume(
-                volume = currentVolume,
-                showVolumePanel = true,
-            )
-        }
+        setVolumeInternal(
+            volume = currentVolume + 1,
+            preserveExactPercentage = false,
+            showVolumePanel = showVolumePanel && currentVolume + 1 <= systemMaxVolume,
+        )
     }
 
     fun decreaseVolume(showVolumePanel: Boolean = false) {
-        setVolume(volume = currentVolume - 1)
-        if (showVolumePanel && currentVolume <= systemMaxVolume) {
-            setSystemVolume(
-                volume = currentVolume,
-                showVolumePanel = true,
-            )
-        }
+        setVolumeInternal(
+            volume = currentVolume - 1,
+            preserveExactPercentage = false,
+            showVolumePanel = showVolumePanel && currentVolume - 1 <= systemMaxVolume,
+        )
     }
 
     companion object {

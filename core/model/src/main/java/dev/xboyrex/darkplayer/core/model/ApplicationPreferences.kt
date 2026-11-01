@@ -1,5 +1,6 @@
 package dev.xboyrex.darkplayer.core.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -10,7 +11,7 @@ data class ApplicationPreferences(
     val useHighContrastDarkTheme: Boolean = true,
     val useDynamicColors: Boolean = false,
     val useLiquidGlass: Boolean = true,
-    val themeAccentSeed: String = "#FF0033",
+    @SerialName("studioAccentSeed") val themeAccentSeed: String = "#FACC15",
     val useSystemFont: Boolean = false,
     val markLastPlayedMedia: Boolean = true,
     val isHistoryPaused: Boolean = false,

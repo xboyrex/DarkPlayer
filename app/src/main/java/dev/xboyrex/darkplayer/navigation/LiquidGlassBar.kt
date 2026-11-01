@@ -129,12 +129,12 @@ fun LiquidBottomTabs(
     val isLightTheme = bgLum >= 0.5f
     val isAmoled = bgLum < 0.002f
     val glassSupported = GlassQuality.effectsSupported
-    val solidContainer = if (isAmoled) Color.Black else MaterialTheme.colorScheme.surfaceContainer
+    val solidContainer = if (isAmoled) Color(0xFF0E131F) else MaterialTheme.colorScheme.surfaceContainer
     val containerColor = when {
         !glassSupported -> solidContainer
         isAmoled -> Color(0xFF000000).copy(0.45f)
-        isLightTheme -> Color(0xFFFAFAFA).copy(0.4f)
-        else -> Color(0xFF121212).copy(0.4f)
+        isLightTheme -> Color(0xFFFAFAFA).copy(0.42f)
+        else -> Color(0xFF121212).copy(0.40f)
     }
 
     BoxWithConstraints(
@@ -263,14 +263,14 @@ fun LiquidBottomTabs(
                             .clip(Capsule())
                             .background(
                                 if (isLightTheme) MaterialTheme.colorScheme.surfaceContainerHigh
-                                else Color(0xFF141720),
+                                else Color(0xFF0E131F),
                             )
                             .border(
-                                1.2.dp,
+                                1.dp,
                                 Brush.linearGradient(
                                     listOf(
                                         MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                                        MaterialTheme.colorScheme.outlineVariant,
+                                        Color.White.copy(alpha = 0.14f),
                                     ),
                                 ),
                                 Capsule(),
@@ -282,8 +282,7 @@ fun LiquidBottomTabs(
                 .fillMaxWidth(),
         )
 
-        // 2. Moving active tab indicator pill. It stays *behind* the tab row so
-        // the icons and labels are never distorted by the glass lens.
+        // 2. Moving active tab indicator pill
         Box(
             Modifier
                 .padding(horizontal = 4f.dp)
@@ -299,9 +298,6 @@ fun LiquidBottomTabs(
                             shape = { Capsule() },
                             effects = {
                                 val progress = dampedDragAnimation.pressProgress
-                                // Frosted at rest exactly like the bar itself; the blur
-                                // clears while the pill is held so the press lens and
-                                // highlight read as a separate interaction.
                                 vibrancy()
                                 if (progress < 0.999f) blur(8f.dp.toPx() * (1f - progress))
                                 lens(
@@ -345,10 +341,10 @@ fun LiquidBottomTabs(
                     } else {
                         Modifier
                             .clip(Capsule())
-                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.20f))
                             .border(
                                 1.dp,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
                                 Capsule(),
                             )
                     },
@@ -357,8 +353,7 @@ fun LiquidBottomTabs(
                 .fillMaxWidth(1f / tabsCount),
         )
 
-        // 3. Tab icons and labels on top. The drag gestures live on this row so
-        // the pill can stay behind the icons while drag-to-switch still works.
+        // 3. Tab icons and labels on top
         CompositionLocalProvider(
             LocalLiquidBottomTabScale provides {
                 lerp(1f, 1.15f, dampedDragAnimation.pressProgress)
@@ -409,7 +404,12 @@ fun RowScope.LiquidNavTab(
     onClick: () -> Unit,
 ) {
     val isLightTheme = MaterialTheme.colorScheme.background.luminance() >= 0.5f
-    val contentColor = if (isLightTheme) Color.Black else Color.White
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val contentColor = when {
+        selected -> primaryColor
+        isLightTheme -> Color(0xFF0F172A)
+        else -> Color.White.copy(alpha = 0.85f)
+    }
 
     LiquidBottomTab(onClick = onClick) {
         Box(

@@ -3,7 +3,6 @@ package dev.xboyrex.darkplayer.feature.player
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -24,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalContext
@@ -35,11 +33,11 @@ import androidx.media3.ui.compose.state.rememberProgressStateWithTickInterval
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.ui.components.requestFocusUntilLanded
 import dev.xboyrex.darkplayer.core.ui.components.thenIf
-import dev.xboyrex.darkplayer.core.ui.glass.Motion
 import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
 import dev.xboyrex.darkplayer.feature.player.state.SeekGestureState
 import dev.xboyrex.darkplayer.feature.player.state.TapGestureState
 import dev.xboyrex.darkplayer.feature.player.state.VideoZoomAndContentScaleState
+import dev.xboyrex.darkplayer.feature.player.state.VolumeState
 import dev.xboyrex.darkplayer.feature.player.state.rememberChaptersState
 import dev.xboyrex.darkplayer.feature.player.state.rememberMediaPresentationState
 import dev.xboyrex.darkplayer.feature.player.state.rememberMetadataState
@@ -61,6 +59,7 @@ internal fun MediaPlayerControls(
     tapGestureState: TapGestureState,
     seekGestureState: SeekGestureState,
     videoZoomAndContentScaleState: VideoZoomAndContentScaleState,
+    volumeState: VolumeState? = null,
     dpadUpDown: Int? = null,
     isPipSupported: Boolean,
     onPictureInPictureClick: () -> Unit,
@@ -139,20 +138,13 @@ internal fun MediaPlayerControls(
                 visible =
                     controlsVisibilityState.controlsVisible &&
                         !controlsVisibilityState.controlsLocked,
-                enter = fadeIn(tween(220, easing = Motion.Emphasized)),
-                exit = fadeOut(tween(180, easing = Motion.Emphasized)),
+                enter = fadeIn(),
+                exit = fadeOut(),
             ) {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                0f to Color.Black.copy(alpha = 0.52f),
-                                0.28f to Color.Black.copy(alpha = 0.06f),
-                                0.72f to Color.Black.copy(alpha = 0.06f),
-                                1f to Color.Black.copy(alpha = 0.62f),
-                            ),
-                        ),
+                        .background(Color.Black.copy(alpha = 0.3f)),
                 )
             }
             if (mediaPresentationState.isBuffering) {
@@ -194,12 +186,6 @@ internal fun MediaPlayerControls(
                     onPlayInBackgroundClick = { onAction(PlayerAction.PlayInBackground) },
                     onToggleTimeDisplay = { onAction(PlayerAction.ToggleTimeDisplay) },
                     onPictureInPictureClick = onPictureInPictureClick,
-                    onSeekBack = {
-                        tapGestureState.seekBy(-playerPreferences.seekIncrement.seconds.inWholeMilliseconds)
-                    },
-                    onSeekForward = {
-                        tapGestureState.seekBy(playerPreferences.seekIncrement.seconds.inWholeMilliseconds)
-                    },
                     middleControlsModifier = Modifier.thenIf(condition = isTv) {
                         focusRequester(focusRequester = middleControlsFocusRequester)
                             .onFocusChanged { isMiddleControlsFocused = it.hasFocus }
@@ -212,12 +198,11 @@ internal fun MediaPlayerControls(
                 overlayView = overlayView,
                 chapters = chaptersState.chapters,
                 currentChapterIndex = chaptersState.currentChapterIndex,
+                volumeState = volumeState,
                 onChapterSelected = { chapter ->
-                    if (player.isCurrentMediaItemSeekable) {
-                        player.seekTo(chapter.startTimeMs)
-                        overlayView = null
-                        controlsVisibilityState.showControls()
-                    }
+                    player.seekTo(chapter.startTimeMs)
+                    overlayView = null
+                    controlsVisibilityState.showControls()
                 },
                 videoDecoderMode = state.decoderServiceState.videoMode,
                 audioDecoderMode = state.decoderServiceState.audioMode,

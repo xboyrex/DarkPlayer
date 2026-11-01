@@ -47,6 +47,7 @@ data class ThemePaletteChoice(
     val hex: String,
 )
 
+const val SEED_SOLAR_GOLD = "#FACC15"
 const val SEED_CRIMSON = "#FF0033"
 const val SEED_CREAM_ROSE = "#833761"
 const val SEED_AURORA = "#6C2BD9"
@@ -57,11 +58,11 @@ const val SEED_CYBER_CYAN = "#00E5FF"
 const val SEED_EMERALD = "#10B981"
 const val SEED_PUMPKIN = "#B0714A"
 const val SEED_MOONSTONE = "#8A8F98"
-const val SEED_SOLAR_GOLD = "#FACC15"
 const val SEED_ELECTRIC_BLUE = "#0284C7"
 
-// Top 10 Curated Color Palettes (YTXTube + Studio Signature Combinations)
+// Top 10 Curated Studio Color Combinations (Solar Gold default)
 val DARK_PLAYER_PALETTES = listOf(
+    ThemePaletteChoice("Solar Gold", SEED_SOLAR_GOLD),
     ThemePaletteChoice("Crimson", SEED_CRIMSON),
     ThemePaletteChoice("Cream Rose", SEED_CREAM_ROSE),
     ThemePaletteChoice("Erica", SEED_AURORA),
@@ -71,11 +72,10 @@ val DARK_PLAYER_PALETTES = listOf(
     ThemePaletteChoice("Cyber Cyan", SEED_CYBER_CYAN),
     ThemePaletteChoice("Emerald", SEED_EMERALD),
     ThemePaletteChoice("Pumpkin", SEED_PUMPKIN),
-    ThemePaletteChoice("Moonstone", SEED_MOONSTONE),
 )
 
 object ThemeState {
-    var accentSeed by mutableStateOf(SEED_CRIMSON)
+    var accentSeed by mutableStateOf(SEED_SOLAR_GOLD)
     var useSystemFont by mutableStateOf(false)
 }
 
@@ -121,6 +121,38 @@ private fun hsl(h: Float, s: Float, l: Float): Color {
         else -> Triple(c, 0f, x)
     }
     return Color((r + m).coerceIn(0f, 1f), (g + m).coerceIn(0f, 1f), (b + m).coerceIn(0f, 1f))
+}
+
+private fun solarGoldScheme(dark: Boolean): ColorScheme = if (!dark) {
+    lightColorScheme(
+        primary = Color(0xFFD97706), onPrimary = Color.White,
+        primaryContainer = Color(0xFFFEF3C7), onPrimaryContainer = Color(0xFF451A03),
+        secondary = Color(0xFF475569), onSecondary = Color.White,
+        secondaryContainer = Color(0xFFE2E8F0), onSecondaryContainer = Color(0xFF0F172A),
+        tertiary = Color(0xFF0284C7), tertiaryContainer = Color(0xFFE0F2FE), onTertiaryContainer = Color(0xFF082F49),
+        background = Color(0xFFF8FAFC), onBackground = Color(0xFF090D16),
+        surface = Color(0xFFF8FAFC), onSurface = Color(0xFF090D16),
+        surfaceVariant = Color(0xFFE2E8F0), onSurfaceVariant = Color(0xFF334155),
+        surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF1F5F9),
+        surfaceContainer = Color(0xFFEFF4FA), surfaceContainerHigh = Color(0xFFE2E8F0),
+        surfaceContainerHighest = Color(0xFFCBD5E1),
+        outline = Color(0xFF64748B), outlineVariant = Color(0xFFCBD5E1),
+    )
+} else {
+    darkColorScheme(
+        primary = Color(0xFFFACC15), onPrimary = Color(0xFF090D16),
+        primaryContainer = Color(0xFF3F3005), onPrimaryContainer = Color(0xFFFEF08A),
+        secondary = Color(0xFF94A3B8), onSecondary = Color(0xFF090D16),
+        secondaryContainer = Color(0xFF141C2B), onSecondaryContainer = Color(0xFFF8FAFC),
+        tertiary = Color(0xFF38BDF8), tertiaryContainer = Color(0xFF141C2B), onTertiaryContainer = Color(0xFFF8FAFC),
+        background = Color(0xFF0A0E17), onBackground = Color(0xFFF8FAFC),
+        surface = Color(0xFF0A0E17), onSurface = Color(0xFFFFFFFF),
+        surfaceVariant = Color(0xFF121926), onSurfaceVariant = Color(0xFFCBD5E1),
+        surfaceContainerLowest = Color(0xFF000000), surfaceContainerLow = Color(0xFF070A10),
+        surfaceContainer = Color(0xFF0B0F18), surfaceContainerHigh = Color(0xFF111724),
+        surfaceContainerHighest = Color(0xFF192132),
+        outline = Color(0xFF475569), outlineVariant = Color(0xFF1E293B),
+    )
 }
 
 private fun crimsonScheme(dark: Boolean): ColorScheme = if (!dark) {
@@ -203,7 +235,10 @@ fun schemeForSeed(context: Context?, seedHex: String?, dark: Boolean): ColorSche
     if (seedHex == null && context != null && supportsDynamicTheming()) {
         return if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     }
-    val hex = seedHex ?: SEED_CRIMSON
+    val hex = seedHex ?: SEED_SOLAR_GOLD
+    if (hex.equals(SEED_SOLAR_GOLD, ignoreCase = true)) {
+        return solarGoldScheme(dark)
+    }
     if (hex.equals(SEED_CRIMSON, ignoreCase = true)) {
         return crimsonScheme(dark)
     }

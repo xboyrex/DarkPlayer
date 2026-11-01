@@ -479,8 +479,9 @@ class PlayerService : MediaSessionService() {
 
         override fun onAudioSessionIdChanged(audioSessionId: Int) {
             super.onAudioSessionIdChanged(audioSessionId)
-            if (!playerPreferences.enableVolumeBoost) return
             if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
+            runCatching { DolbyVolumeBoosterEngine.attachSession(audioSessionId) }
+            if (!playerPreferences.enableVolumeBoost) return
             try {
                 loudnessEnhancer?.release()
                 loudnessEnhancer = LoudnessEnhancer(audioSessionId)
@@ -495,6 +496,7 @@ class PlayerService : MediaSessionService() {
     }
 
     private fun setEnhancerTargetGain(gain: Int) {
+        runCatching { DolbyVolumeBoosterEngine.setGainMillibels(gain) }
         val enhancer = loudnessEnhancer ?: return
 
         try {

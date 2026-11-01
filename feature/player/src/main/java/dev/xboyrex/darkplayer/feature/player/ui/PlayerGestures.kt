@@ -53,6 +53,11 @@ fun PlayerGestures(
                     detectTapGestures(
                         onTap = {
                             if (tapGestureState.seekMillis != 0L) return@detectTapGestures
+                            if (volumeAndBrightnessGestureState.isDragging ||
+                                seekGestureState.isSeeking
+                            ) {
+                                return@detectTapGestures
+                            }
                             controlsVisibilityState.toggleControlsVisibility()
                         },
                         onDoubleTap = {
@@ -70,41 +75,6 @@ fun PlayerGestures(
                             if (controlsVisibilityState.controlsLocked) return@detectTapGestures
                             tapGestureState.handleLongPress(offset = it)
                         },
-                    )
-                }
-                .pointerInput(
-                    seekGestureState,
-                    volumeAndBrightnessGestureState,
-                    gestureInsets,
-                    density,
-                    layoutDirection,
-                    controlsVisibilityState.controlsLocked,
-                    pictureInPictureState.isInPictureInPictureMode,
-                ) {
-                    if (controlsVisibilityState.controlsLocked) return@pointerInput
-                    if (pictureInPictureState.isInPictureInPictureMode) return@pointerInput
-
-                    detectCustomHorizontalDragGestures(
-                        shouldStartGesture = {
-                            !volumeAndBrightnessGestureState.isDragging &&
-                                gestureInsets.isPlayerGestureStart(
-                                    it,
-                                    size,
-                                    density,
-                                    layoutDirection,
-                                )
-                        },
-                        onDragStart = { offset ->
-                            volumeAndBrightnessGestureState.clearNow()
-                            seekGestureState.onDragStart(offset)
-                        },
-                        onHorizontalDrag = { change, dragAmount ->
-                            if (!volumeAndBrightnessGestureState.isDragging) {
-                                seekGestureState.onDrag(change, dragAmount)
-                            }
-                        },
-                        onDragCancel = seekGestureState::onDragEnd,
-                        onDragEnd = seekGestureState::onDragEnd,
                     )
                 }
                 .pointerInput(
@@ -144,6 +114,45 @@ fun PlayerGestures(
                         },
                         onDragCancel = volumeAndBrightnessGestureState::onDragEnd,
                         onDragEnd = volumeAndBrightnessGestureState::onDragEnd,
+                    )
+                }
+                .pointerInput(
+                    seekGestureState,
+                    volumeAndBrightnessGestureState,
+                    gestureInsets,
+                    density,
+                    layoutDirection,
+                    controlsVisibilityState.controlsLocked,
+                    pictureInPictureState.isInPictureInPictureMode,
+                ) {
+                    if (controlsVisibilityState.controlsLocked) return@pointerInput
+                    if (pictureInPictureState.isInPictureInPictureMode) return@pointerInput
+
+                    detectCustomHorizontalDragGestures(
+                        shouldStartGesture = {
+                            !volumeAndBrightnessGestureState.isDragging &&
+                                volumeAndBrightnessGestureState.activeGesture == null &&
+                                gestureInsets.isPlayerGestureStart(
+                                    it,
+                                    size,
+                                    density,
+                                    layoutDirection,
+                                )
+                        },
+                        onDragStart = { offset ->
+                            if (!volumeAndBrightnessGestureState.isDragging &&
+                                volumeAndBrightnessGestureState.activeGesture == null
+                            ) {
+                                seekGestureState.onDragStart(offset)
+                            }
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            if (!volumeAndBrightnessGestureState.isDragging) {
+                                seekGestureState.onDrag(change, dragAmount)
+                            }
+                        },
+                        onDragCancel = seekGestureState::onDragEnd,
+                        onDragEnd = seekGestureState::onDragEnd,
                     )
                 }
                 .pointerInput(

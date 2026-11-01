@@ -10,6 +10,7 @@ import androidx.media3.extractor.metadata.Chapter
 import dev.xboyrex.darkplayer.core.model.VideoContentScale
 import dev.xboyrex.darkplayer.feature.player.extensions.noRippleClickable
 import dev.xboyrex.darkplayer.feature.player.state.SubtitleOptionsEvent
+import dev.xboyrex.darkplayer.feature.player.state.VolumeState
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 
 @Composable
@@ -22,6 +23,7 @@ fun BoxScope.OverlayShowView(
     chapters: List<Chapter>,
     currentChapterIndex: Int,
     onChapterSelected: (Chapter) -> Unit,
+    volumeState: VolumeState? = null,
     onDismiss: () -> Unit = {},
     onVideoDecoderModeSelected: (DecoderMode) -> Unit = {},
     onAudioDecoderModeSelected: (DecoderMode) -> Unit = {},
@@ -94,6 +96,12 @@ fun BoxScope.OverlayShowView(
         player = player,
         onDismiss = onDismiss,
     )
+
+    VolumeBoosterSelectorView(
+        show = overlayView == OverlayView.VOLUME_BOOSTER,
+        volumeState = volumeState,
+        onDismiss = onDismiss,
+    )
 }
 
 val Configuration.isPortrait: Boolean
@@ -108,4 +116,5 @@ enum class OverlayView {
     PLAYLIST,
     CHAPTERS,
     SLEEP_TIMER,
+    VOLUME_BOOSTER,
 }

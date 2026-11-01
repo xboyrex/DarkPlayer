@@ -52,11 +52,12 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -75,12 +76,6 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.scene.Scene
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.shapes.Capsule
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.ui.R
 import dev.xboyrex.darkplayer.core.ui.components.TopLevelFabKey
@@ -88,7 +83,6 @@ import dev.xboyrex.darkplayer.core.ui.components.TopLevelFabState
 import dev.xboyrex.darkplayer.core.ui.components.thenIf
 import dev.xboyrex.darkplayer.core.ui.components.tvFocusRing
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
-import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
 import dev.xboyrex.darkplayer.core.ui.glass.Motion
 import dev.xboyrex.darkplayer.feature.more.navigation.MoreRoute
 import dev.xboyrex.darkplayer.feature.network.navigation.NetworkRoute
@@ -293,16 +287,27 @@ fun NextNavigationBar(
     backdrop: Backdrop = rememberLayerBackdrop(),
 ) {
     val isTv = LocalContext.current.isTelevision
-    val bgLum = MaterialTheme.colorScheme.background.luminance()
-    val isLightTheme = bgLum >= 0.5f
-    val isAmoled = bgLum < 0.002f
+    val bgColor = MaterialTheme.colorScheme.background
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .thenIf(condition = !showFabOnly) {
+                background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            bgColor.copy(alpha = 0.72f),
+                            bgColor,
+                        ),
+                    ),
+                )
+            }
             .navigationBarsPadding()
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-            .padding(bottom = 12.dp)
+            .padding(top = 18.dp, bottom = 12.dp)
             .padding(horizontal = 16.dp)
             .thenIf(condition = !showFabOnly) { pointerInput(key1 = Unit) {} },
         contentAlignment = Alignment.BottomCenter,
@@ -339,40 +344,16 @@ fun NextNavigationBar(
             }
 
             fabState?.let { fab ->
-                val glassEnabled = GlassQuality.effectsSupported
-                val fabContainerColor = when {
-                    !glassEnabled -> MaterialTheme.colorScheme.primary
-                    isAmoled -> Color(0xFF000000).copy(alpha = 0.45f)
-                    isLightTheme -> Color(0xFFFAFAFA).copy(alpha = 0.4f)
-                    else -> Color(0xFF121212).copy(alpha = 0.4f)
-                }
-                val fabIconTint = when {
-                    !glassEnabled -> MaterialTheme.colorScheme.onPrimary
-                    isLightTheme -> Color.Black
-                    else -> Color.White
-                }
-                val fabGlassModifier = if (glassEnabled) {
-                    Modifier.drawBackdrop(
-                        backdrop = backdrop,
-                        shape = { Capsule() },
-                        effects = {
-                            vibrancy()
-                            blur(8f.dp.toPx())
-                            lens(24f.dp.toPx(), 24f.dp.toPx(), chromaticAberration = true)
-                        },
-                        highlight = { Highlight.Default },
-                        onDrawSurface = { drawRect(fabContainerColor) },
-                    )
-                } else {
-                    Modifier
-                        .clip(CircleShape)
-                        .background(fabContainerColor)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
-                }
-
+                // Solid Circle FAB next to the Liquid Glass / Solid Navigation Bar
                 Box(
                     modifier = Modifier
-                        .size(60.dp)
+                        .size(58.dp)
+                        .shadow(
+                            elevation = 10.dp,
+                            shape = CircleShape,
+                            ambientColor = primaryColor.copy(alpha = 0.45f),
+                            spotColor = primaryColor.copy(alpha = 0.55f),
+                        )
                         .testTag(tag = "top_level_fab")
                         .focusRequester(focusRequester = fabFocusRequester)
                         .tvFocusRing(shape = CircleShape)
@@ -383,7 +364,13 @@ fun NextNavigationBar(
                                         ?: contentFocusRequester
                             }
                         }
-                        .then(fabGlassModifier)
+                        .clip(CircleShape)
+                        .background(primaryColor)
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.28f),
+                            shape = CircleShape,
+                        )
                         .clickable(onClick = fab.onClick),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -422,8 +409,8 @@ fun NextNavigationBar(
                         Icon(
                             imageVector = fabItem.icon,
                             contentDescription = null,
-                            tint = fabIconTint,
-                            modifier = Modifier.size(25.dp),
+                            tint = onPrimaryColor,
+                            modifier = Modifier.size(26.dp),
                         )
                     }
                 }

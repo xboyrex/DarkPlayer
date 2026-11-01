@@ -20,10 +20,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.SURFACE_TYPE_SURFACE_VIEW
-import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import androidx.media3.ui.compose.modifiers.resizeWithContentScale
 import androidx.media3.ui.compose.state.rememberPresentationState
-import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
 import dev.xboyrex.darkplayer.feature.player.extensions.toContentScale
 import dev.xboyrex.darkplayer.feature.player.state.PictureInPictureState
 import dev.xboyrex.darkplayer.feature.player.state.VideoZoomAndContentScaleState
@@ -63,11 +61,7 @@ fun PlayerContentFrame(
         if (videoVisible) {
             PlayerSurface(
                 player = player,
-                surfaceType = if (GlassQuality.effectsSupported) {
-                    SURFACE_TYPE_TEXTURE_VIEW
-                } else {
-                    SURFACE_TYPE_SURFACE_VIEW
-                },
+                surfaceType = SURFACE_TYPE_SURFACE_VIEW,
                 modifier = Modifier
                     .resizeWithContentScale(
                         contentScale = videoZoomAndContentScaleState.videoContentScale

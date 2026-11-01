@@ -1,303 +1,263 @@
 package dev.xboyrex.darkplayer.feature.player.ui
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.keyframes
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Forward10
-import androidx.compose.material.icons.rounded.KeyboardDoubleArrowLeft
-import androidx.compose.material.icons.rounded.KeyboardDoubleArrowRight
-import androidx.compose.material.icons.rounded.Replay10
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
-import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
-import dev.xboyrex.darkplayer.core.ui.glass.LocalGlassBackdrop
-import dev.xboyrex.darkplayer.core.ui.glass.Motion
-import dev.xboyrex.darkplayer.core.ui.glass.RollingText
-import dev.xboyrex.darkplayer.core.ui.glass.glassOverlayFill
-import dev.xboyrex.darkplayer.core.ui.glass.glassSpec
-import dev.xboyrex.darkplayer.core.ui.glass.liquidGlass
-import dev.xboyrex.darkplayer.core.ui.glass.rememberReducedMotion
+import dev.xboyrex.darkplayer.core.model.DoubleTapGesture
+import dev.xboyrex.darkplayer.core.ui.R
+import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.state.TapGestureState
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.coroutines.launch
 
 @Composable
 fun DoubleTapIndicator(modifier: Modifier = Modifier, tapGestureState: TapGestureState) {
     if (tapGestureState.seekMillis == 0L) return
     val isForward = tapGestureState.seekMillis > 0
-    val seconds = abs(tapGestureState.seekMillis.milliseconds.inWholeSeconds).toInt()
-    val backdrop = LocalGlassBackdrop.current
-    val reduced = rememberReducedMotion()
-    val c = MaterialTheme.colorScheme
-    val accent = c.primary
-
-    val popScale = remember { Animatable(0.86f) }
-    val ringRipple = remember { Animatable(0f) }
-    val arcSweep = remember { Animatable(0f) }
-    val iconSpin = remember { Animatable(0f) }
-    val chevronWave = remember { Animatable(0f) }
-
-    LaunchedEffect(tapGestureState.tapCount, tapGestureState.seekMillis) {
-        if (reduced) {
-            popScale.snapTo(1f)
-            return@LaunchedEffect
-        }
-        launch {
-            popScale.snapTo(0.88f)
-            popScale.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(dampingRatio = 0.46f, stiffness = 620f),
-            )
-        }
-        launch {
-            ringRipple.snapTo(0f)
-            ringRipple.animateTo(1f, tween(540, easing = Motion.Emphasized))
-        }
-        launch {
-            arcSweep.snapTo(0f)
-            arcSweep.animateTo(1f, tween(420, easing = Motion.Emphasized))
-        }
-        launch {
-            iconSpin.snapTo(if (isForward) 48f else -48f)
-            iconSpin.animateTo(0f, spring(dampingRatio = 0.48f, stiffness = 500f))
-        }
-        launch {
-            chevronWave.snapTo(0f)
-            chevronWave.animateTo(
-                targetValue = 1f,
-                animationSpec = keyframes {
-                    durationMillis = 480
-                    0.5f at 160
-                    1f at 480
-                },
-            )
-        }
-    }
-
-    val entryAlpha by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = tween(140),
-        label = "skipHudAlpha",
-    )
-
-    val useLiquidGlass = backdrop != null && GlassSettings.quality != GlassQuality.Off
-    val cardShape = RoundedCornerShape(24.dp)
+    val seconds = abs(tapGestureState.seekMillis).milliseconds.inWholeSeconds
+    val shape = if (isForward) RightSideOvalShape() else LeftSideOvalShape()
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 42.dp),
-        contentAlignment = if (isForward) Alignment.CenterEnd else Alignment.CenterStart,
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = if (isForward) {
+            Alignment.CenterEnd
+        } else {
+            Alignment.CenterStart
+        },
     ) {
         Box(
             modifier = Modifier
-                .graphicsLayer {
-                    alpha = entryAlpha
-                    scaleX = popScale.value
-                    scaleY = popScale.value
-                }
-                .drawBehind {
-                    val r = ringRipple.value
-                    if (r < 1f) {
-                        val expand1 = 14.dp.toPx() * r
-                        drawRoundRect(
-                            color = accent.copy(alpha = (1f - r) * 0.55f),
-                            topLeft = Offset(-expand1, -expand1),
-                            size = Size(size.width + expand1 * 2f, size.height + expand1 * 2f),
-                            cornerRadius = CornerRadius(24.dp.toPx() + expand1),
-                            style = Stroke(width = 2.2.dp.toPx() * (1f - r * 0.5f)),
-                        )
-                        val expand2 = 24.dp.toPx() * r
-                        drawRoundRect(
-                            color = Color.White.copy(alpha = (1f - r) * 0.28f),
-                            topLeft = Offset(-expand2, -expand2),
-                            size = Size(size.width + expand2 * 2f, size.height + expand2 * 2f),
-                            cornerRadius = CornerRadius(24.dp.toPx() + expand2),
-                            style = Stroke(width = 1.2.dp.toPx() * (1f - r * 0.5f)),
-                        )
-                    }
-                }
-                .clip(cardShape)
-                .then(
-                    if (useLiquidGlass) {
-                        Modifier.liquidGlass(
-                            backdrop = backdrop,
-                            spec = glassSpec(
-                                shape = cardShape,
-                                tint = glassOverlayFill(0.52f),
-                                blur = 22.dp,
-                                refractionHeight = 12.dp,
-                                refractionAmount = 20.dp,
-                            ),
-                        )
-                    } else {
-                        Modifier
-                            .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color(0xFF1F2433).copy(alpha = 0.95f),
-                                        Color(0xFF11141D).copy(alpha = 0.97f),
-                                    ),
-                                ),
-                                shape = cardShape,
-                            )
-                            .border(
-                                width = 1.2.dp,
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        accent.copy(alpha = 0.72f),
-                                        Color.White.copy(alpha = 0.20f),
-                                    ),
-                                ),
-                                shape = cardShape,
-                            )
+                .fillMaxHeight()
+                .fillMaxWidth(
+                    fraction = when (tapGestureState.doubleTapGesture) {
+                        DoubleTapGesture.PLAY_PAUSE -> 0f
+                        DoubleTapGesture.FAST_FORWARD_AND_REWIND -> 0.30f
+                        DoubleTapGesture.BOTH -> 0.28f
+                        DoubleTapGesture.NONE -> 0f
                     },
                 )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .clip(shape = shape)
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = if (isForward) {
+                            listOf(
+                                Color(0xFF0A0E17).copy(alpha = 0.22f),
+                                Color(0xFF0A0E17).copy(alpha = 0.52f),
+                            )
+                        } else {
+                            listOf(
+                                Color(0xFF0A0E17).copy(alpha = 0.52f),
+                                Color(0xFF0A0E17).copy(alpha = 0.22f),
+                            )
+                        },
+                    ),
+                )
+                .border(
+                    width = 0.8.dp,
+                    color = Color.White.copy(alpha = 0.16f),
+                    shape = shape,
+                )
+                .indication(
+                    tapGestureState.interactionSource,
+                    indication = ripple(color = Color.White),
+                ),
             contentAlignment = Alignment.Center,
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                if (!isForward) {
-                    CascadingChevrons(isForward = false, progress = chevronWave.value, accent = accent)
-                }
-
-                // Cyber-Arc Icon Badge
-                Box(
-                    modifier = Modifier.size(40.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val strokeW = 2.4.dp.toPx()
-                        drawCircle(
-                            color = Color.White.copy(alpha = 0.14f),
-                            style = Stroke(width = strokeW),
-                        )
-                        drawArc(
-                            color = accent,
-                            startAngle = -90f,
-                            sweepAngle = (if (isForward) 360f else -360f) * arcSweep.value,
-                            useCenter = false,
-                            style = Stroke(width = strokeW, cap = StrokeCap.Round),
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(accent.copy(alpha = 0.22f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = if (isForward) Icons.Rounded.Forward10 else Icons.Rounded.Replay10,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .graphicsLayer {
-                                    rotationZ = iconSpin.value
-                                },
-                        )
-                    }
-                }
-
-                Column(
-                    horizontalAlignment = Alignment.Start,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = if (isForward) "+" else "−",
-                            color = accent,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 19.sp,
-                        )
-                        RollingText(
-                            text = "${seconds}s",
-                            color = Color.White,
-                            up = true,
-                            fontSize = 19.sp,
-                        )
-                    }
-                    Text(
-                        text = if (isForward) "FAST FORWARD" else "REWIND",
-                        color = Color.White.copy(alpha = 0.68f),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 8.5.sp,
-                        letterSpacing = 0.8.sp,
-                    )
-                }
-
-                if (isForward) {
-                    CascadingChevrons(isForward = true, progress = chevronWave.value, accent = accent)
-                }
+                DoubleTapSeekTriangles(isForward = isForward)
+                Text(
+                    text = "${if (isForward) "+" else "-"}${seconds}s",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CascadingChevrons(
-    isForward: Boolean,
-    progress: Float,
-    accent: Color,
-) {
-    val dir = if (isForward) 1f else -1f
-    val shift = (progress - 0.5f) * 6f * dir
-    val alphaWave = 0.55f + 0.45f * (1f - abs(progress * 2f - 1f))
+private fun DoubleTapSeekTriangles(isForward: Boolean, modifier: Modifier = Modifier) {
+    val animationDuration = 650L
+
+    val alpha1 = remember { Animatable(initialValue = 0.2f) }
+    val alpha2 = remember { Animatable(initialValue = 0.2f) }
+    val alpha3 = remember { Animatable(initialValue = 0.2f) }
+
+    LaunchedEffect(key1 = animationDuration) {
+        while (true) {
+            alpha1.animateTo(
+                targetValue = 1f,
+                animationSpec = tween((animationDuration / 5).toInt()),
+            )
+            alpha2.animateTo(
+                targetValue = 1f,
+                animationSpec = tween((animationDuration / 5).toInt()),
+            )
+            alpha3.animateTo(
+                targetValue = 1f,
+                animationSpec = tween((animationDuration / 5).toInt()),
+            )
+            alpha1.animateTo(
+                targetValue = 0.2f,
+                animationSpec = tween((animationDuration / 5).toInt()),
+            )
+            alpha2.animateTo(
+                targetValue = 0.2f,
+                animationSpec = tween((animationDuration / 5).toInt()),
+            )
+            alpha3.animateTo(
+                targetValue = 0.2f,
+                animationSpec = tween((animationDuration / 5).toInt()),
+            )
+        }
+    }
+
+    val rotation = if (isForward) 0f else 180f
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.rotate(degrees = rotation),
+    ) {
+        DoubleTapArrow(alpha1.value)
+        DoubleTapArrow(alpha2.value)
+        DoubleTapArrow(alpha3.value)
+    }
+}
+
+private class RightSideOvalShape : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density,
+    ): Outline {
+        val path = Path().apply {
+            moveTo(
+                size.width,
+                size.height,
+            )
+            lineTo(
+                size.width,
+                y = 0f,
+            )
+            lineTo(
+                x = size.width * 0.14f,
+                y = 0f,
+            )
+            cubicTo(
+                x1 = size.width * 0.14f,
+                y1 = 0f,
+                x2 = -size.width * 0.08f,
+                y2 = size.height / 2,
+                x3 = size.width * 0.14f,
+                size.height,
+            )
+            close()
+        }
+        return Outline.Generic(path = path)
+    }
+}
+
+private class LeftSideOvalShape : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density,
+    ): Outline {
+        val path = Path().apply {
+            moveTo(
+                x = 0f,
+                y = 0f,
+            )
+            lineTo(
+                x = size.width * 0.86f,
+                y = 0f,
+            )
+            cubicTo(
+                x1 = size.width * 0.86f,
+                y1 = 0f,
+                x2 = size.width * 1.08f,
+                y2 = size.height / 2,
+                x3 = size.width * 0.86f,
+                size.height,
+            )
+            lineTo(
+                x = 0f,
+                size.height,
+            )
+            close()
+        }
+        return Outline.Generic(path = path)
+    }
+}
+
+@Composable
+private fun DoubleTapArrow(alpha: Float) {
     Icon(
-        imageVector = if (isForward) {
-            Icons.Rounded.KeyboardDoubleArrowRight
-        } else {
-            Icons.Rounded.KeyboardDoubleArrowLeft
-        },
+        painter = painterResource(R.drawable.ic_play),
         contentDescription = null,
-        tint = accent.copy(alpha = alphaWave),
         modifier = Modifier
-            .size(22.dp)
-            .graphicsLayer {
-                translationX = shift.dp.toPx()
-            },
+            .size(16.dp)
+            .graphicsLayer { this.alpha = alpha },
+        tint = Color.White,
     )
+}
+
+@Preview
+@Composable
+private fun OvalShapePreview() {
+    NextPlayerTheme {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(weight = 1f)
+                    .clip(shape = LeftSideOvalShape())
+                    .background(Color.Blue),
+            ) {}
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(weight = 1f)
+                    .clip(shape = RightSideOvalShape())
+                    .background(Color.Blue),
+            ) {}
+        }
+    }
 }

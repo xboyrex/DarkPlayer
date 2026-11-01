@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -20,11 +19,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.xboyrex.darkplayer.core.ui.R
-import dev.xboyrex.darkplayer.core.ui.glass.LocalGlassBackdrop
-import dev.xboyrex.darkplayer.core.ui.theme.DarkPlayerTheme
+import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
 import dev.xboyrex.darkplayer.feature.player.state.PlayerOrientationEffect
 import dev.xboyrex.darkplayer.feature.player.state.rememberBrightnessState
@@ -159,12 +155,9 @@ internal fun MediaPlayerContent(
         }
     }
 
-    val videoBackdrop = rememberLayerBackdrop()
-
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         if (pictureInPictureState != null) {
             PlayerContentFrame(
-                modifier = Modifier.layerBackdrop(videoBackdrop),
                 player = player,
                 pictureInPictureState = pictureInPictureState,
                 videoZoomAndContentScaleState = videoZoomAndContentScaleState,
@@ -190,42 +183,41 @@ internal fun MediaPlayerContent(
                 )
             }
         }
-        CompositionLocalProvider(LocalGlassBackdrop provides videoBackdrop) {
-            MediaPlayerControls(
-                player = player,
-                state = state,
-                onAction = onAction,
-                controlsVisibilityState = controlsVisibilityState,
-                tapGestureState = tapGestureState,
-                seekGestureState = seekGestureState,
-                videoZoomAndContentScaleState = videoZoomAndContentScaleState,
-                dpadUpDown = api?.dpadUpDown,
-                isPipSupported = pictureInPictureState?.isPipSupported == true,
-                onPictureInPictureClick = {
-                    pictureInPictureState?.let {
-                        if (!it.hasPipPermission) {
-                            Toast.makeText(
-                                context,
-                                R.string.enable_pip_from_settings,
-                                Toast.LENGTH_SHORT,
-                            ).show()
-                            it.openPictureInPictureSettings()
-                        } else {
-                            it.enterPictureInPictureMode()
-                        }
+        MediaPlayerControls(
+            player = player,
+            state = state,
+            onAction = onAction,
+            controlsVisibilityState = controlsVisibilityState,
+            tapGestureState = tapGestureState,
+            seekGestureState = seekGestureState,
+            videoZoomAndContentScaleState = videoZoomAndContentScaleState,
+            volumeState = volumeState,
+            dpadUpDown = api?.dpadUpDown,
+            isPipSupported = pictureInPictureState?.isPipSupported == true,
+            onPictureInPictureClick = {
+                pictureInPictureState?.let {
+                    if (!it.hasPipPermission) {
+                        Toast.makeText(
+                            context,
+                            R.string.enable_pip_from_settings,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        it.openPictureInPictureSettings()
+                    } else {
+                        it.enterPictureInPictureMode()
                     }
-                },
+                }
+            },
+        )
+        if (volumeAndBrightnessGestureState != null && volumeState != null &&
+            brightnessState != null
+        ) {
+            PlayerVerticalGestureIndicators(
+                activeGesture = volumeAndBrightnessGestureState.activeGesture,
+                volumePercentage = volumeState.volumePercentage,
+                maxVolumePercentage = volumeState.maxVolumePercentage,
+                brightnessPercentage = brightnessState.brightnessPercentage,
             )
-            if (volumeAndBrightnessGestureState != null && volumeState != null &&
-                brightnessState != null
-            ) {
-                PlayerVerticalGestureIndicators(
-                    activeGesture = volumeAndBrightnessGestureState.activeGesture,
-                    volumePercentage = volumeState.volumePercentage,
-                    maxVolumePercentage = volumeState.maxVolumePercentage,
-                    brightnessPercentage = brightnessState.brightnessPercentage,
-                )
-            }
         }
     }
 
@@ -261,7 +253,7 @@ internal fun MediaPlayerContent(
 )
 @Composable
 private fun MediaPlayerContentPreview() {
-    DarkPlayerTheme(darkTheme = true) {
+    NextPlayerTheme(darkTheme = true) {
         MediaPlayerContent(
             player = rememberPreviewPlayer(),
             state = PlayerUiState(),

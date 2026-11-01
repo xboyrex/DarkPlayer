@@ -58,6 +58,9 @@ import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
 
+private val NewBadgeYellow = Color(0xFFFACC15)
+private val NewBadgeDarkText = Color(0xFF090D16)
+
 @Composable
 fun VideoItem(
     video: Video,
@@ -130,7 +133,7 @@ fun VideoListItem(
                 MaterialTheme.colorScheme.onSurface
             },
             supportingContentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
-                MaterialTheme.colorScheme.primary
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.82f)
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
@@ -194,8 +197,8 @@ fun VideoListItem(
                             if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
                                 InfoChip(
                                     text = "RESUME",
-                                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                                    contentColor = MaterialTheme.colorScheme.primary,
                                 )
                             }
                         }
@@ -233,7 +236,7 @@ fun VideoGridItem(
                 MaterialTheme.colorScheme.onSurface
             },
             supportingContentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
-                MaterialTheme.colorScheme.primary
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.82f)
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
@@ -340,7 +343,7 @@ private fun ThumbnailView(
                 modifier = Modifier
                     .padding(5.dp)
                     .align(Alignment.BottomEnd),
-                backgroundColor = Color.Black.copy(alpha = 0.72f),
+                backgroundColor = Color.Black.copy(alpha = 0.74f),
                 contentColor = Color.White,
                 shape = MaterialTheme.shapes.extraSmall,
             )
@@ -352,8 +355,8 @@ private fun ThumbnailView(
                 modifier = Modifier
                     .padding(5.dp)
                     .align(Alignment.TopStart),
-                backgroundColor = Color(0xFF0A0E17).copy(alpha = 0.78f),
-                contentColor = Color.White,
+                backgroundColor = NewBadgeYellow,
+                contentColor = NewBadgeDarkText,
                 shape = MaterialTheme.shapes.extraSmall,
             )
         }

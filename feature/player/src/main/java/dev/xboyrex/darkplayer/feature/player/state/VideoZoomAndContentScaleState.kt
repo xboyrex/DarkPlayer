@@ -38,7 +38,6 @@ fun rememberVideoZoomAndContentScaleState(
     val coroutineScope = rememberCoroutineScope()
     val videoZoomAndContentScaleState = remember(
         player,
-        initialContentScale,
         enableZoomGesture,
         enablePanGesture,
     ) {
@@ -50,6 +49,9 @@ fun rememberVideoZoomAndContentScaleState(
             onEvent = onEvent,
             coroutineScope = coroutineScope,
         )
+    }
+    LaunchedEffect(initialContentScale) {
+        videoZoomAndContentScaleState.syncInitialContentScale(initialContentScale)
     }
     LaunchedEffect(videoZoomAndContentScaleState) { videoZoomAndContentScaleState.observe() }
     return videoZoomAndContentScaleState
@@ -67,7 +69,7 @@ class VideoZoomAndContentScaleState(
     companion object Companion {
         private const val MIN_ZOOM = 0.25f
         private const val MAX_ZOOM = 4f
-        private const val CONTENT_SCALE_INDICATOR_DURATION_MS = 1000L
+        private const val CONTENT_SCALE_INDICATOR_DURATION_MS = 1200L
     }
 
     var videoContentScale: VideoContentScale by mutableStateOf(value = initialContentScale)
@@ -87,13 +89,19 @@ class VideoZoomAndContentScaleState(
 
     private var showContentScaleJob: Job? = null
 
+    fun syncInitialContentScale(scale: VideoContentScale) {
+        if (videoContentScale != scale) {
+            videoContentScale = scale
+        }
+    }
+
     fun onVideoContentScaleChanged(newContentScale: VideoContentScale) {
         videoContentScale = newContentScale
         zoom = 1f
         offset = Offset.Zero
+        showContentScaleIndicator()
         onEvent(VideoZoomEvent.ContentScaleChanged(contentScale = videoContentScale))
         updateVideoScaleMetadataAndSendEvent()
-        showContentScaleIndicator()
     }
 
     private fun showContentScaleIndicator() {
@@ -111,7 +119,7 @@ class VideoZoomAndContentScaleState(
     }
 
     fun onZoomPanGesture(constraints: Constraints, panChange: Offset, zoomChange: Float) {
-        if (player.duration == C.TIME_UNSET) return
+        if (player.duration == C.TIME_UNSET && player.playbackState != Player.STATE_READY) return
         if (!enableZoomGesture) return
 
         isZooming = true
@@ -156,10 +164,13 @@ class VideoZoomAndContentScaleState(
 
     private fun updateVideoScaleMetadataAndSendEvent(zoom: Float = this.zoom) {
         val currentMediaItem = player.currentMediaItem ?: return
-        player.replaceMediaItem(
-            player.currentMediaItemIndex,
-            currentMediaItem.copy(videoZoom = zoom),
-        )
+        val existingZoom = currentMediaItem.mediaMetadata.videoZoom ?: 1f
+        if (abs(existingZoom - zoom) > 0.001f) {
+            player.replaceMediaItem(
+                player.currentMediaItemIndex,
+                currentMediaItem.copy(videoZoom = zoom),
+            )
+        }
         onEvent(
             VideoZoomEvent.ZoomChanged(
                 mediaItem = currentMediaItem,

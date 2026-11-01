@@ -1,5 +1,6 @@
 package dev.xboyrex.darkplayer.core.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -48,7 +49,7 @@ data class PlayerPreferences(
     val preferredAudioLanguage: String = "",
     val pauseOnHeadsetDisconnect: Boolean = true,
     val requireAudioFocus: Boolean = true,
-    val showSystemVolumePanel: Boolean = true,
+    @SerialName("showHeadsetSystemVolumePanel") val showSystemVolumePanel: Boolean = false,
     val enableVolumeBoost: Boolean = true,
 
     // Subtitle Preferences

@@ -1,6 +1,7 @@
 package dev.xboyrex.darkplayer.settings.screens.appearance
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -54,6 +55,7 @@ import dev.xboyrex.darkplayer.core.ui.components.rememberTvListFocusRequester
 import dev.xboyrex.darkplayer.core.ui.components.tvFocusDown
 import dev.xboyrex.darkplayer.core.ui.components.tvListFocus
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
+import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
 import dev.xboyrex.darkplayer.core.ui.glass.pressable
 import dev.xboyrex.darkplayer.core.ui.theme.DARK_PLAYER_PALETTES
 import dev.xboyrex.darkplayer.core.ui.theme.DarkPlayerTheme
@@ -126,6 +128,11 @@ private fun AppearancePreferencesScreenContent(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
                     .background(c.surfaceContainerHigh)
+                    .border(
+                        width = 1.dp,
+                        color = c.primary.copy(alpha = 0.25f),
+                        shape = RoundedCornerShape(20.dp),
+                    )
                     .padding(horizontal = 16.dp, vertical = 14.dp),
             ) {
                 Text(
@@ -135,7 +142,7 @@ private fun AppearancePreferencesScreenContent(
                     color = c.onSurface,
                 )
                 Text(
-                    text = "Choose a signature accent theme for Dark Player",
+                    text = "Top 10 signature Dark Player color combinations",
                     style = MaterialTheme.typography.bodySmall,
                     color = c.onSurfaceVariant,
                 )
@@ -192,7 +199,7 @@ private fun AppearancePreferencesScreenContent(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (selected) c.onSurface else c.onSurfaceVariant,
+                                color = if (selected) c.primary else c.onSurfaceVariant,
                             )
                         }
                     }
@@ -228,11 +235,12 @@ private fun AppearancePreferencesScreenContent(
                     },
                 )
                 PreferenceSwitch(
-                    title = "Liquid Glass (Nav Bar & Player UI)",
-                    description = "Enable refractive Liquid Glass in Navigation Bar and Video Player controls",
+                    title = "Liquid Glass Navigation Bar",
+                    description = "Toggle between refractive Liquid Glass and Solid Navigation Bar",
                     icon = NextIcons.Style,
                     isChecked = state.preferences.useLiquidGlass,
                     onClick = {
+                        GlassSettings.updateEnabled(!state.preferences.useLiquidGlass)
                         onAction(AppearancePreferencesEvent.ToggleUseLiquidGlass)
                     },
                 )

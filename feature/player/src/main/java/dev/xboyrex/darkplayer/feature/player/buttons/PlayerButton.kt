@@ -2,7 +2,6 @@ package dev.xboyrex.darkplayer.feature.player.buttons
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,7 +17,6 @@ import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalRippleConfiguration
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RippleConfiguration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -28,7 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -40,18 +37,17 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.unit.dp
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.ui.components.tvFocusRing
-import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
-import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
-import dev.xboyrex.darkplayer.core.ui.glass.LocalGlassBackdrop
-import dev.xboyrex.darkplayer.core.ui.glass.glassOverlayFill
-import dev.xboyrex.darkplayer.core.ui.glass.glassSpec
-import dev.xboyrex.darkplayer.core.ui.glass.liquidGlass
-import dev.xboyrex.darkplayer.core.ui.glass.rememberReducedMotion
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
-val PlayerButtonBlackAlpha = Color(0xFF141720).copy(alpha = 0.92f)
+val PlayerButtonBlackAlpha = Color(0xFF0A0E17).copy(alpha = 0.56f)
+private val PlayerGlassBorderBrush = Brush.verticalGradient(
+    colors = listOf(
+        Color.White.copy(alpha = 0.24f),
+        Color.White.copy(alpha = 0.08f),
+    ),
+)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -71,17 +67,11 @@ fun PlayerButton(
     val hapticFeedback = LocalHapticFeedback.current
     val context = LocalContext.current
     val isTv = remember { context.isTelevision }
-    val backdrop = LocalGlassBackdrop.current
-    val reduced = rememberReducedMotion()
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && !reduced) 0.90f else 1f,
-        animationSpec = if (reduced) {
-            tween(0)
-        } else {
-            spring(dampingRatio = 0.55f, stiffness = if (isPressed) 900f else 420f)
-        },
-        label = "playerBtnScale",
+        targetValue = if (isPressed && enabled) 0.91f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 750f),
+        label = "playerButtonScale",
     )
 
     LaunchedEffect(key1 = interactionSource) {
@@ -107,13 +97,10 @@ fun PlayerButton(
         }
     }
 
-    val useLiquidGlass = backdrop != null && GlassSettings.quality != GlassQuality.Off
-    val c = MaterialTheme.colorScheme
-
-    val contentTint = when {
-        !enabled -> Color.White.copy(alpha = 0.38f)
-        !useLiquidGlass && isPrimaryAction -> c.onPrimary
-        else -> Color.White
+    val resolvedContainerColor = if (containerColor == Color.Transparent) {
+        PlayerButtonBlackAlpha
+    } else {
+        containerColor
     }
 
     val rippleConfiguration = RippleConfiguration(
@@ -127,7 +114,11 @@ fun PlayerButton(
     )
 
     CompositionLocalProvider(
-        LocalContentColor provides contentTint,
+        LocalContentColor provides if (enabled) {
+            Color.White
+        } else {
+            Color.White.copy(alpha = 0.42f)
+        },
         LocalRippleConfiguration provides rippleConfiguration,
     ) {
         Box(
@@ -136,77 +127,18 @@ fun PlayerButton(
                     scaleX = scale
                     scaleY = scale
                 }
-                .then(
-                    if (!useLiquidGlass && enabled) {
-                        Modifier.shadow(
-                            elevation = if (isPrimaryAction) 12.dp else 6.dp,
-                            shape = shape,
-                            ambientColor = if (isPrimaryAction) c.primary.copy(alpha = 0.5f) else Color.Black,
-                            spotColor = if (isPrimaryAction) c.primary.copy(alpha = 0.6f) else Color.Black,
-                        )
+                .clip(shape = shape)
+                .background(
+                    color = if (enabled) {
+                        resolvedContainerColor
                     } else {
-                        Modifier
+                        resolvedContainerColor.copy(alpha = 0.28f)
                     },
                 )
-                .clip(shape = shape)
-                .then(
-                    if (useLiquidGlass) {
-                        Modifier.liquidGlass(
-                            backdrop = backdrop,
-                            spec = glassSpec(
-                                shape = shape,
-                                tint = glassOverlayFill(if (enabled) (if (isPrimaryAction) 0.56f else 0.44f) else 0.22f),
-                                blur = if (isPrimaryAction) 24.dp else 20.dp,
-                                refractionHeight = if (isPrimaryAction) 14.dp else 11.dp,
-                                refractionAmount = if (isPrimaryAction) 24.dp else 18.dp,
-                            ),
-                        )
-                    } else if (isPrimaryAction) {
-                        // Solid UI Primary Play/Pause Button: Vibrant studio accent squircle with subtle inner rim
-                        Modifier
-                            .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        c.primary,
-                                        c.primary.copy(alpha = 0.88f),
-                                    ),
-                                ),
-                                shape = shape,
-                            )
-                            .border(
-                                width = 1.4.dp,
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.38f),
-                                        Color.White.copy(alpha = 0.10f),
-                                    ),
-                                ),
-                                shape = shape,
-                            )
-                    } else {
-                        // Solid UI Control Button: Distinct Matte Obsidian Studio surface with accent-tinted rim
-                        val alphaMul = if (enabled) 1f else 0.45f
-                        Modifier
-                            .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color(0xFF202534).copy(alpha = 0.96f * alphaMul),
-                                        Color(0xFF12151E).copy(alpha = 0.98f * alphaMul),
-                                    ),
-                                ),
-                                shape = shape,
-                            )
-                            .border(
-                                width = 1.1.dp,
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        c.primary.copy(alpha = 0.52f * alphaMul),
-                                        Color.White.copy(alpha = 0.18f * alphaMul),
-                                    ),
-                                ),
-                                shape = shape,
-                            )
-                    },
+                .border(
+                    width = 0.8.dp,
+                    brush = PlayerGlassBorderBrush,
+                    shape = shape,
                 )
                 .clickable(
                     interactionSource = interactionSource,

@@ -71,9 +71,11 @@ class VolumeAndBrightnessGestureState(
     var brightnessChangePercentage: Int by mutableIntStateOf(value = 0)
         private set
 
-    private var startingY = 0f
     private var startVolumePercentage = 0
     private var startBrightnessPercentage = 0
+    private var currentVolumeFloat = 0f
+    private var currentBrightnessFloat = 0f
+    private var viewHeightPx = 1080f
     private var job: Job? = null
 
     fun onDragStart(offset: Offset, size: IntSize) {
@@ -85,23 +87,31 @@ class VolumeAndBrightnessGestureState(
         }
         activeGesture = targetGesture
         isDragging = targetGesture != null
-        startingY = offset.y
+        viewHeightPx = size.height.coerceAtLeast(300).toFloat()
+        volumeState.syncWithSystem()
+        volumeState.isDraggingVolume = targetGesture == VerticalGesture.VOLUME
         startVolumePercentage = volumeState.volumePercentage
         startBrightnessPercentage = brightnessState.brightnessPercentage
+        currentVolumeFloat = startVolumePercentage.toFloat()
+        currentBrightnessFloat = startBrightnessPercentage.toFloat()
     }
 
     fun onDrag(change: PointerInputChange, dragAmount: Float) {
         val activeGesture = activeGesture ?: return
         if (!isDragging) return
 
+        // Normalized sensitivity: dragging ~65% of screen height covers 0..100% at default 0.5f sensitivity
+        val baseSpan = viewHeightPx * 0.65f
         when (activeGesture) {
             VerticalGesture.VOLUME -> {
                 val maxVolumePercentage = volumeState.maxVolumePercentage
-                val volumeChange = (startingY - change.position.y) * (volumeGestureSensitivity / 10f)
-                val newVolume = (startVolumePercentage + volumeChange.roundToInt()).coerceIn(
-                    minimumValue = 0,
-                    maximumValue = maxVolumePercentage,
+                val scale = (volumeGestureSensitivity / 0.5f).coerceIn(0.2f, 3.0f)
+                val deltaPct = (-dragAmount / baseSpan) * 100f * scale
+                currentVolumeFloat = (currentVolumeFloat + deltaPct).coerceIn(
+                    minimumValue = 0f,
+                    maximumValue = maxVolumePercentage.toFloat(),
                 )
+                val newVolume = currentVolumeFloat.roundToInt()
                 volumeChangePercentage = (newVolume - startVolumePercentage).coerceIn(
                     minimumValue = 0 - startVolumePercentage,
                     maximumValue = maxVolumePercentage - startVolumePercentage,
@@ -111,12 +121,13 @@ class VolumeAndBrightnessGestureState(
             }
 
             VerticalGesture.BRIGHTNESS -> {
-                val brightnessChange =
-                    (startingY - change.position.y) * (brightnessGestureSensitivity / 10f)
-                val newBrightness = (startBrightnessPercentage + brightnessChange.roundToInt()).coerceIn(
-                    minimumValue = 0,
-                    maximumValue = MAX_BRIGHTNESS_PERCENTAGE,
+                val scale = (brightnessGestureSensitivity / 0.5f).coerceIn(0.2f, 3.0f)
+                val deltaPct = (-dragAmount / baseSpan) * 100f * scale
+                currentBrightnessFloat = (currentBrightnessFloat + deltaPct).coerceIn(
+                    minimumValue = 0f,
+                    maximumValue = MAX_BRIGHTNESS_PERCENTAGE.toFloat(),
                 )
+                val newBrightness = currentBrightnessFloat.roundToInt()
                 brightnessChangePercentage = (newBrightness - startBrightnessPercentage).coerceIn(
                     minimumValue = 0 - startBrightnessPercentage,
                     maximumValue = MAX_BRIGHTNESS_PERCENTAGE - startBrightnessPercentage,
@@ -129,7 +140,7 @@ class VolumeAndBrightnessGestureState(
 
     fun onDragEnd() {
         isDragging = false
-        startingY = 0f
+        volumeState.isDraggingVolume = false
         startVolumePercentage = 0
         startBrightnessPercentage = 0
 
@@ -140,15 +151,6 @@ class VolumeAndBrightnessGestureState(
             volumeChangePercentage = 0
             brightnessChangePercentage = 0
         }
-    }
-
-    fun clearNow() {
-        job?.cancel()
-        isDragging = false
-        activeGesture = null
-        volumeChangePercentage = 0
-        brightnessChangePercentage = 0
-        startingY = 0f
     }
 
     companion object {

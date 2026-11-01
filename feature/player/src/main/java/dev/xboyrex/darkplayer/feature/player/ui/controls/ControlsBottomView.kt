@@ -1,5 +1,8 @@
 package dev.xboyrex.darkplayer.feature.player.ui.controls
 
+import android.content.Intent
+import android.media.audiofx.AudioEffect
+import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.horizontalScroll
@@ -51,7 +54,7 @@ import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.model.VideoContentScale
 import dev.xboyrex.darkplayer.core.ui.R
 import dev.xboyrex.darkplayer.core.ui.extensions.copy
-import dev.xboyrex.darkplayer.core.ui.theme.DarkPlayerTheme
+import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.buttons.LoopButton
 import dev.xboyrex.darkplayer.feature.player.buttons.PlaybackSpeedButton
 import dev.xboyrex.darkplayer.feature.player.buttons.PlayerButton
@@ -87,6 +90,7 @@ fun ControlsBottomView(
     onPlaybackSpeedClick: () -> Unit,
     onPlayInBackgroundClick: () -> Unit,
     onSleepTimerClick: () -> Unit = {},
+    onVolumeBoosterClick: () -> Unit = {},
     onSeek: (Long) -> Unit,
     onSeekEnd: () -> Unit,
 ) {
@@ -272,6 +276,14 @@ fun ControlsBottomView(
                     contentDescription = "Sleep timer",
                 )
             }
+            PlayerButton(
+                onClick = onVolumeBoosterClick,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_equalizer),
+                    contentDescription = "1000% Dolby Audio Booster",
+                )
+            }
             LoopButton(player = player)
             ShuffleButton(player = player)
         }
@@ -284,7 +296,7 @@ fun ControlsBottomView(
 private fun ControlsBottomViewPreview() {
     val player = rememberPreviewPlayer()
     val progressState = rememberProgressStateWithTickInterval(player = player)
-    DarkPlayerTheme(darkTheme = true) {
+    NextPlayerTheme(darkTheme = true) {
         Surface {
             ControlsBottomView(
                 player = player,
