@@ -919,9 +919,9 @@ private fun AppearanceThemeContent(
                     val selected = !appPrefs.useDynamicColors &&
                         appPrefs.themeAccentSeed.equals(palette.hex, ignoreCase = true)
                     val scheme = schemeForSeed(
-                        context = context,
-                        seedHex = palette.hex,
-                        dark = isDark,
+                        hex = palette.hex,
+                        darkTheme = isDark,
+                        highContrast = appPrefs.useHighContrastDarkTheme,
                     )
                     Column(
                         modifier = Modifier
