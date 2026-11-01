@@ -136,12 +136,18 @@ fun rememberReducedMotion(): Boolean {
  * translucent fallback instead of losing the design language or stuttering.
  */
 object GlassQuality {
+    const val Off: Boolean = false
+    const val Full: Boolean = true
+
     @Volatile
     private var deviceSupports = isRuntimeShaderSupported()
 
-    var userEnabled by mutableStateOf(true)
+    private var userEnabledState by mutableStateOf(true)
+
+    var userEnabled: Boolean
+        get() = userEnabledState
         set(value) {
-            field = value
+            userEnabledState = value
             effectsSupported = deviceSupports && value
         }
 
@@ -151,7 +157,7 @@ object GlassQuality {
     fun init(context: Context) {
         val am = context.getSystemService(ActivityManager::class.java)
         deviceSupports = isRuntimeShaderSupported() && am?.isLowRamDevice != true
-        effectsSupported = deviceSupports && userEnabled
+        effectsSupported = deviceSupports && userEnabledState
     }
 
     fun setEnabled(enabled: Boolean) {
@@ -170,6 +176,9 @@ object GlassSettings {
 
     var enabled by mutableStateOf(true)
         private set
+
+    val quality: Boolean
+        get() = GlassQuality.effectsSupported
 
     fun init(context: Context) {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).also { prefs = it }
