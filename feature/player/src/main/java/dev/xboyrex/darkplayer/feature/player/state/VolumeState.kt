@@ -20,8 +20,11 @@ import androidx.compose.runtime.setValue
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import dev.xboyrex.darkplayer.feature.player.service.getLoudnessGain
-import dev.xboyrex.darkplayer.feature.player.service.isLoudnessGainSupported
+import dev.xboyrex.darkplayer.feature.player.service.getIsLoudnessGainSupported
 import dev.xboyrex.darkplayer.feature.player.service.setLoudnessGain
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
 
 @Composable
 fun rememberVolumeState(
@@ -53,6 +56,15 @@ class VolumeState(
     private val showVolumePanelIfHeadsetIsOn: Boolean,
     private val enableVolumeBoost: Boolean = false,
 ) {
+    private val updateScope = CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main.immediate)
+    private var observedController: MediaController? = null
+    private val audioSessionListener = object : Player.Listener {
+        override fun onAudioSessionIdChanged(audioSessionId: Int) {
+            observedController?.let { controller ->
+                updateScope.launch { updateVolumeBoostState(player = controller) }
+            }
+        }
+    }
     private val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
     private val systemVolume: Int
@@ -115,29 +127,28 @@ class VolumeState(
 
             onDispose {
                 activity.unregisterReceiver(receiver)
+                observedController?.removeListener(audioSessionListener)
+                observedController = null
+                updateScope.cancel()
             }
         }
 
     suspend fun initializeVolumeBoost() {
         val player = player as? MediaController ?: return
-        player.addListener(
-            object : Player.Listener {
-                override fun onAudioSessionIdChanged(audioSessionId: Int) {
-                    updateVolumeBoostState(player = player)
-                }
-            },
-        )
+        observedController?.removeListener(audioSessionListener)
+        observedController = player
+        player.addListener(audioSessionListener)
         updateVolumeBoostState(player = player)
     }
 
-    private fun updateVolumeBoostState(player: MediaController) {
+    private suspend fun updateVolumeBoostState(player: MediaController) {
         if (!enableVolumeBoost) {
             isLoudnessGainSupported = false
             return
         }
 
         try {
-            isLoudnessGainSupported = player.isLoudnessGainSupported()
+            isLoudnessGainSupported = player.getIsLoudnessGainSupported()
             if (!isLoudnessGainSupported) return
 
             val loudnessGain = player.getLoudnessGain()

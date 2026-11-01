@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -83,6 +84,7 @@ private fun AppearancePreferencesScreenContent(
 ) {
     val listFocusRequester = rememberTvListFocusRequester()
     val c = MaterialTheme.colorScheme
+    val context = LocalContext.current
     val systemDark = isSystemInDarkTheme()
     val isDark = when (state.preferences.themeConfig) {
         ThemeConfig.SYSTEM -> systemDark
@@ -148,9 +150,9 @@ private fun AppearancePreferencesScreenContent(
                         val selected = !state.preferences.useDynamicColors &&
                             state.preferences.themeAccentSeed.equals(palette.hex, ignoreCase = true)
                         val scheme = schemeForSeed(
-                            hex = palette.hex,
-                            darkTheme = isDark,
-                            highContrast = state.preferences.useHighContrastDarkTheme,
+                            context = context,
+                            seedHex = palette.hex,
+                            dark = isDark,
                         )
                         Column(
                             modifier = Modifier
