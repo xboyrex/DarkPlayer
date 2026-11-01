@@ -549,7 +549,7 @@ private suspend inline fun AwaitPointerEventScope.awaitDragOrUp(pointerId: Point
 }
 
 fun View.navHaptic(durationMs: Long = 12L, amplitude: Int = 120) {
-    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    val vibrator = context.getSystemService(Vibrator::class.java)
     val done = vibrator?.hasVibrator() == true && runCatching {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator.vibrate(VibrationEffect.createOneShot(durationMs, amplitude.coerceIn(1, 255)))
