@@ -66,7 +66,7 @@ import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.common.service.system.SystemService
-import dev.xboyrex.darkplayer.core.media.services.MediaService
+import dev.xboyrex.darkplayer.core.media.services.MediaOperationsService
 import dev.xboyrex.darkplayer.core.media.sync.MediaSynchronizer
 import dev.xboyrex.darkplayer.core.model.ThemeConfig
 import dev.xboyrex.darkplayer.core.ui.components.LocalNavigationBottomPadding
@@ -100,7 +100,7 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 class MainActivity : FragmentActivity() {
 
     private val synchronizer: MediaSynchronizer by inject()
-    private val mediaService: MediaService by inject()
+    private val mediaService: MediaOperationsService by inject()
     private val systemService: SystemService by inject()
     private val viewModel: MainViewModel by viewModel()
 

@@ -119,7 +119,7 @@ fun BoxScope.OverlayView(
                 .then(
                     if (useRealGlass) {
                         Modifier.liquidGlass(
-                            backdrop = backdrop!!,
+                            backdrop = backdrop,
                             spec = glassSpec(
                                 shape = sheetShape,
                                 tint = glassFill(0.62f),
