@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package dev.xboyrex.darkplayer.core.ui.audio
 
 import android.animation.ValueAnimator

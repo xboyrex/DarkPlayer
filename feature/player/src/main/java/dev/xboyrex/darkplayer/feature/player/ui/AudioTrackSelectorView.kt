@@ -93,7 +93,7 @@ fun BoxScope.AudioTrackSelectorView(
             withContext(Dispatchers.IO) { uris.map { context.getFilenameFromUri(uri = it) } }
     }
 
-    val isSwAudioDecoder = audioMode == DecoderMode.PREFER_SOFTWARE || audioMode == DecoderMode.SOFTWARE_ONLY
+    val isSwAudioDecoder = audioMode == DecoderMode.FFMPEG || audioMode == DecoderMode.SOFTWARE
     val accentBlue = Color(0xFF38BDF8)
 
     OverlayView(
@@ -154,9 +154,9 @@ fun BoxScope.AudioTrackSelectorView(
                         .clip(RoundedCornerShape(12.dp))
                         .clickable {
                             val nextMode = if (isSwAudioDecoder) {
-                                DecoderMode.PREFER_DEVICE
+                                DecoderMode.HARDWARE
                             } else {
-                                DecoderMode.PREFER_SOFTWARE
+                                DecoderMode.FFMPEG
                             }
                             onAudioModeSelected(nextMode)
                         }
@@ -168,7 +168,7 @@ fun BoxScope.AudioTrackSelectorView(
                         checked = isSwAudioDecoder,
                         onCheckedChange = { checked ->
                             onAudioModeSelected(
-                                if (checked) DecoderMode.PREFER_SOFTWARE else DecoderMode.PREFER_DEVICE,
+                                if (checked) DecoderMode.FFMPEG else DecoderMode.HARDWARE,
                             )
                         },
                         colors = CheckboxDefaults.colors(

@@ -49,7 +49,7 @@ fun BoxScope.OverlayShowView(
         show = overlayView == OverlayView.AUDIO_SELECTOR,
         player = player,
         audioMode = audioDecoderMode,
-        onAudioModeSelected = onAudioModeSelected,
+        onAudioModeSelected = onAudioDecoderModeSelected,
         onSelectAudioClick = onSelectAudioClick,
         onDismiss = onDismiss,
     )
@@ -59,7 +59,7 @@ fun BoxScope.OverlayShowView(
         videoMode = videoDecoderMode,
         audioMode = audioDecoderMode,
         onVideoModeSelected = onVideoDecoderModeSelected,
-        onAudioModeSelected = onAudioModeSelected,
+        onAudioModeSelected = onAudioDecoderModeSelected,
     )
 
     SubtitleSelectorView(

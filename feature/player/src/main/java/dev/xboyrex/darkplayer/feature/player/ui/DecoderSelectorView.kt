@@ -155,9 +155,9 @@ private fun DecoderModeRow(mode: DecoderMode, selected: Boolean, onClick: () -> 
     val rowShape = RoundedCornerShape(16.dp)
     val accentBlue = Color(0xFF38BDF8)
     val decoderTitle = when (mode) {
-        DecoderMode.HARDWARE_ONLY -> "HW decoder"
-        DecoderMode.PREFER_DEVICE -> "HW+ decoder"
-        DecoderMode.PREFER_SOFTWARE, DecoderMode.SOFTWARE_ONLY -> "SW decoder"
+        DecoderMode.HARDWARE -> "HW decoder"
+        DecoderMode.AUTO, DecoderMode.SOFTWARE -> "HW+ decoder"
+        DecoderMode.FFMPEG -> "SW decoder"
     }
     Row(
         modifier = Modifier
