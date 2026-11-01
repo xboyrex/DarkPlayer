@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.media3.common.Player
+import kotlinx.coroutines.launch
 import androidx.media3.session.MediaController
 import dev.xboyrex.darkplayer.feature.player.service.getLoudnessGain
 import dev.xboyrex.darkplayer.feature.player.service.isLoudnessGainSupported
@@ -118,19 +119,26 @@ class VolumeState(
             }
         }
 
-    suspend fun initializeVolumeBoost() {
-        val player = player as? MediaController ?: return
-        player.addListener(
-            object : Player.Listener {
-                override fun onAudioSessionIdChanged(audioSessionId: Int) {
+    suspend fun initializeVolumeBoost() = kotlinx.coroutines.coroutineScope {
+        val player = player as? MediaController ?: return@coroutineScope
+        val scope = this
+        val listener = object : Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                scope.launch {
                     updateVolumeBoostState(player = player)
                 }
-            },
-        )
-        updateVolumeBoostState(player = player)
+            }
+        }
+        player.addListener(listener)
+        try {
+            updateVolumeBoostState(player = player)
+            kotlinx.coroutines.awaitCancellation()
+        } finally {
+            player.removeListener(listener)
+        }
     }
 
-    private fun updateVolumeBoostState(player: MediaController) {
+    private suspend fun updateVolumeBoostState(player: MediaController) {
         if (!enableVolumeBoost) {
             isLoudnessGainSupported = false
             return

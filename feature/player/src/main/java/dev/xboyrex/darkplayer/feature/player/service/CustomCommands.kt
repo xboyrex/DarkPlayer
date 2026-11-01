@@ -208,6 +208,8 @@ suspend fun MediaController.getLoudnessGain(): Int {
     )
 }
 
+suspend fun MediaController.isLoudnessGainSupported(): Boolean = getIsLoudnessGainSupported()
+
 suspend fun MediaController.getIsLoudnessGainSupported(): Boolean {
     val result = sendCustomCommand(
         CustomCommands.IS_LOUDNESS_GAIN_SUPPORTED.sessionCommand,

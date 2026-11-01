@@ -46,7 +46,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtimeCompose)
-    implementation(libs.androidx.compose.material.iconsExtended)
+    api(libs.androidx.compose.material.iconsExtended)
     api(libs.kyant.backdrop)
     api(libs.kyant.shapes)
 

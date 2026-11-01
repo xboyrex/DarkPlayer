@@ -193,8 +193,34 @@ private val darkScheme = darkColorScheme(
     surfaceContainerHighest = surfaceContainerHighestDark,
 )
 
-fun schemeForSeed(context: Context, seedHex: String?, dark: Boolean): ColorScheme {
-    if (seedHex == null && supportsDynamicTheming()) {
+fun schemeForSeed(
+    hex: String,
+    darkTheme: Boolean,
+    highContrast: Boolean = false,
+): ColorScheme {
+    val base = schemeForSeed(context = null, seedHex = hex, dark = darkTheme)
+    return if (darkTheme && highContrast) {
+        base.copy(
+            background = backgroundPureBlack,
+            surface = surfacePureBlack,
+            surfaceDim = surfaceDimPureBlack,
+            surfaceBright = surfaceBrightPureBlack,
+            surfaceContainerLowest = surfaceContainerLowestPureBlack,
+            surfaceContainerLow = surfaceContainerLowPureBlack,
+            surfaceContainer = surfaceContainerPureBlack,
+            surfaceContainerHigh = surfaceContainerHighPureBlack,
+            surfaceContainerHighest = surfaceContainerHighestPureBlack,
+            onBackground = Color(0xFFF5F5F5),
+            onSurface = Color(0xFFF5F5F5),
+            outlineVariant = Color(0xFF1F1F1F),
+        )
+    } else {
+        base
+    }
+}
+
+fun schemeForSeed(context: Context?, seedHex: String?, dark: Boolean): ColorScheme {
+    if (seedHex == null && context != null && supportsDynamicTheming()) {
         return if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     }
     val hex = seedHex ?: SEED_SOLAR_GOLD

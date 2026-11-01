@@ -81,10 +81,10 @@ jobs:
           make_latest: true
           body: |
             <div align="center">
-              <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/docs/assets/logo_circle.png" width="116" height="116" alt="Dark Player Logo" />
+              <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/docs/assets/dark-player/dark-player-logo.png" width="116" height="116" alt="Dark Player Logo" />
               <h2>Dark Player v${{ env.RELEASE_VERSION }} (Build #${{ github.run_number }})</h2>
               <p><strong>Crafted by ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (<code>@xboyrex</code>)</strong></p>
-              <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/docs/assets/banner.svg" width="100%" alt="Dark Player Banner" />
+              <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/docs/assets/dark-player/dark-player-showcase.gif" width="100%" alt="Dark Player Banner" />
             </div>
 
             ### What's New in v${{ env.RELEASE_VERSION }}
