@@ -341,13 +341,13 @@ fun NextNavigationBar(
             fabState?.let { fab ->
                 val glassEnabled = GlassQuality.effectsSupported
                 val fabContainerColor = when {
-                    !glassEnabled -> MaterialTheme.colorScheme.primaryContainer
+                    !glassEnabled -> MaterialTheme.colorScheme.primary
                     isAmoled -> Color(0xFF000000).copy(alpha = 0.45f)
                     isLightTheme -> Color(0xFFFAFAFA).copy(alpha = 0.4f)
                     else -> Color(0xFF121212).copy(alpha = 0.4f)
                 }
                 val fabIconTint = when {
-                    !glassEnabled -> MaterialTheme.colorScheme.onPrimaryContainer
+                    !glassEnabled -> MaterialTheme.colorScheme.onPrimary
                     isLightTheme -> Color.Black
                     else -> Color.White
                 }

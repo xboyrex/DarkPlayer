@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
@@ -260,10 +261,18 @@ fun LiquidBottomTabs(
                     } else {
                         Modifier
                             .clip(Capsule())
-                            .background(containerColor)
+                            .background(
+                                if (isLightTheme) MaterialTheme.colorScheme.surfaceContainerHigh
+                                else Color(0xFF141720),
+                            )
                             .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant,
+                                1.2.dp,
+                                Brush.linearGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                                        MaterialTheme.colorScheme.outlineVariant,
+                                    ),
+                                ),
                                 Capsule(),
                             )
                     },
@@ -336,7 +345,12 @@ fun LiquidBottomTabs(
                     } else {
                         Modifier
                             .clip(Capsule())
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
+                                Capsule(),
+                            )
                     },
                 )
                 .height(56f.dp)

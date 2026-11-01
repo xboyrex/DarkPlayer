@@ -10,7 +10,7 @@ data class ApplicationPreferences(
     val useHighContrastDarkTheme: Boolean = true,
     val useDynamicColors: Boolean = false,
     val useLiquidGlass: Boolean = true,
-    val themeAccentSeed: String = "#FACC15",
+    val themeAccentSeed: String = "#FF0033",
     val useSystemFont: Boolean = false,
     val markLastPlayedMedia: Boolean = true,
     val isHistoryPaused: Boolean = false,

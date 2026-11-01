@@ -84,7 +84,7 @@ class SeekGestureState(
         if (!enableSeekGesture) return
         if (player.currentPosition < 0) return
         if (player.duration <= 0) return
-        if (!player.isCurrentMediaItemSeekable) return
+        if (!player.isCurrentMediaItemSeekable && player.duration <= 0) return
 
         isSeeking = true
         seekStartX = offset.x
@@ -101,7 +101,7 @@ class SeekGestureState(
             reset()
             return
         }
-        if (!player.isCurrentMediaItemSeekable) return
+        if (!player.isCurrentMediaItemSeekable && player.duration <= 0) return
         if (player.currentPosition <= 0L && dragAmount < 0) return
         if (player.currentPosition >= duration && dragAmount > 0) return
 

@@ -53,6 +53,8 @@ fun PlayerControls(
     onPlayInBackgroundClick: () -> Unit,
     onToggleTimeDisplay: () -> Unit,
     onPictureInPictureClick: () -> Unit,
+    onSeekBack: (() -> Unit)? = null,
+    onSeekForward: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     middleControlsModifier: Modifier = Modifier,
 ) {
@@ -138,6 +140,8 @@ fun PlayerControls(
 
             controlsVisibilityState.controlsVisible -> ControlsMiddleView(
                 player = player,
+                onSeekBack = onSeekBack,
+                onSeekForward = onSeekForward,
                 modifier = middleControlsModifier,
             )
         }

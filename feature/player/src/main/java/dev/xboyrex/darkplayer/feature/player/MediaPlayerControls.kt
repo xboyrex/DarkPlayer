@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalContext
@@ -144,7 +145,14 @@ internal fun MediaPlayerControls(
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.32f)),
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Black.copy(alpha = 0.52f),
+                                0.28f to Color.Black.copy(alpha = 0.06f),
+                                0.72f to Color.Black.copy(alpha = 0.06f),
+                                1f to Color.Black.copy(alpha = 0.62f),
+                            ),
+                        ),
                 )
             }
             if (mediaPresentationState.isBuffering) {
@@ -186,6 +194,12 @@ internal fun MediaPlayerControls(
                     onPlayInBackgroundClick = { onAction(PlayerAction.PlayInBackground) },
                     onToggleTimeDisplay = { onAction(PlayerAction.ToggleTimeDisplay) },
                     onPictureInPictureClick = onPictureInPictureClick,
+                    onSeekBack = {
+                        tapGestureState.seekBy(-playerPreferences.seekIncrement.seconds.inWholeMilliseconds)
+                    },
+                    onSeekForward = {
+                        tapGestureState.seekBy(playerPreferences.seekIncrement.seconds.inWholeMilliseconds)
+                    },
                     middleControlsModifier = Modifier.thenIf(condition = isTv) {
                         focusRequester(focusRequester = middleControlsFocusRequester)
                             .onFocusChanged { isMiddleControlsFocused = it.hasFocus }

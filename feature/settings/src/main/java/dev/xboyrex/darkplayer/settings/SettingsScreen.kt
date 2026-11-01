@@ -8,7 +8,6 @@ import android.os.Environment
 import android.os.StatFs
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -18,7 +17,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -51,6 +49,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.NavigateNext
+import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Code
@@ -58,10 +58,10 @@ import androidx.compose.material.icons.rounded.DataUsage
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -84,10 +84,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -101,11 +99,11 @@ import dev.xboyrex.darkplayer.core.model.ThemeConfig
 import dev.xboyrex.darkplayer.core.ui.R
 import dev.xboyrex.darkplayer.core.ui.components.rememberRestorableFocusState
 import dev.xboyrex.darkplayer.core.ui.components.restorableFocusGroup
-import dev.xboyrex.darkplayer.core.ui.components.restorableFocusItem
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
 import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
 import dev.xboyrex.darkplayer.core.ui.glass.pressable
 import dev.xboyrex.darkplayer.core.ui.theme.DARK_PLAYER_PALETTES
+import dev.xboyrex.darkplayer.core.ui.theme.RoundedHeavy
 import dev.xboyrex.darkplayer.core.ui.theme.schemeForSeed
 import dev.xboyrex.darkplayer.core.ui.theme.supportsDynamicTheming
 import dev.xboyrex.darkplayer.core.ui.updater.UpdateOverlayDialog
@@ -166,13 +164,13 @@ private fun SettingsScreenContent(
 ) {
     val c = MaterialTheme.colorScheme
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val focusState = rememberRestorableFocusState()
     val scrollState = rememberScrollState()
     val navBottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     var activeFloatingSection by remember { mutableStateOf<SettingsFloatingSection?>(null) }
     val updateState = rememberUpdateState()
+    val installedVersion = remember(context) { updateState.currentVersionName(context) }
 
     val isOverlayOpen = activeFloatingSection != null || updateState.visible || updateState.checking || updateState.message != null
     val blurRadius by animateDpAsState(
@@ -181,22 +179,6 @@ private fun SettingsScreenContent(
         label = "settingsBlur",
     )
 
-    val playbackGroup = remember {
-        listOf(
-            SettingRow.PLAYER,
-            SettingRow.GESTURES,
-            SettingRow.AUDIO,
-            SettingRow.SUBTITLE,
-        )
-    }
-    val interfaceGroup = remember {
-        listOf(
-            SettingRow.APPEARANCE,
-            SettingRow.MEDIA_LIBRARY,
-            SettingRow.GENERAL,
-        )
-    }
-
     Box(modifier = Modifier.fillMaxSize().background(c.surface)) {
         Column(
             modifier = Modifier
@@ -204,7 +186,7 @@ private fun SettingsScreenContent(
                 .background(c.surface)
                 .then(if (blurRadius > 0.dp) Modifier.blur(blurRadius) else Modifier),
         ) {
-            // Distinct Header Bar (No Liquid Glass)
+            // Minimal YTXTube-style Header Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -214,7 +196,7 @@ private fun SettingsScreenContent(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(38.dp)
                         .clip(CircleShape)
                         .background(c.surfaceContainerHigh)
                         .pressable { onAction(SettingsAction.NavigateUp) },
@@ -228,20 +210,14 @@ private fun SettingsScreenContent(
                     )
                 }
                 Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(id = R.string.settings),
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 22.sp,
-                        letterSpacing = (-0.5).sp,
-                        color = c.onSurface,
-                    )
-                    Text(
-                        text = "Studio Configuration & Media Engine",
-                        fontSize = 11.5.sp,
-                        color = c.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    text = "Settings",
+                    fontFamily = RoundedHeavy,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    letterSpacing = (-0.5).sp,
+                    color = c.onSurface,
+                )
             }
 
             Column(
@@ -250,155 +226,108 @@ private fun SettingsScreenContent(
                     .verticalScroll(scrollState)
                     .restorableFocusGroup(state = focusState)
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = navBottomInset + 36.dp),
+                    .padding(bottom = navBottomInset + 28.dp),
             ) {
-                // Developer Identity Banner Card (Distinct Layout, Solid Material Surface)
-                Row(
+                Spacer(Modifier.height(2.dp))
+
+                // Top Profile / Studio Card matching YTXTube layout
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(22.dp))
+                        .clip(RoundedCornerShape(18.dp))
                         .background(c.surfaceContainerHigh)
-                        .border(
-                            width = 1.dp,
-                            color = c.outlineVariant.copy(alpha = 0.45f),
-                            shape = RoundedCornerShape(22.dp),
-                        )
-                        .pressable { onAction(SettingsAction.OpenSetting(Setting.ABOUT)) }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .padding(vertical = 2.dp),
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.darkplayer_logo),
-                        contentDescription = null,
+                    Row(
                         modifier = Modifier
-                            .size(50.dp)
-                            .clip(RoundedCornerShape(14.dp)),
-                    )
-                    Spacer(Modifier.width(14.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            .fillMaxWidth()
+                            .pressable { activeFloatingSection = SettingsFloatingSection.APPEARANCE }
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(c.surfaceContainerHighest),
+                            contentAlignment = Alignment.Center,
                         ) {
+                            Icon(
+                                imageVector = Icons.Rounded.AccountCircle,
+                                contentDescription = null,
+                                tint = c.onSurfaceVariant,
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
                             Text(
-                                text = stringResource(id = R.string.app_name),
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 16.5.sp,
+                                text = "Dark Player Studio",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
                                 color = c.onSurface,
                             )
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(c.primaryContainer)
-                                    .padding(horizontal = 7.dp, vertical = 2.dp),
-                            ) {
-                                Text(
-                                    text = "PRO",
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = c.onPrimaryContainer,
-                                )
-                            }
+                            Spacer(Modifier.height(1.dp))
+                            Text(
+                                text = "by ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (@xboyrex)",
+                                fontSize = 12.sp,
+                                color = c.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
-                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "by ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (@xboyrex)",
-                            fontSize = 12.sp,
-                            color = c.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                            text = if (appPrefs.useLiquidGlass) "Liquid UI" else "Solid UI",
+                            modifier = Modifier
+                                .pressable {
+                                    val next = !appPrefs.useLiquidGlass
+                                    GlassSettings.updateEnabled(next)
+                                    onUpdateAppPrefs { it.copy(useLiquidGlass = next) }
+                                }
+                                .padding(8.dp),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            color = c.primary,
                         )
                     }
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
-                        contentDescription = null,
-                        tint = c.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp),
+                }
+
+                SettingsSectionHeader("Customization")
+                SettingsCard {
+                    SettingsRow(
+                        icon = Icons.Rounded.Palette,
+                        title = "Appearance & Theme",
+                        subtitle = "Theme mode, color palette and UI style",
+                        onClick = { activeFloatingSection = SettingsFloatingSection.APPEARANCE },
                     )
                 }
 
-                // Distinct 3-Tile Quick Studio Grid (Triggers Floating Floating Blurred Sheets)
-                SettingsSectionHeader("Quick Studio Panels")
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    QuickStudioTile(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Rounded.Palette,
-                        title = "Theme Studio",
-                        subtitle = if (appPrefs.useLiquidGlass) "Liquid Glass" else "Solid UI",
-                        accent = c.primary,
-                        onClick = { activeFloatingSection = SettingsFloatingSection.APPEARANCE },
-                    )
-                    QuickStudioTile(
-                        modifier = Modifier.weight(1f),
+                SettingsSectionHeader("Player & Interface")
+                SettingsCard {
+                    SettingsRow(
                         icon = Icons.Rounded.Tune,
-                        title = "Quick Mods",
-                        subtitle = if (playerPrefs.enableVolumeBoost) "200% Boost" else "Standard",
-                        accent = c.tertiary,
+                        title = "General Modification",
+                        subtitle = "Font, gestures, decoder & playback",
                         onClick = { activeFloatingSection = SettingsFloatingSection.GENERAL_MODS },
                     )
-                    QuickStudioTile(
-                        modifier = Modifier.weight(1f),
+                }
+
+                SettingsSectionHeader("Data & Storage")
+                SettingsCard {
+                    SettingsRow(
                         icon = Icons.Rounded.DataUsage,
-                        title = "Storage",
-                        subtitle = "Cache & Space",
-                        accent = c.secondary,
+                        title = "Storage Usage",
+                        subtitle = "See phone storage & clear Dark Player cache",
                         onClick = { activeFloatingSection = SettingsFloatingSection.STORAGE_USAGE },
                     )
                 }
 
-                SettingsSectionHeader("Playback, Decoders & Gestures")
-                SettingsCard {
-                    playbackGroup.forEachIndexed { index, row ->
-                        SettingsRow(
-                            modifier = Modifier.restorableFocusItem(
-                                state = focusState,
-                                key = row.name,
-                            ),
-                            icon = row.icon,
-                            title = stringResource(id = row.titleResId),
-                            subtitle = stringResource(id = row.descriptionResId),
-                            onClick = { onAction(SettingsAction.OpenSetting(row.setting)) },
-                        )
-                        if (index < playbackGroup.lastIndex) {
-                            HorizontalDivider(
-                                color = c.onSurface.copy(alpha = 0.06f),
-                                modifier = Modifier.padding(horizontal = 14.dp),
-                            )
-                        }
-                    }
-                }
-
-                SettingsSectionHeader("Interface, Library & General")
-                SettingsCard {
-                    interfaceGroup.forEachIndexed { index, row ->
-                        SettingsRow(
-                            modifier = Modifier.restorableFocusItem(
-                                state = focusState,
-                                key = row.name,
-                            ),
-                            icon = row.icon,
-                            title = stringResource(id = row.titleResId),
-                            subtitle = stringResource(id = row.descriptionResId),
-                            onClick = { onAction(SettingsAction.OpenSetting(row.setting)) },
-                        )
-                        if (index < interfaceGroup.lastIndex) {
-                            HorizontalDivider(
-                                color = c.onSurface.copy(alpha = 0.06f),
-                                modifier = Modifier.padding(horizontal = 14.dp),
-                            )
-                        }
-                    }
-                }
-
-                SettingsSectionHeader("About & Developer (@xboyrex)")
+                SettingsSectionHeader("About")
                 SettingsCard {
                     SettingsRow(
                         icon = Icons.Rounded.Info,
-                        title = "About Dark Player",
-                        subtitle = "Version info, licenses & developer ecosystem",
+                        title = "Version",
+                        subtitle = "Dark Player $installedVersion",
                         onClick = { onAction(SettingsAction.OpenSetting(Setting.ABOUT)) },
                         trailing = {
                             Box(
@@ -417,7 +346,7 @@ private fun SettingsScreenContent(
                                     )
                                     Spacer(Modifier.width(5.dp))
                                     Text(
-                                        text = "Stable",
+                                        text = "Up to date",
                                         color = Color(0xFF2ECC71),
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 11.sp,
@@ -426,21 +355,13 @@ private fun SettingsScreenContent(
                             }
                         },
                     )
-                    HorizontalDivider(
-                        color = c.onSurface.copy(alpha = 0.06f),
-                        modifier = Modifier.padding(horizontal = 14.dp),
-                    )
                     SettingsRow(
                         icon = Icons.Rounded.FileDownload,
                         title = "Check for updates",
-                        subtitle = "Verify latest Dark Player release on GitHub",
+                        subtitle = "New GitHub releases install from inside the app",
                         onClick = {
                             updateState.check(context = context, manual = true)
                         },
-                    )
-                    HorizontalDivider(
-                        color = c.onSurface.copy(alpha = 0.06f),
-                        modifier = Modifier.padding(horizontal = 14.dp),
                     )
                     val openUrl: (String) -> Unit = { url ->
                         runCatching {
@@ -449,19 +370,20 @@ private fun SettingsScreenContent(
                     }
                     SettingsRow(
                         icon = Icons.Rounded.Code,
-                        title = "Open Source Repository",
-                        subtitle = "github.com/xboyrex/DarkPlayer",
+                        title = "Open Source",
+                        subtitle = "View source code on GitHub",
                         onClick = { openUrl("https://github.com/xboyrex/DarkPlayer") },
-                    )
-                    HorizontalDivider(
-                        color = c.onSurface.copy(alpha = 0.06f),
-                        modifier = Modifier.padding(horizontal = 14.dp),
                     )
                     SettingsRow(
                         icon = Icons.Rounded.Person,
-                        title = "Developer Community",
-                        subtitle = "@MayankDroid7 · @OnyxHub7 · @mayank.zx7",
-                        onClick = { openUrl("https://t.me/MayankDroid7") },
+                        title = "Developer",
+                        subtitle = "@xboyrex",
+                        onClick = {
+                            val tgApp = Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=MayankDroid7"))
+                            val tgWeb = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/MayankDroid7"))
+                            runCatching { context.startActivity(tgApp) }
+                                .onFailure { runCatching { context.startActivity(tgWeb) } }
+                        },
                     )
                 }
             }
@@ -471,7 +393,7 @@ private fun SettingsScreenContent(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.32f)),
+                    .background(Color.Black.copy(alpha = 0.28f)),
             )
         }
 
@@ -487,7 +409,7 @@ private fun SettingsScreenContent(
                 SettingsFloatingSection.APPEARANCE -> {
                     SettingsFloatingDialog(
                         title = "Appearance & Theme",
-                        subtitle = "Theme mode, color palette & Liquid Glass",
+                        subtitle = "Theme mode, color palette & UI style",
                         onDismiss = { activeFloatingSection = null },
                     ) {
                         AppearanceThemeContent(
@@ -500,8 +422,8 @@ private fun SettingsScreenContent(
 
                 SettingsFloatingSection.GENERAL_MODS -> {
                     SettingsFloatingDialog(
-                        title = "Quick Playback & Gestures",
-                        subtitle = "Volume boost, gestures, font & PiP",
+                        title = "General Modification",
+                        subtitle = "Font, gestures, decoder & playback",
                         onDismiss = { activeFloatingSection = null },
                     ) {
                         GeneralModificationContent(
@@ -509,6 +431,10 @@ private fun SettingsScreenContent(
                             playerPrefs = playerPrefs,
                             onUpdateAppPrefs = onUpdateAppPrefs,
                             onUpdatePlayerPrefs = onUpdatePlayerPrefs,
+                            onOpenSetting = { setting ->
+                                activeFloatingSection = null
+                                onAction(SettingsAction.OpenSetting(setting))
+                            },
                         )
                     }
                 }
@@ -516,7 +442,7 @@ private fun SettingsScreenContent(
                 SettingsFloatingSection.STORAGE_USAGE -> {
                     SettingsFloatingDialog(
                         title = "Storage Usage",
-                        subtitle = "Device memory & Dark Player cache",
+                        subtitle = "Device memory & Dark Player data",
                         onDismiss = { activeFloatingSection = null },
                     ) {
                         StorageUsageContent(context = context)
@@ -532,70 +458,15 @@ private fun SettingsScreenContent(
 }
 
 @Composable
-private fun QuickStudioTile(
-    modifier: Modifier = Modifier,
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    accent: Color,
-    onClick: () -> Unit,
-) {
-    val c = MaterialTheme.colorScheme
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(c.surfaceContainerHigh)
-            .border(
-                width = 1.dp,
-                color = c.outlineVariant.copy(alpha = 0.35f),
-                shape = RoundedCornerShape(18.dp),
-            )
-            .pressable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(34.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(accent.copy(alpha = 0.16f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = accent,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = title,
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp,
-            color = c.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = subtitle,
-            fontSize = 11.sp,
-            color = c.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
 private fun SettingsSectionHeader(title: String) {
     val c = MaterialTheme.colorScheme
     Text(
         text = title,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
-        color = c.onSurfaceVariant.copy(alpha = 0.8f),
-        letterSpacing = 0.5.sp,
-        modifier = Modifier.padding(start = 4.dp, top = 16.dp, bottom = 6.dp),
+        color = c.onSurfaceVariant.copy(alpha = 0.72f),
+        letterSpacing = 0.6.sp,
+        modifier = Modifier.padding(start = 4.dp, top = 14.dp, bottom = 6.dp),
     )
 }
 
@@ -608,13 +479,8 @@ private fun SettingsCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(c.surfaceContainerHigh)
-            .border(
-                width = 1.dp,
-                color = c.outlineVariant.copy(alpha = 0.35f),
-                shape = RoundedCornerShape(20.dp),
-            ),
+            .clip(RoundedCornerShape(18.dp))
+            .background(c.surfaceContainerHigh),
         content = content,
     )
 }
@@ -633,7 +499,7 @@ private fun SettingsRow(
         modifier = modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.pressable(onClick = onClick) else Modifier)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -646,7 +512,7 @@ private fun SettingsRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = c.primary,
+                tint = c.onSurface,
                 modifier = Modifier.size(19.dp),
             )
         }
@@ -663,7 +529,7 @@ private fun SettingsRow(
                 text = subtitle,
                 fontSize = 11.5.sp,
                 lineHeight = 15.sp,
-                color = c.onSurfaceVariant,
+                color = c.onSurfaceVariant.copy(alpha = 0.8f),
             )
         }
         if (trailing != null) {
@@ -674,7 +540,7 @@ private fun SettingsRow(
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
                 contentDescription = null,
-                tint = c.onSurfaceVariant.copy(alpha = 0.6f),
+                tint = c.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -704,7 +570,7 @@ private fun SettingsFloatingDialog(
         Column(
             modifier = Modifier
                 .padding(horizontal = 16.dp, vertical = 20.dp)
-                .widthIn(max = 420.dp)
+                .widthIn(max = 410.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
                 .background(c.surfaceContainerHighest)
@@ -740,6 +606,7 @@ private fun SettingsFloatingDialog(
                 Column(Modifier.weight(1f)) {
                     Text(
                         text = title,
+                        fontFamily = RoundedHeavy,
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
                         color = c.onSurface,
@@ -804,19 +671,103 @@ private fun AppearanceThemeContent(
             .fillMaxWidth()
             .padding(vertical = 4.dp),
     ) {
-        SettingsSwitchRow(
-            title = "Liquid Glass (Nav & Player UI)",
-            subtitle = if (appPrefs.useLiquidGlass) {
-                "Frosted, refractive Liquid Glass in Navigation Bar & Video Player"
-            } else {
-                "Using solid Material surfaces across Navigation Bar & Video Player"
-            },
-            checked = appPrefs.useLiquidGlass,
-            onCheckedChange = { enabled ->
-                GlassSettings.updateEnabled(enabled)
-                onUpdateAppPrefs { it.copy(useLiquidGlass = enabled) }
-            },
-        )
+        // Dedicated Liquid UI vs Solid UI Segmented Button Selector
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp),
+        ) {
+            Text(
+                text = "Interface style",
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                color = c.onSurface,
+            )
+            Text(
+                text = if (appPrefs.useLiquidGlass) {
+                    "Liquid UI: Frosted live blur & refractive glass controls"
+                } else {
+                    "Solid UI: Matte studio surfaces with accent borders"
+                },
+                color = c.onSurfaceVariant,
+                fontSize = 12.sp,
+            )
+            Spacer(Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val isLiquid = appPrefs.useLiquidGlass
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .pressable {
+                            GlassSettings.updateEnabled(true)
+                            onUpdateAppPrefs { it.copy(useLiquidGlass = true) }
+                        }
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (isLiquid) c.primary else c.surfaceContainerHigh)
+                        .border(
+                            width = 1.dp,
+                            color = if (isLiquid) c.primary else c.outlineVariant.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(14.dp),
+                        )
+                        .padding(vertical = 11.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Rounded.AutoAwesome,
+                            contentDescription = null,
+                            tint = if (isLiquid) c.onPrimary else c.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "Liquid UI",
+                            color = if (isLiquid) c.onPrimary else c.onSurfaceVariant,
+                            fontWeight = if (isLiquid) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 12.5.sp,
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .pressable {
+                            GlassSettings.updateEnabled(false)
+                            onUpdateAppPrefs { it.copy(useLiquidGlass = false) }
+                        }
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (!isLiquid) c.primary else c.surfaceContainerHigh)
+                        .border(
+                            width = 1.dp,
+                            color = if (!isLiquid) c.primary else c.outlineVariant.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(14.dp),
+                        )
+                        .padding(vertical = 11.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Rounded.Layers,
+                            contentDescription = null,
+                            tint = if (!isLiquid) c.onPrimary else c.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "Solid UI",
+                            color = if (!isLiquid) c.onPrimary else c.onSurfaceVariant,
+                            fontWeight = if (!isLiquid) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 12.5.sp,
+                        )
+                    }
+                }
+            }
+        }
 
         HorizontalDivider(color = c.onSurface.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
 
@@ -825,8 +776,8 @@ private fun AppearanceThemeContent(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
         ) {
-            Text("Theme mode", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = c.onSurface)
-            Text("Choose how Dark Player looks", color = c.onSurfaceVariant, fontSize = 12.sp)
+            Text("Theme mode", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = c.onSurface)
+            Text("Choose how the app looks", color = c.onSurfaceVariant, fontSize = 12.sp)
             Spacer(Modifier.height(10.dp))
 
             val activeMode = when {
@@ -890,48 +841,44 @@ private fun AppearanceThemeContent(
 
         HorizontalDivider(color = c.onSurface.copy(alpha = 0.08f))
 
-        if (supportsDynamicTheming()) {
-            SettingsSwitchRow(
-                title = stringResource(R.string.dynamic_theme),
-                subtitle = stringResource(R.string.dynamic_theme_description),
-                checked = appPrefs.useDynamicColors,
-                onCheckedChange = { enabled ->
-                    onUpdateAppPrefs { it.copy(useDynamicColors = enabled) }
-                },
-            )
-            HorizontalDivider(color = c.onSurface.copy(alpha = 0.08f))
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 12.dp),
         ) {
-            Text("Color palette", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = c.onSurface)
-            Text("Choose an accent color for the app", color = c.onSurfaceVariant, fontSize = 12.sp)
+            Text("Color palette", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = c.onSurface)
+            Text("Top 10 curated studio & YTXTube color combinations", color = c.onSurfaceVariant, fontSize = 12.sp)
             Spacer(Modifier.height(12.dp))
+
+            val choices = buildList {
+                if (supportsDynamicTheming()) add(null to "Wallpaper")
+                DARK_PLAYER_PALETTES.forEach { add(it.hex to it.name) }
+            }
 
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                DARK_PLAYER_PALETTES.forEach { palette ->
-                    val selected = !appPrefs.useDynamicColors &&
-                        appPrefs.themeAccentSeed.equals(palette.hex, ignoreCase = true)
-                    val scheme = schemeForSeed(
-                        hex = palette.hex,
-                        darkTheme = isDark,
-                        highContrast = appPrefs.useHighContrastDarkTheme,
-                    )
+                choices.forEach { (hex, name) ->
+                    val selected = if (hex == null) {
+                        appPrefs.useDynamicColors
+                    } else {
+                        !appPrefs.useDynamicColors && appPrefs.themeAccentSeed.equals(hex, ignoreCase = true)
+                    }
+                    val scheme = schemeForSeed(context = context, seedHex = hex, dark = isDark)
                     Column(
                         modifier = Modifier
-                            .width(68.dp)
+                            .width(64.dp)
                             .pressable {
-                                onUpdateAppPrefs {
-                                    it.copy(
-                                        useDynamicColors = false,
-                                        themeAccentSeed = palette.hex,
-                                    )
+                                if (hex == null) {
+                                    onUpdateAppPrefs { it.copy(useDynamicColors = true) }
+                                } else {
+                                    onUpdateAppPrefs {
+                                        it.copy(
+                                            useDynamicColors = false,
+                                            themeAccentSeed = hex,
+                                        )
+                                    }
                                 }
                             },
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -961,7 +908,7 @@ private fun AppearanceThemeContent(
                         }
                         Spacer(Modifier.height(5.dp))
                         Text(
-                            text = palette.name,
+                            text = name,
                             fontSize = 10.5.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -976,17 +923,63 @@ private fun AppearanceThemeContent(
 }
 
 @Composable
+private fun SettingsClickRow(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    val c = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .pressable(onClick = onClick)
+            .padding(vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 12.dp),
+        ) {
+            Text(
+                text = title,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                color = c.onSurface,
+            )
+            Spacer(Modifier.height(1.dp))
+            Text(
+                text = subtitle,
+                color = c.onSurfaceVariant,
+                fontSize = 11.5.sp,
+                lineHeight = 15.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Icon(
+            Icons.AutoMirrored.Rounded.NavigateNext,
+            contentDescription = null,
+            tint = c.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+@Composable
 private fun GeneralModificationContent(
     appPrefs: ApplicationPreferences,
     playerPrefs: PlayerPreferences,
     onUpdateAppPrefs: (suspend (ApplicationPreferences) -> ApplicationPreferences) -> Unit,
     onUpdatePlayerPrefs: (suspend (PlayerPreferences) -> PlayerPreferences) -> Unit,
+    onOpenSetting: (Setting) -> Unit,
 ) {
     val c = MaterialTheme.colorScheme
     Column(modifier = Modifier.fillMaxWidth()) {
         SettingsSwitchRow(
             title = "Use System Font",
-            subtitle = "Use device default font throughout Dark Player",
+            subtitle = "Use device default font throughout the app",
             checked = appPrefs.useSystemFont,
             onCheckedChange = { enabled ->
                 onUpdateAppPrefs { it.copy(useSystemFont = enabled) }
@@ -996,11 +989,16 @@ private fun GeneralModificationContent(
         HorizontalDivider(color = c.onSurface.copy(alpha = 0.08f))
 
         SettingsSwitchRow(
-            title = stringResource(R.string.volume_boost),
-            subtitle = "Boost audio volume up to 200% using hardware LoudnessEnhancer",
-            checked = playerPrefs.enableVolumeBoost,
+            title = "Video gestures",
+            subtitle = "Swipe vertically on the left for brightness, right for volume",
+            checked = playerPrefs.enableVolumeSwipeGesture && playerPrefs.enableBrightnessSwipeGesture,
             onCheckedChange = { enabled ->
-                onUpdatePlayerPrefs { it.copy(enableVolumeBoost = enabled) }
+                onUpdatePlayerPrefs {
+                    it.copy(
+                        enableVolumeSwipeGesture = enabled,
+                        enableBrightnessSwipeGesture = enabled,
+                    )
+                }
             },
         )
 
@@ -1018,16 +1016,11 @@ private fun GeneralModificationContent(
         HorizontalDivider(color = c.onSurface.copy(alpha = 0.08f))
 
         SettingsSwitchRow(
-            title = "Vertical Volume & Brightness Swipes",
-            subtitle = "Swipe vertically on the left for brightness, right for volume",
-            checked = playerPrefs.enableVolumeSwipeGesture && playerPrefs.enableBrightnessSwipeGesture,
+            title = stringResource(R.string.volume_boost),
+            subtitle = "Boost audio volume up to 200% using hardware LoudnessEnhancer",
+            checked = playerPrefs.enableVolumeBoost,
             onCheckedChange = { enabled ->
-                onUpdatePlayerPrefs {
-                    it.copy(
-                        enableVolumeSwipeGesture = enabled,
-                        enableBrightnessSwipeGesture = enabled,
-                    )
-                }
+                onUpdatePlayerPrefs { it.copy(enableVolumeBoost = enabled) }
             },
         )
 
@@ -1062,6 +1055,57 @@ private fun GeneralModificationContent(
             onCheckedChange = { enabled ->
                 onUpdatePlayerPrefs { it.copy(autoBackgroundPlay = enabled) }
             },
+        )
+
+        HorizontalDivider(color = c.onSurface.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 8.dp))
+
+        Text(
+            text = "Advanced Engine & Controls",
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            color = c.onSurface,
+        )
+        Spacer(Modifier.height(2.dp))
+
+        SettingsClickRow(
+            title = stringResource(R.string.player_name),
+            subtitle = stringResource(R.string.player_description),
+            onClick = { onOpenSetting(Setting.PLAYER) },
+        )
+        HorizontalDivider(color = c.onSurface.copy(alpha = 0.08f))
+
+        SettingsClickRow(
+            title = stringResource(R.string.gestures_name),
+            subtitle = stringResource(R.string.gestures_description),
+            onClick = { onOpenSetting(Setting.GESTURES) },
+        )
+        HorizontalDivider(color = c.onSurface.copy(alpha = 0.08f))
+
+        SettingsClickRow(
+            title = stringResource(R.string.audio),
+            subtitle = stringResource(R.string.audio_desc),
+            onClick = { onOpenSetting(Setting.AUDIO) },
+        )
+        HorizontalDivider(color = c.onSurface.copy(alpha = 0.08f))
+
+        SettingsClickRow(
+            title = stringResource(R.string.subtitle),
+            subtitle = stringResource(R.string.subtitle_desc),
+            onClick = { onOpenSetting(Setting.SUBTITLE) },
+        )
+        HorizontalDivider(color = c.onSurface.copy(alpha = 0.08f))
+
+        SettingsClickRow(
+            title = stringResource(R.string.media_library),
+            subtitle = stringResource(R.string.media_library_description),
+            onClick = { onOpenSetting(Setting.MEDIA_LIBRARY) },
+        )
+        HorizontalDivider(color = c.onSurface.copy(alpha = 0.08f))
+
+        SettingsClickRow(
+            title = stringResource(R.string.general_name),
+            subtitle = stringResource(R.string.general_description),
+            onClick = { onOpenSetting(Setting.GENERAL) },
         )
     }
 }
@@ -1257,9 +1301,9 @@ private fun StorageUsageContent(context: Context) {
                         context.externalCacheDir?.deleteRecursively()
                     }
                     storageData = calculateStorageData(context)
-                    clearedNotice = "Thumbnails & cache cleared!"
+                    clearedNotice = "Cache & thumbnails cleared!"
                 }
-                .padding(vertical = 10.dp),
+                .padding(vertical = 9.dp),
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1267,7 +1311,7 @@ private fun StorageUsageContent(context: Context) {
                     Icons.Rounded.Delete,
                     contentDescription = null,
                     tint = Color(0xFFEF5350),
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(15.dp),
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
@@ -1348,60 +1392,4 @@ enum class Setting {
     SUBTITLE,
     GENERAL,
     ABOUT,
-}
-
-private enum class SettingRow(
-    val titleResId: Int,
-    val descriptionResId: Int,
-    val icon: ImageVector,
-    val setting: Setting,
-) {
-    PLAYER(
-        titleResId = R.string.player_name,
-        descriptionResId = R.string.player_description,
-        icon = NextIcons.Player,
-        setting = Setting.PLAYER,
-    ),
-    GESTURES(
-        titleResId = R.string.gestures_name,
-        descriptionResId = R.string.gestures_description,
-        icon = NextIcons.SwipeHorizontal,
-        setting = Setting.GESTURES,
-    ),
-    AUDIO(
-        titleResId = R.string.audio,
-        descriptionResId = R.string.audio_desc,
-        icon = NextIcons.Audio,
-        setting = Setting.AUDIO,
-    ),
-    SUBTITLE(
-        titleResId = R.string.subtitle,
-        descriptionResId = R.string.subtitle_desc,
-        icon = NextIcons.Subtitle,
-        setting = Setting.SUBTITLE,
-    ),
-    APPEARANCE(
-        titleResId = R.string.appearance_name,
-        descriptionResId = R.string.appearance_description,
-        icon = NextIcons.Appearance,
-        setting = Setting.APPEARANCE,
-    ),
-    MEDIA_LIBRARY(
-        titleResId = R.string.media_library,
-        descriptionResId = R.string.media_library_description,
-        icon = NextIcons.Movie,
-        setting = Setting.MEDIA_LIBRARY,
-    ),
-    GENERAL(
-        titleResId = R.string.general_name,
-        descriptionResId = R.string.general_description,
-        icon = NextIcons.ExtraSettings,
-        setting = Setting.GENERAL,
-    ),
-    ABOUT(
-        titleResId = R.string.about_name,
-        descriptionResId = R.string.about_description,
-        icon = NextIcons.Info,
-        setting = Setting.ABOUT,
-    ),
 }

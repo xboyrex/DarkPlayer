@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -37,7 +38,7 @@ val ExpressiveShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
     small = RoundedCornerShape(12.dp),
     medium = RoundedCornerShape(20.dp),
-    large = RoundedCornerShape(24.dp),
+    large = RoundedCornerShape(28.dp),
     extraLarge = RoundedCornerShape(32.dp),
 )
 
@@ -46,35 +47,40 @@ data class ThemePaletteChoice(
     val hex: String,
 )
 
-const val SEED_SOLAR_GOLD = "#FACC15"
 const val SEED_CRIMSON = "#FF0033"
-const val SEED_ELECTRIC_BLUE = "#0284C7"
+const val SEED_CREAM_ROSE = "#833761"
 const val SEED_AURORA = "#6C2BD9"
 const val SEED_LILAC_AIR = "#7454CE"
-const val SEED_CREAM_ROSE = "#833761"
 const val SEED_JAI = "#D6005C"
+const val SEED_HARBOR = "#3B5BDB"
+const val SEED_CYBER_CYAN = "#00E5FF"
+const val SEED_EMERALD = "#10B981"
 const val SEED_PUMPKIN = "#B0714A"
 const val SEED_MOONSTONE = "#8A8F98"
+const val SEED_SOLAR_GOLD = "#FACC15"
+const val SEED_ELECTRIC_BLUE = "#0284C7"
 
+// Top 10 Curated Color Palettes (YTXTube + Studio Signature Combinations)
 val DARK_PLAYER_PALETTES = listOf(
-    ThemePaletteChoice("Solar Gold", SEED_SOLAR_GOLD),
-    ThemePaletteChoice("Electric", SEED_ELECTRIC_BLUE),
     ThemePaletteChoice("Crimson", SEED_CRIMSON),
-    ThemePaletteChoice("Aurora", SEED_AURORA),
-    ThemePaletteChoice("Lilac Air", SEED_LILAC_AIR),
     ThemePaletteChoice("Cream Rose", SEED_CREAM_ROSE),
-    ThemePaletteChoice("Ruby", SEED_JAI),
+    ThemePaletteChoice("Erica", SEED_AURORA),
+    ThemePaletteChoice("Lilac Air", SEED_LILAC_AIR),
+    ThemePaletteChoice("Jai Ruby", SEED_JAI),
+    ThemePaletteChoice("Harbor", SEED_HARBOR),
+    ThemePaletteChoice("Cyber Cyan", SEED_CYBER_CYAN),
+    ThemePaletteChoice("Emerald", SEED_EMERALD),
     ThemePaletteChoice("Pumpkin", SEED_PUMPKIN),
     ThemePaletteChoice("Moonstone", SEED_MOONSTONE),
 )
 
 object ThemeState {
-    var accentSeed by mutableStateOf(SEED_SOLAR_GOLD)
+    var accentSeed by mutableStateOf(SEED_CRIMSON)
     var useSystemFont by mutableStateOf(false)
 }
 
 val RoundedHeavy: FontFamily
-    get() = FontFamily.Default
+    get() = if (ThemeState.useSystemFont) FontFamily.Default else FontFamily.SansSerif
 
 private fun hexToHsl(hex: String): Triple<Float, Float, Float> {
     var h2 = hex.removePrefix("#")
@@ -117,81 +123,56 @@ private fun hsl(h: Float, s: Float, l: Float): Color {
     return Color((r + m).coerceIn(0f, 1f), (g + m).coerceIn(0f, 1f), (b + m).coerceIn(0f, 1f))
 }
 
-private val lightScheme = lightColorScheme(
-    primary = primaryLight,
-    onPrimary = onPrimaryLight,
-    primaryContainer = primaryContainerLight,
-    onPrimaryContainer = onPrimaryContainerLight,
-    secondary = secondaryLight,
-    onSecondary = onSecondaryLight,
-    secondaryContainer = secondaryContainerLight,
-    onSecondaryContainer = onSecondaryContainerLight,
-    tertiary = tertiaryLight,
-    onTertiary = onTertiaryLight,
-    tertiaryContainer = tertiaryContainerLight,
-    onTertiaryContainer = onTertiaryContainerLight,
-    error = errorLight,
-    onError = onErrorLight,
-    errorContainer = errorContainerLight,
-    onErrorContainer = onErrorContainerLight,
-    background = backgroundLight,
-    onBackground = onBackgroundLight,
-    surface = surfaceLight,
-    onSurface = onSurfaceLight,
-    surfaceVariant = surfaceVariantLight,
-    onSurfaceVariant = onSurfaceVariantLight,
-    outline = outlineLight,
-    outlineVariant = outlineVariantLight,
-    scrim = scrimLight,
-    inverseSurface = inverseSurfaceLight,
-    inverseOnSurface = inverseOnSurfaceLight,
-    inversePrimary = inversePrimaryLight,
-    surfaceDim = surfaceDimLight,
-    surfaceBright = surfaceBrightLight,
-    surfaceContainerLowest = surfaceContainerLowestLight,
-    surfaceContainerLow = surfaceContainerLowLight,
-    surfaceContainer = surfaceContainerLight,
-    surfaceContainerHigh = surfaceContainerHighLight,
-    surfaceContainerHighest = surfaceContainerHighestLight,
-)
+private fun crimsonScheme(dark: Boolean): ColorScheme = if (!dark) {
+    lightColorScheme(
+        primary = Color(0xFFE6002E), onPrimary = Color.White,
+        primaryContainer = Color(0xFFFFE3E8), onPrimaryContainer = Color(0xFF5C0012),
+        secondary = Color(0xFF606060), onSecondary = Color.White,
+        secondaryContainer = Color(0xFFE0E0E0), onSecondaryContainer = Color(0xFF0F0F0F),
+        tertiary = Color(0xFFE6002E), tertiaryContainer = Color(0xFFF2F2F2), onTertiaryContainer = Color(0xFF0F0F0F),
+        background = Color.White, onBackground = Color(0xFF0F0F0F),
+        surface = Color.White, onSurface = Color(0xFF0F0F0F),
+        surfaceVariant = Color(0xFFE5E5E5), onSurfaceVariant = Color(0xFF606060),
+        surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF9F9F9),
+        surfaceContainer = Color(0xFFF2F2F2), surfaceContainerHigh = Color(0xFFEAEAEA),
+        surfaceContainerHighest = Color(0xFFE0E0E0),
+        outline = Color(0xFF909090), outlineVariant = Color(0xFFE5E5E5),
+    )
+} else {
+    darkColorScheme(
+        primary = Color(0xFFFF0033), onPrimary = Color.White,
+        primaryContainer = Color(0xFF4A0010), onPrimaryContainer = Color(0xFFFFD9DF),
+        secondary = Color(0xFFAAAAAA), onSecondary = Color(0xFF0F0F0F),
+        secondaryContainer = Color(0xFF3F3F3F), onSecondaryContainer = Color(0xFFF1F1F1),
+        tertiary = Color(0xFFFF4E45), tertiaryContainer = Color(0xFF272727), onTertiaryContainer = Color(0xFFF1F1F1),
+        background = Color(0xFF0F0F0F), onBackground = Color(0xFFF1F1F1),
+        surface = Color(0xFF0F0F0F), onSurface = Color(0xFFF1F1F1),
+        surfaceVariant = Color(0xFF272727), onSurfaceVariant = Color(0xFFAAAAAA),
+        surfaceContainerLowest = Color(0xFF0A0A0A), surfaceContainerLow = Color(0xFF181818),
+        surfaceContainer = Color(0xFF212121), surfaceContainerHigh = Color(0xFF2C2C2C),
+        surfaceContainerHighest = Color(0xFF3A3A3A),
+        outline = Color(0xFF717171), outlineVariant = Color(0xFF303030),
+    )
+}
 
-private val darkScheme = darkColorScheme(
-    primary = primaryDark,
-    onPrimary = onPrimaryDark,
-    primaryContainer = primaryContainerDark,
-    onPrimaryContainer = onPrimaryContainerDark,
-    secondary = secondaryDark,
-    onSecondary = onSecondaryDark,
-    secondaryContainer = secondaryContainerDark,
-    onSecondaryContainer = onSecondaryContainerDark,
-    tertiary = tertiaryDark,
-    onTertiary = onTertiaryDark,
-    tertiaryContainer = tertiaryContainerDark,
-    onTertiaryContainer = onTertiaryContainerDark,
-    error = errorDark,
-    onError = onErrorDark,
-    errorContainer = errorContainerDark,
-    onErrorContainer = onErrorContainerDark,
-    background = backgroundDark,
-    onBackground = onBackgroundDark,
-    surface = surfaceDark,
-    onSurface = onSurfaceDark,
-    surfaceVariant = surfaceVariantDark,
-    onSurfaceVariant = onSurfaceVariantDark,
-    outline = outlineDark,
-    outlineVariant = outlineVariantDark,
-    scrim = scrimDark,
-    inverseSurface = inverseSurfaceDark,
-    inverseOnSurface = inverseOnSurfaceDark,
-    inversePrimary = inversePrimaryDark,
-    surfaceDim = surfaceDimDark,
-    surfaceBright = surfaceBrightDark,
-    surfaceContainerLowest = surfaceContainerLowestDark,
-    surfaceContainerLow = surfaceContainerLowDark,
-    surfaceContainer = surfaceContainerDark,
-    surfaceContainerHigh = surfaceContainerHighDark,
-    surfaceContainerHighest = surfaceContainerHighestDark,
-)
+private fun completeScheme(seedHex: String, cs: ColorScheme): ColorScheme {
+    val sparse = seedHex.lowercase() in setOf(
+        SEED_CREAM_ROSE.lowercase(),
+        SEED_AURORA.lowercase(),
+        SEED_LILAC_AIR.lowercase(),
+    )
+    val filled = cs.copy(
+        tertiaryContainer = cs.secondaryContainer,
+        onTertiaryContainer = cs.onSecondaryContainer,
+    )
+    return if (!sparse) filled else filled.copy(
+        secondary = cs.primary,
+        tertiary = cs.primary,
+        surfaceVariant = cs.surfaceContainerHigh,
+        surfaceContainerLow = lerp(cs.surface, cs.surfaceContainer, 0.5f),
+        surfaceContainerLowest = cs.surface,
+    )
+}
 
 fun schemeForSeed(
     hex: String,
@@ -201,15 +182,14 @@ fun schemeForSeed(
     val base = schemeForSeed(context = null, seedHex = hex, dark = darkTheme)
     return if (darkTheme && highContrast) {
         base.copy(
-            background = backgroundPureBlack,
-            surface = surfacePureBlack,
-            surfaceDim = surfaceDimPureBlack,
-            surfaceBright = surfaceBrightPureBlack,
-            surfaceContainerLowest = surfaceContainerLowestPureBlack,
-            surfaceContainerLow = surfaceContainerLowPureBlack,
-            surfaceContainer = surfaceContainerPureBlack,
-            surfaceContainerHigh = surfaceContainerHighPureBlack,
-            surfaceContainerHighest = surfaceContainerHighestPureBlack,
+            background = Color.Black,
+            surface = Color.Black,
+            surfaceVariant = Color(0xFF141414),
+            surfaceContainerLowest = Color.Black,
+            surfaceContainerLow = Color(0xFF050505),
+            surfaceContainer = Color(0xFF0C0C0C),
+            surfaceContainerHigh = Color(0xFF141414),
+            surfaceContainerHighest = Color(0xFF1E1E1E),
             onBackground = Color(0xFFF5F5F5),
             onSurface = Color(0xFFF5F5F5),
             outlineVariant = Color(0xFF1F1F1F),
@@ -223,40 +203,150 @@ fun schemeForSeed(context: Context?, seedHex: String?, dark: Boolean): ColorSche
     if (seedHex == null && context != null && supportsDynamicTheming()) {
         return if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     }
-    val hex = seedHex ?: SEED_SOLAR_GOLD
-    if (hex.equals(SEED_SOLAR_GOLD, ignoreCase = true)) {
-        return if (dark) darkScheme else lightScheme
+    val hex = seedHex ?: SEED_CRIMSON
+    if (hex.equals(SEED_CRIMSON, ignoreCase = true)) {
+        return crimsonScheme(dark)
     }
+    if (hex.equals(SEED_CREAM_ROSE, ignoreCase = true)) {
+        val cs = if (!dark) lightColorScheme(
+            primary = Color(0xFF833761), onPrimary = Color(0xFFFFF3FC),
+            primaryContainer = Color(0xFFEED6DF), onPrimaryContainer = Color(0xFF54233F),
+            secondaryContainer = Color(0xFFE8DBEF), onSecondaryContainer = Color(0xFF513568),
+            surface = Color(0xFFFCF4EE), surfaceContainer = Color(0xFFFFF6F7),
+            surfaceContainerHigh = Color(0xFFEED6DF), surfaceContainerHighest = Color(0xFFE8DBEF),
+            onSurface = Color(0xFF422334), onSurfaceVariant = Color(0xFF735165),
+            outline = Color(0xFFA88098), outlineVariant = Color.Transparent,
+            background = Color(0xFFFCF4EE), onBackground = Color(0xFF422334),
+        ) else darkColorScheme(
+            primary = Color(0xFFF0B4CC), onPrimary = Color(0xFF3A1628),
+            primaryContainer = Color(0xFF4A2A3C), onPrimaryContainer = Color(0xFFFBE3EE),
+            secondaryContainer = Color(0xFF30242B), onSecondaryContainer = Color(0xFFEDDEE6),
+            surface = Color(0xFF0E0A0D), surfaceContainer = Color(0xFF1F181C),
+            surfaceContainerHigh = Color(0xFF2A2126), surfaceContainerHighest = Color(0xFF3A2E35),
+            onSurface = Color(0xFFFBEFF2), onSurfaceVariant = Color(0xFFCDB8C3),
+            outline = Color(0xFF9A858F), outlineVariant = Color.Transparent,
+            background = Color(0xFF0E0A0D), onBackground = Color(0xFFFBEFF2),
+        )
+        return completeScheme(hex, cs)
+    }
+    if (hex.equals(SEED_AURORA, ignoreCase = true)) {
+        val cs = if (!dark) lightColorScheme(
+            primary = Color(0xFF6C2BD9), onPrimary = Color.White,
+            primaryContainer = Color(0xFFE7DCFF), onPrimaryContainer = Color(0xFF2A1064),
+            secondaryContainer = Color(0xFFD5F0F6), onSecondaryContainer = Color(0xFF0A3A45),
+            surface = Color(0xFFF6F4FE), surfaceContainer = Color(0xFFFCFBFF),
+            surfaceContainerHigh = Color(0xFFEDE9FA), surfaceContainerHighest = Color(0xFFE1DBF3),
+            onSurface = Color(0xFF191340), onSurfaceVariant = Color(0xFF544D80),
+            outline = Color(0xFF8B84B0), outlineVariant = Color(0xFFDCD5F1),
+            background = Color(0xFFF6F4FE), onBackground = Color(0xFF191340),
+        ) else darkColorScheme(
+            primary = Color(0xFFD4C0FF), onPrimary = Color(0xFF23104F),
+            primaryContainer = Color(0xFF33206B), onPrimaryContainer = Color(0xFFE6DBFF),
+            secondaryContainer = Color(0xFF12303A), onSecondaryContainer = Color(0xFFC9EDF5),
+            surface = Color(0xFF0A0817), surfaceContainer = Color(0xFF1D1B29),
+            surfaceContainerHigh = Color(0xFF1F1A3B), surfaceContainerHighest = Color(0xFF2A2350),
+            onSurface = Color(0xFFF1EDFF), onSurfaceVariant = Color(0xFFC9C2E0),
+            outline = Color(0xFF7E76A8), outlineVariant = Color(0xFF2D2B38),
+            background = Color(0xFF0A0817), onBackground = Color(0xFFF1EDFF),
+        )
+        return completeScheme(hex, cs)
+    }
+    if (hex.equals(SEED_LILAC_AIR, ignoreCase = true)) {
+        val cs = if (!dark) lightColorScheme(
+            primary = Color(0xFF7454CE), onPrimary = Color.White,
+            primaryContainer = Color(0xFFEFE7FB), onPrimaryContainer = Color(0xFF59408C),
+            secondaryContainer = Color(0xFFF7EFF9), onSecondaryContainer = Color(0xFF49345E),
+            surface = Color(0xFFF6F2FF), surfaceContainer = Color(0xFFFAF7FF),
+            surfaceContainerHigh = Color(0xFFEEE5F8), surfaceContainerHighest = Color(0xFFE6DAF4),
+            onSurface = Color(0xFF30224E), onSurfaceVariant = Color(0xFF78648F),
+            outline = Color(0xFF9580AC), outlineVariant = Color(0xFFE2D5EE),
+            background = Color(0xFFF6F2FF), onBackground = Color(0xFF30224E),
+        ) else darkColorScheme(
+            primary = Color(0xFFC5B1F0), onPrimary = Color(0xFF291744),
+            primaryContainer = Color(0xFF392954), onPrimaryContainer = Color(0xFFEADDFB),
+            secondaryContainer = Color(0xFF292131), onSecondaryContainer = Color(0xFFDFD0EA),
+            surface = Color(0xFF17121F), surfaceContainer = Color(0xFF261E33),
+            surfaceContainerHigh = Color(0xFF322641), surfaceContainerHighest = Color(0xFF40304F),
+            onSurface = Color(0xFFF1E9FA), onSurfaceVariant = Color(0xFFC7B6D7),
+            outline = Color(0xFF9A85AE), outlineVariant = Color(0xFF514060),
+            background = Color(0xFF17121F), onBackground = Color(0xFFF1E9FA),
+        )
+        return completeScheme(hex, cs)
+    }
+    if (hex.equals(SEED_JAI, ignoreCase = true)) {
+        return if (!dark) lightColorScheme(
+            primary = Color(0xFFD6005C), onPrimary = Color.White,
+            primaryContainer = Color(0xFFFFD3E4), onPrimaryContainer = Color(0xFF4D0020),
+            secondary = Color(0xFF8C5069), onSecondary = Color.White,
+            secondaryContainer = Color(0xFFFBE4EC), onSecondaryContainer = Color(0xFF452029),
+            tertiary = Color(0xFF94304F),
+            background = Color(0xFFFFF7FA), onBackground = Color(0xFF2B0F1A),
+            surface = Color(0xFFFFF7FA), onSurface = Color(0xFF2B0F1A),
+            surfaceVariant = Color(0xFFF7D6E4), onSurfaceVariant = Color(0xFF77455A),
+            surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFFFFAFC),
+            surfaceContainer = Color(0xFFFFEDF4), surfaceContainerHigh = Color(0xFFFCE3ED),
+            surfaceContainerHighest = Color(0xFFF7D6E4),
+            outline = Color(0xFFAC7189), outlineVariant = Color(0xFFEFCFDE),
+        ) else darkColorScheme(
+            primary = Color(0xFFFF6BA0), onPrimary = Color(0xFF3D0016),
+            primaryContainer = Color(0xFF8F0F45), onPrimaryContainer = Color(0xFFFFD8E7),
+            secondary = Color(0xFFE2BCC9), onSecondary = Color(0xFF332028),
+            secondaryContainer = Color(0xFF332028), onSecondaryContainer = Color(0xFFF2DCE4),
+            tertiary = Color(0xFFE7A0B8),
+            background = Color(0xFF150A10), onBackground = Color(0xFFF8EBF0),
+            surface = Color(0xFF150A10), onSurface = Color(0xFFF8EBF0),
+            surfaceVariant = Color(0xFF4A2E3B), onSurfaceVariant = Color(0xFFD5B3C1),
+            surfaceContainerLowest = Color(0xFF0D0509), surfaceContainerLow = Color(0xFF1B0F15),
+            surfaceContainer = Color(0xFF22131A), surfaceContainerHigh = Color(0xFF2F1B25),
+            surfaceContainerHighest = Color(0xFF3D2430),
+            outline = Color(0xFF9C7382), outlineVariant = Color(0xFF4C333D),
+        )
+    }
+    if (hex.equals(SEED_PUMPKIN, ignoreCase = true)) {
+        return if (!dark) lightColorScheme(
+            primary = Color(0xFFBC5628), onPrimary = Color.White,
+            primaryContainer = Color(0xFFFBE2CE), onPrimaryContainer = Color(0xFF4A2110),
+            secondary = Color(0xFF7A6248), onSecondary = Color.White,
+            secondaryContainer = Color(0xFFF2E7D6), onSecondaryContainer = Color(0xFF4A3A28),
+            tertiary = Color(0xFF9A6B2F),
+            background = Color(0xFFFDFAF6), onBackground = Color(0xFF2A211A),
+            surface = Color(0xFFFDFAF6), onSurface = Color(0xFF2A211A),
+            surfaceVariant = Color(0xFFEADCC9), onSurfaceVariant = Color(0xFF6F5F4F),
+            surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFFBF6EF),
+            surfaceContainer = Color(0xFFF8F1E7), surfaceContainerHigh = Color(0xFFF3E9DB),
+            surfaceContainerHighest = Color(0xFFEADCC9),
+            outline = Color(0xFF97866F), outlineVariant = Color(0xFFE2D6C4),
+        ) else darkColorScheme(
+            primary = Color(0xFFE97A3A), onPrimary = Color(0xFF2A1200),
+            primaryContainer = Color(0xFF63300F), onPrimaryContainer = Color(0xFFFFD9BE),
+            secondary = Color(0xFFCFC4BB), onSecondary = Color(0xFF2E2A27),
+            secondaryContainer = Color(0xFF2E2A27), onSecondaryContainer = Color(0xFFE3DBD4),
+            tertiary = Color(0xFFE0A472),
+            background = Color(0xFF121110), onBackground = Color(0xFFF4F1EE),
+            surface = Color(0xFF121110), onSurface = Color(0xFFF4F1EE),
+            surfaceVariant = Color(0xFF3F3A36), onSurfaceVariant = Color(0xFFB4ABA4),
+            surfaceContainerLowest = Color(0xFF0B0A0A), surfaceContainerLow = Color(0xFF171615),
+            surfaceContainer = Color(0xFF1C1A19), surfaceContainerHigh = Color(0xFF262322),
+            surfaceContainerHighest = Color(0xFF322E2C),
+            outline = Color(0xFF7C736C), outlineVariant = Color(0xFF3A3532),
+        )
+    }
+
     val (h, s, _) = hexToHsl(hex)
     val isMoonstone = hex.equals(SEED_MOONSTONE, ignoreCase = true)
-    val isPumpkin = hex.equals(SEED_PUMPKIN, ignoreCase = true)
-    val accent = when {
-        isMoonstone -> 7f
-        isPumpkin -> 37f
-        else -> maxOf(s, 52f)
-    }
-    val surf = when {
-        isMoonstone -> 3f
-        isPumpkin -> 22f
-        else -> if (dark) 12f else 14f
-    }
+    val accent = if (isMoonstone) 7f else maxOf(s, 52f)
+    val surf = if (isMoonstone) 3f else if (dark) 12f else 14f
+
     return if (!dark) {
         lightColorScheme(
-            primary = hsl(h, accent, 42f),
-            onPrimary = Color.White,
-            primaryContainer = hsl(h, minOf(accent, 68f), 90f),
-            onPrimaryContainer = hsl(h, accent, 16f),
-            secondary = hsl(h, 26f, 40f),
-            onSecondary = Color.White,
-            secondaryContainer = hsl(h, 22f, 88f),
-            onSecondaryContainer = hsl(h, 26f, 20f),
+            primary = hsl(h, accent, 42f), onPrimary = Color.White,
+            primaryContainer = hsl(h, minOf(accent, 68f), 90f), onPrimaryContainer = hsl(h, accent, 16f),
+            secondary = hsl(h, 26f, 40f), onSecondary = Color.White,
+            secondaryContainer = hsl(h, 22f, 88f), onSecondaryContainer = hsl(h, 26f, 20f),
             tertiary = hsl((h + 40f) % 360f, 40f, 45f),
-            background = hsl(h, surf, 98f),
-            onBackground = hsl(h, 10f, 12f),
-            surface = hsl(h, surf, 98f),
-            onSurface = hsl(h, 10f, 12f),
-            surfaceVariant = hsl(h, surf, 90f),
-            onSurfaceVariant = hsl(h, minOf(12f, surf), 36f),
+            background = hsl(h, surf, 98f), onBackground = hsl(h, 10f, 12f),
+            surface = hsl(h, surf, 98f), onSurface = hsl(h, 10f, 12f),
+            surfaceVariant = hsl(h, surf, 90f), onSurfaceVariant = hsl(h, minOf(12f, surf), 36f),
             surfaceContainerLowest = hsl(h, surf, 100f),
             surfaceContainerLow = hsl(h, surf, 96f),
             surfaceContainer = hsl(h, surf, 95f),
@@ -264,39 +354,28 @@ fun schemeForSeed(context: Context?, seedHex: String?, dark: Boolean): ColorSche
             surfaceContainerHighest = hsl(h, surf, 90f),
             outline = hsl(h, minOf(10f, surf), 54f),
             outlineVariant = hsl(h, minOf(10f, surf), 84f),
-            error = Color(0xFFB3261E),
-            onError = Color.White,
-            errorContainer = Color(0xFFFFDAD5),
-            onErrorContainer = Color(0xFF410E0B),
+            error = Color(0xFFB3261E), onError = Color.White,
+            errorContainer = Color(0xFFFFDAD5), onErrorContainer = Color(0xFF410E0B),
         )
     } else {
         darkColorScheme(
-            primary = hsl(h, minOf(accent, 75f), 76f),
-            onPrimary = hsl(h, accent, 14f),
-            primaryContainer = hsl(h, minOf(accent, 58f), 30f),
-            onPrimaryContainer = hsl(h, 60f, 92f),
-            secondary = hsl(h, 22f, 80f),
-            onSecondary = hsl(h, 20f, 18f),
-            secondaryContainer = hsl(h, 18f, 26f),
-            onSecondaryContainer = hsl(h, 18f, 90f),
-            tertiary = hsl((h + 40f) % 360f, 40f, 78f),
-            background = hsl(h, surf, 6f),
-            onBackground = hsl(h, 8f, 94f),
-            surface = hsl(h, surf, 6f),
-            onSurface = hsl(h, 8f, 96f),
-            surfaceVariant = hsl(h, surf, 26f),
-            onSurfaceVariant = hsl(h, minOf(10f, surf), 80f),
+            primary = hsl(h, minOf(accent, 75f), 78f), onPrimary = hsl(h, accent, 16f),
+            primaryContainer = hsl(h, minOf(accent, 58f), 30f), onPrimaryContainer = hsl(h, 60f, 92f),
+            secondary = hsl(h, 20f, 80f), onSecondary = hsl(h, 20f, 18f),
+            secondaryContainer = hsl(h, 18f, 28f), onSecondaryContainer = hsl(h, 18f, 90f),
+            tertiary = hsl((h + 40f) % 360f, 38f, 80f),
+            background = hsl(h, surf, 7f), onBackground = hsl(h, 8f, 92f),
+            surface = hsl(h, surf, 7f), onSurface = hsl(h, 8f, 92f),
+            surfaceVariant = hsl(h, surf, 28f), onSurfaceVariant = hsl(h, minOf(10f, surf), 80f),
             surfaceContainerLowest = hsl(h, surf, 4f),
-            surfaceContainerLow = hsl(h, surf, 9f),
+            surfaceContainerLow = hsl(h, surf, 10f),
             surfaceContainer = hsl(h, surf, 12f),
-            surfaceContainerHigh = hsl(h, surf, 16f),
-            surfaceContainerHighest = hsl(h, surf, 21f),
+            surfaceContainerHigh = hsl(h, surf, 17f),
+            surfaceContainerHighest = hsl(h, surf, 22f),
             outline = hsl(h, minOf(8f, surf), 60f),
-            outlineVariant = hsl(h, minOf(8f, surf), 28f),
-            error = Color(0xFFFFB4AB),
-            onError = Color(0xFF690005),
-            errorContainer = Color(0xFF93000A),
-            onErrorContainer = Color(0xFFFFDAD6),
+            outlineVariant = hsl(h, minOf(8f, surf), 30f),
+            error = Color(0xFFFFB4AB), onError = Color(0xFF690005),
+            errorContainer = Color(0xFF93000A), onErrorContainer = Color(0xFFFFDAD6),
         )
     }
 }
@@ -351,15 +430,14 @@ fun DarkPlayerTheme(
 
     val colorScheme = if (darkTheme && highContrastDarkTheme) {
         baseScheme.copy(
-            background = backgroundPureBlack,
-            surface = surfacePureBlack,
-            surfaceDim = surfaceDimPureBlack,
-            surfaceBright = surfaceBrightPureBlack,
-            surfaceContainerLowest = surfaceContainerLowestPureBlack,
-            surfaceContainerLow = surfaceContainerLowPureBlack,
-            surfaceContainer = surfaceContainerPureBlack,
-            surfaceContainerHigh = surfaceContainerHighPureBlack,
-            surfaceContainerHighest = surfaceContainerHighestPureBlack,
+            background = Color.Black,
+            surface = Color.Black,
+            surfaceVariant = Color(0xFF141414),
+            surfaceContainerLowest = Color.Black,
+            surfaceContainerLow = Color(0xFF050505),
+            surfaceContainer = Color(0xFF0C0C0C),
+            surfaceContainerHigh = Color(0xFF141414),
+            surfaceContainerHighest = Color(0xFF1E1E1E),
             onBackground = Color(0xFFF5F5F5),
             onSurface = Color(0xFFF5F5F5),
             outlineVariant = Color(0xFF1F1F1F),
@@ -368,7 +446,7 @@ fun DarkPlayerTheme(
         baseScheme
     }
 
-    SystemBars(dark = darkTheme, windowBg = colorScheme.background)
+    SystemBars(dark = darkTheme, windowBg = colorScheme.surface)
 
     MaterialTheme(
         colorScheme = colorScheme,

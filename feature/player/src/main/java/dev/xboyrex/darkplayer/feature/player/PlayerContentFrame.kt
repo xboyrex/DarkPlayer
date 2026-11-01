@@ -5,7 +5,13 @@ import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -14,8 +20,10 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.SURFACE_TYPE_SURFACE_VIEW
+import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import androidx.media3.ui.compose.modifiers.resizeWithContentScale
 import androidx.media3.ui.compose.state.rememberPresentationState
+import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
 import dev.xboyrex.darkplayer.feature.player.extensions.toContentScale
 import dev.xboyrex.darkplayer.feature.player.state.PictureInPictureState
 import dev.xboyrex.darkplayer.feature.player.state.VideoZoomAndContentScaleState
@@ -35,16 +43,36 @@ fun PlayerContentFrame(
     displayAspectRatio: Float? = null,
 ) {
     val presentationState = rememberPresentationState(player = player)
+    val mediaId = player.currentMediaItem?.mediaId
+    var stableVideoSizeDp by remember(mediaId) { mutableStateOf<Size?>(null) }
+    var hasRenderedFirstFrame by remember(mediaId) { mutableStateOf(false) }
+
+    val currentVideoSizeDp = presentationState.videoSizeDp
+    if (currentVideoSizeDp != null && currentVideoSizeDp.width > 0f && currentVideoSizeDp.height > 0f) {
+        stableVideoSizeDp = currentVideoSizeDp
+    }
+    LaunchedEffect(presentationState.coverSurface) {
+        if (!presentationState.coverSurface) {
+            hasRenderedFirstFrame = true
+        }
+    }
+
+    val effectiveSizeDp = currentVideoSizeDp?.takeIf { it.width > 0f && it.height > 0f } ?: stableVideoSizeDp
+
     Box(modifier.fillMaxSize()) {
         if (videoVisible) {
             PlayerSurface(
                 player = player,
-                surfaceType = SURFACE_TYPE_SURFACE_VIEW,
+                surfaceType = if (GlassQuality.effectsSupported) {
+                    SURFACE_TYPE_TEXTURE_VIEW
+                } else {
+                    SURFACE_TYPE_SURFACE_VIEW
+                },
                 modifier = Modifier
                     .resizeWithContentScale(
                         contentScale = videoZoomAndContentScaleState.videoContentScale
                             .toContentScale(),
-                        sourceSizeDp = presentationState.videoSizeDp?.let { size ->
+                        sourceSizeDp = effectiveSizeDp?.let { size ->
                             size.copy(
                                 width = with(LocalDensity.current) {
                                     (
@@ -82,7 +110,7 @@ fun PlayerContentFrame(
             configuration = subtitleConfiguration,
         )
 
-        if (videoVisible && presentationState.coverSurface) {
+        if (videoVisible && presentationState.coverSurface && !hasRenderedFirstFrame) {
             ShutterView()
         }
     }

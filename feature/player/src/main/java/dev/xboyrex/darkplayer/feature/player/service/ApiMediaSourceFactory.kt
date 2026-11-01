@@ -7,7 +7,13 @@ import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.extractor.DefaultExtractorsFactory
 import dev.xboyrex.darkplayer.feature.player.utils.apiHeaders
+
+private fun createSeekableExtractorsFactory(): DefaultExtractorsFactory =
+    DefaultExtractorsFactory()
+        .setConstantBitrateSeekingEnabled(true)
+        .setConstantBitrateSeekingAlwaysEnabled(true)
 
 /** Creates independent sources so headers follow an item, including manifests, segments and subtitles. */
 @UnstableApi
@@ -16,9 +22,13 @@ internal class ApiMediaSourceFactory(
     private val dataSourceFactory: DataSource.Factory,
 ) : MediaSource.Factory by DefaultMediaSourceFactory(
     context,
+    createSeekableExtractorsFactory(),
 ).setDataSourceFactory(dataSourceFactory) {
     override fun createMediaSource(mediaItem: MediaItem): MediaSource =
-        DefaultMediaSourceFactory(context)
+        DefaultMediaSourceFactory(
+            context,
+            createSeekableExtractorsFactory(),
+        )
             .setDataSourceFactory(
                 RequestHeadersDataSourceFactory(
                     dataSourceFactory,

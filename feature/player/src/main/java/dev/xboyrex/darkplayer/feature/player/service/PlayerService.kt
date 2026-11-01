@@ -25,6 +25,7 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlaybackException
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.CommandButton
@@ -430,11 +431,14 @@ class PlayerService : MediaSessionService() {
             }
             val currentMediaItem = player.currentMediaItem ?: return
             val duration = player.duration.validDurationOrNull()
-            // Update the media metadata duration so that it will be used later in position discontinuity handling
-            player.replaceMediaItem(
-                player.currentMediaItemIndex,
-                currentMediaItem.copy(durationMs = duration ?: 0),
-            )
+            val targetDuration = duration ?: 0L
+            // Only update media metadata duration when it actually changes so seeking never triggers replaceMediaItem jitter
+            if (currentMediaItem.mediaMetadata.durationMs != targetDuration) {
+                player.replaceMediaItem(
+                    player.currentMediaItemIndex,
+                    currentMediaItem.copy(durationMs = targetDuration),
+                )
+            }
 
             serviceScope.launch {
                 mediaRepository.updateMediumLastPlayedTime(
@@ -956,6 +960,7 @@ class PlayerService : MediaSessionService() {
             .setHandleAudioBecomingNoisy(playerPreferences.pauseOnHeadsetDisconnect)
             .build()
             .also {
+                it.setSeekParameters(SeekParameters.CLOSEST_SYNC)
                 it.setPlaybackSpeed(playerPreferences.defaultPlaybackSpeed)
                 it.addListener(playbackStateListener)
                 it.pauseAtEndOfMediaItems = !playerPreferences.autoplay

@@ -444,7 +444,7 @@ internal fun MediaPickerScreenContent(
                 is DataState.Success -> {
                     val successContent: @Composable () -> Unit = {
                         val updatedScaffoldPadding = scaffoldPadding.copy(
-                            top = 0.dp,
+                            top = 12.dp,
                             start = 0.dp,
                             bottom =
                                 scaffoldPadding.calculateBottomPadding() + navigationBottomPadding,

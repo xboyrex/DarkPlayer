@@ -39,13 +39,14 @@ fun PlayPauseButton(modifier: Modifier = Modifier, player: Player?) {
     PlayerButton(
         modifier = modifier.size(68.dp),
         enabled = state.isEnabled,
+        isPrimaryAction = true,
         shape = RoundedCornerShape(cornerRadius),
         onClick = state::onClick,
     ) {
         Icon(
             painter = icon,
             contentDescription = contentDescription,
-            modifier = Modifier.size(44.dp),
+            modifier = Modifier.size(38.dp),
         )
     }
 }

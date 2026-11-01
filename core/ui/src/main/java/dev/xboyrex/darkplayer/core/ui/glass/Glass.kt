@@ -210,7 +210,7 @@ fun glassFill(alpha: Float = 1f): Color {
  */
 @Composable
 fun glassOverlayFill(alpha: Float = 1f): Color =
-    if (!GlassQuality.effectsSupported) Color(0xFF1C1C1E) else Color(0xFF121212).copy(alpha = 0.42f * alpha)
+    if (!GlassQuality.effectsSupported) Color(0xFF141720) else Color(0xFF1E2430).copy(alpha = 0.28f * alpha)
 
 /** The backdrop captured behind the player, used by in-player liquid glass controls. */
 val LocalGlassBackdrop = staticCompositionLocalOf<Backdrop?> { null }
@@ -270,7 +270,23 @@ fun Modifier.liquidGlass(backdrop: Backdrop, spec: GlassSpec): Modifier =
             innerShadow = spec.innerShadow?.let { s -> { s } },
             onDrawSurface = {
                 if (spec.tint.isSpecified) drawRect(spec.tint)
+                drawRect(
+                    Brush.verticalGradient(
+                        0f to Color.White.copy(alpha = 0.18f),
+                        0.5f to Color.White.copy(alpha = 0.05f),
+                        1f to Color.Black.copy(alpha = 0.06f),
+                    ),
+                )
             },
+        ).border(
+            width = 1.dp,
+            brush = Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.52f),
+                    Color.White.copy(alpha = 0.16f),
+                ),
+            ),
+            shape = spec.shape,
         )
     } else {
         fallbackGlass(spec)
