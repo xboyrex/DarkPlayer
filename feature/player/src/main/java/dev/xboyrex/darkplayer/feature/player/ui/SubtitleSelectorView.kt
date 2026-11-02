@@ -4,7 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -13,9 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -87,24 +84,22 @@ fun BoxScope.SubtitleSelectorView(
     OverlayView(
         modifier = modifier,
         show = show,
-        title = "Subtitle",
+        title = stringResource(R.string.select_subtitle_track),
     ) {
         Column(
             modifier = Modifier
                 .verticalScroll(state = rememberScrollState())
-                .padding(bottom = 24.dp)
-                .padding(horizontal = 20.dp)
+                .padding(bottom = 16.dp)
+                .padding(horizontal = 14.dp)
                 .selectableGroup(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // 1. Subtitle tracks list inside iOS rounded card
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Color.White.copy(alpha = 0.05f))
-                    .border(0.8.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
             ) {
                 subtitleTracksState.tracks.forEachIndexed { index, track ->
                     RadioButtonRow(
@@ -129,13 +124,11 @@ fun BoxScope.SubtitleSelectorView(
                 )
             }
 
-            // 2. Open & Online Subtitles iOS rows (matching 24075_c798dc.png)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White.copy(alpha = 0.05f))
-                    .border(0.8.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(18.dp)),
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color.White.copy(alpha = 0.05f)),
             ) {
                 Row(
                     modifier = Modifier
@@ -144,25 +137,25 @@ fun BoxScope.SubtitleSelectorView(
                             onSelectSubtitleClick()
                             onDismiss()
                         }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "Open",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        text = stringResource(R.string.open_subtitle),
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Medium,
                         color = Color.White,
                     )
                     Icon(
                         imageVector = Icons.Rounded.FolderOpen,
                         contentDescription = null,
                         tint = Color.White.copy(alpha = 0.72f),
-                        modifier = Modifier.size(19.dp),
+                        modifier = Modifier.size(17.dp),
                     )
                 }
 
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
 
                 Row(
                     modifier = Modifier
@@ -186,41 +179,39 @@ fun BoxScope.SubtitleSelectorView(
                             }
                             onDismiss()
                         }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column {
                         Text(
                             text = "Online subtitles",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Medium,
                             color = Color.White,
                         )
                         Text(
-                            text = "Search & download matching subtitles online",
-                            fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.65f),
+                            text = "Search matching subtitles online",
+                            fontSize = 11.5.sp,
+                            color = Color.White.copy(alpha = 0.62f),
                         )
                     }
                     Icon(
                         imageVector = Icons.Rounded.Language,
                         contentDescription = null,
-                        tint = Color(0xFF38BDF8),
-                        modifier = Modifier.size(19.dp),
+                        tint = Color.White.copy(alpha = 0.75f),
+                        modifier = Modifier.size(17.dp),
                     )
                 }
             }
 
-            // 3. Subtitle Delay & Speed controls inside iOS card
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Color.White.copy(alpha = 0.05f))
-                    .border(0.8.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 DelayInput(
                     value = subtitleOptionsState.delayMilliseconds,
@@ -250,7 +241,7 @@ private fun DelayInput(value: Long, onValueChange: (Long) -> Unit) {
     NumberChooserInput(
         title = stringResource(R.string.delay),
         value = valueString,
-        suffix = { Text(text = "sec") },
+        suffix = { Text(text = "sec", fontSize = 12.sp) },
         onValueChange = { newValue ->
             if (newValue.isBlank()) {
                 valueString = ""
@@ -298,7 +289,7 @@ private fun SpeedInput(value: Float, onValueChange: (Float) -> Unit) {
     NumberChooserInput(
         title = stringResource(R.string.speed),
         value = valueString,
-        suffix = { Text(text = "x") },
+        suffix = { Text(text = "x", fontSize = 12.sp) },
         onValueChange = { newValue ->
             if (newValue.isBlank()) {
                 valueString = ""
@@ -343,19 +334,22 @@ private fun NumberChooserInput(
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         FilledTonalIconButton(
             onClick = {},
-            modifier = Modifier.repeatingClickable(onClick = onDecrement),
+            modifier = Modifier
+                .size(34.dp)
+                .repeatingClickable(onClick = onDecrement),
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_remove),
                 contentDescription = null,
+                modifier = Modifier.size(16.dp),
             )
         }
         NextOutlinedTextField(
-            label = { Text(text = title) },
+            label = { Text(text = title, fontSize = 12.sp) },
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.weight(weight = 1f),
@@ -367,11 +361,14 @@ private fun NumberChooserInput(
         )
         FilledTonalIconButton(
             onClick = {},
-            modifier = Modifier.repeatingClickable(onClick = onIncrement),
+            modifier = Modifier
+                .size(34.dp)
+                .repeatingClickable(onClick = onIncrement),
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_add),
                 contentDescription = null,
+                modifier = Modifier.size(16.dp),
             )
         }
     }

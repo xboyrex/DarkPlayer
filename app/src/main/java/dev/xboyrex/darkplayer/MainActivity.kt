@@ -77,6 +77,7 @@ import dev.xboyrex.darkplayer.core.ui.components.thenIf
 import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
 import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
 import dev.xboyrex.darkplayer.core.ui.glass.Motion
+import dev.xboyrex.darkplayer.core.ui.glass.popupBackgroundBlur
 import dev.xboyrex.darkplayer.core.ui.theme.DarkPlayerTheme
 import dev.xboyrex.darkplayer.core.ui.theme.ThemeState
 import dev.xboyrex.darkplayer.core.ui.updater.UpdateOverlayDialog
@@ -229,6 +230,9 @@ class MainActivity : FragmentActivity() {
                                 fabStates = fabStates,
                                 showNavigation = showNavigation,
                                 showBottomBar = showBottomBar,
+                                modifier = Modifier.popupBackgroundBlur(
+                                    extraBlur = updateState.isPopupActive,
+                                ),
                             ) { contentPadding ->
                                 val railPadding = contentPadding.calculateStartPadding(
                                     layoutDirection = layoutDirection,
@@ -259,21 +263,23 @@ class MainActivity : FragmentActivity() {
                                             entryProvider = entryProvider {
                                                 mediaNavGraph(
                                                     context = this@MainActivity,
-                                                    backStack = navState.currentStack,
+                                                    backStackProvider = { navState.currentStack },
                                                 )
                                                 playlistNavGraph(
                                                     context = this@MainActivity,
-                                                    backStack = navState.currentStack,
+                                                    backStackProvider = { navState.currentStack },
                                                 )
                                                 networkNavGraph(
                                                     context = this@MainActivity,
-                                                    backStack = navState.currentStack,
+                                                    backStackProvider = { navState.currentStack },
                                                 )
                                                 moreNavGraph(
                                                     context = this@MainActivity,
-                                                    backStack = navState.currentStack,
+                                                    backStackProvider = { navState.currentStack },
                                                 )
-                                                settingsNavGraph(backStack = navState.currentStack)
+                                                settingsNavGraph(
+                                                    backStackProvider = { navState.currentStack },
+                                                )
                                             },
                                         ),
                                         onBack = { navState.goBack() },

@@ -1,5 +1,6 @@
 package dev.xboyrex.darkplayer.feature.more.screens.more
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -64,22 +65,51 @@ import dev.xboyrex.darkplayer.feature.more.components.HistoryEmptyState
 import dev.xboyrex.darkplayer.feature.videopicker.composables.VideoGridItem
 
 @Composable
-fun MoreScreen(viewModel: MoreViewModel) {
+fun MoreScreen(
+    viewModel: MoreViewModel,
+    directOutput: MoreViewModel.Output? = null,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     MoreScreenContent(
         state = state,
-        onAction = viewModel::onAction,
+        onAction = { action ->
+            if (directOutput != null) {
+                when (action) {
+                    is MoreAction.OpenHistory -> directOutput.openHistory()
+                    is MoreAction.PlayVideo -> directOutput.playVideo(action.uri)
+                    is MoreAction.OpenSettings -> directOutput.openSettings()
+                    is MoreAction.OpenTrash -> directOutput.openTrash()
+                    is MoreAction.OpenVault -> directOutput.openVault()
+                }
+            } else {
+                viewModel.onAction(action)
+            }
+        },
     )
 }
 
 @Composable
 internal fun MoreScreenContent(state: MoreUiState, onAction: (MoreAction) -> Unit) {
+    val context = LocalContext.current
     BindTopLevelFab(
         TopLevelFabKey.MORE,
         NextIcons.Settings,
     ) { onAction(MoreAction.OpenSettings) }
-    val filePicker =
+
+    val openDocumentLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            uri?.let { pickedUri ->
+                runCatching {
+                    context.contentResolver.takePersistableUriPermission(
+                        pickedUri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                }
+                onAction(MoreAction.PlayVideo(pickedUri.toString()))
+            }
+        }
+    val fallbackGetContentLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let { onAction(MoreAction.PlayVideo(it.toString())) }
         }
@@ -139,7 +169,13 @@ internal fun MoreScreenContent(state: MoreUiState, onAction: (MoreAction) -> Uni
                     }
                     FilledTonalButton(
                         modifier = Modifier.weight(weight = 1f).tvFocusRing(),
-                        onClick = { filePicker.launch(input = "video/*") },
+                        onClick = {
+                            runCatching {
+                                openDocumentLauncher.launch(arrayOf("video/*", "audio/*", "application/x-matroska", "application/ogg"))
+                            }.onFailure {
+                                fallbackGetContentLauncher.launch("video/*")
+                            }
+                        },
                     ) {
                         Icon(
                             imageVector = NextIcons.FileOpen,

@@ -36,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import dev.xboyrex.darkplayer.core.ui.glass.popupBackgroundBlur
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -112,14 +113,6 @@ private fun AboutPreferencesScreenContent(
                 accent = Color(0xFF0A84FF),
             ),
             EcosystemPortal(
-                iconRes = R.drawable.ic_portal_code,
-                vectorIcon = null,
-                title = "ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (@xboyrex)",
-                subtitle = "github.com/xboyrex",
-                url = "https://github.com/xboyrex",
-                accent = Color(0xFF38BDF8),
-            ),
-            EcosystemPortal(
                 iconRes = R.drawable.ic_telegram,
                 vectorIcon = null,
                 title = "Mayank Droid Telegram",
@@ -171,6 +164,7 @@ private fun AboutPreferencesScreenContent(
     }
 
     Scaffold(
+        modifier = Modifier.popupBackgroundBlur(),
         topBar = {
             NextTopAppBar(
                 title = stringResource(id = R.string.about_name),
@@ -198,7 +192,7 @@ private fun AboutPreferencesScreenContent(
                 .tvListFocus(focusRequester = listFocusRequester)
                 .padding(paddingValues = innerPadding)
                 .padding(horizontal = 16.dp)
-                .padding(top = 12.dp, bottom = navBottomInset + 32.dp),
+                .padding(top = 8.dp, bottom = navBottomInset + 32.dp),
         ) {
             AboutApp(
                 appVersion = state.appVersion,
@@ -223,13 +217,13 @@ private fun AboutPreferencesScreenContent(
                         leadingContent = {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(portal.accent.copy(alpha = 0.16f))
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(11.dp))
+                                    .background(portal.accent.copy(alpha = 0.14f))
                                     .border(
-                                        width = 1.dp,
-                                        color = portal.accent.copy(alpha = 0.30f),
-                                        shape = RoundedCornerShape(12.dp),
+                                        width = 0.8.dp,
+                                        color = portal.accent.copy(alpha = 0.28f),
+                                        shape = RoundedCornerShape(11.dp),
                                     ),
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -237,7 +231,7 @@ private fun AboutPreferencesScreenContent(
                                     imageVector = resolvedIcon,
                                     contentDescription = portal.title,
                                     tint = portal.accent,
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(19.dp),
                                 )
                             }
                         },
@@ -292,16 +286,16 @@ fun AboutApp(
         ),
         label = "aboutFraction",
     )
-    val cornerRadius = 24.dp
+    val cornerRadius = 22.dp
 
     Column(
         modifier = modifier
-            .padding(vertical = 8.dp)
+            .padding(vertical = 6.dp)
             .clip(RoundedCornerShape(cornerRadius))
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        c.primary.copy(alpha = 0.22f),
+                        c.primary.copy(alpha = 0.18f),
                         c.surfaceContainerHigh,
                         c.surfaceContainerHighest,
                     ),
@@ -317,60 +311,67 @@ fun AboutApp(
             )
             .border(
                 width = 1.dp,
-                color = c.primary.copy(alpha = 0.35f),
+                color = c.primary.copy(alpha = 0.30f),
                 shape = RoundedCornerShape(cornerRadius),
             )
-            .padding(all = 20.dp)
+            .padding(all = 18.dp)
             .fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Image(
                 painter = painterResource(id = R.drawable.darkplayer_logo),
                 contentDescription = "App Logo",
                 modifier = Modifier
-                    .size(62.dp)
-                    .clip(shape = RoundedCornerShape(16.dp)),
+                    .size(58.dp)
+                    .clip(shape = RoundedCornerShape(15.dp)),
             )
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(
-                    text = stringResource(id = R.string.app_name),
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = c.onSurface,
-                )
-
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = appVersion,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = c.primary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.by,
-                            stringResource(R.string.app_developer),
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        text = stringResource(id = R.string.app_name),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
                         color = c.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(c.primary.copy(alpha = 0.18f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    ) {
+                        Text(
+                            text = "v$appVersion",
+                            color = c.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                        )
+                    }
                 }
                 Text(
-                    text = "Android Modding · Web / App Developer (@xboyrex)",
+                    text = stringResource(
+                        R.string.by,
+                        stringResource(R.string.app_developer),
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = c.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "Next-Gen Media Engine · Hardware Dolby Atmos (@xboyrex)",
                     style = MaterialTheme.typography.labelSmall,
                     color = c.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -385,21 +386,22 @@ fun AboutApp(
                     contentColor = c.onPrimary,
                     containerColor = c.primary,
                 ),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(13.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(44.dp)
                     .weight(weight = 1f),
             ) {
                 Icon(
                     imageVector = NextIcons.Code,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(17.dp),
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(7.dp))
                 Text(
                     text = stringResource(R.string.libraries),
                     fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
                 )
             }
             Button(
@@ -408,21 +410,22 @@ fun AboutApp(
                     contentColor = c.onSurface,
                     containerColor = c.surfaceContainerHighest,
                 ),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(13.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(weight = 1f)
-                    .height(48.dp),
+                    .height(44.dp),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_github),
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(17.dp),
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(7.dp))
                 Text(
                     text = stringResource(R.string.github),
                     fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
                 )
             }
         }

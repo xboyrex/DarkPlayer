@@ -5,6 +5,7 @@ import dev.xboyrex.darkplayer.core.ui.R
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 
 val selectableDecoderModes = listOf(
+    DecoderMode.AUTO,
     DecoderMode.HARDWARE,
     DecoderMode.SOFTWARE,
     DecoderMode.FFMPEG,

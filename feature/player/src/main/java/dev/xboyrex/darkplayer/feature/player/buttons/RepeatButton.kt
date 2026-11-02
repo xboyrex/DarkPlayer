@@ -22,6 +22,7 @@ fun LoopButton(modifier: Modifier = Modifier, player: Player?) {
     PlayerButton(
         modifier = modifier,
         enabled = state.isEnabled,
+        isActive = state.repeatModeState != Player.REPEAT_MODE_OFF,
         onClick = {
             state.onClick()
             controlsVisibilityState?.showControls()

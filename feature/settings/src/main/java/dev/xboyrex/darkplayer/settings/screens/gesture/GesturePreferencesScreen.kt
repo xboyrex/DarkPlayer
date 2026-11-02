@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import dev.xboyrex.darkplayer.core.ui.glass.popupBackgroundBlur
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,6 +71,7 @@ private fun GesturePreferencesScreenContent(
 ) {
     val listFocusRequester = rememberTvListFocusRequester()
     Scaffold(
+        modifier = Modifier.popupBackgroundBlur(),
         topBar = {
             NextTopAppBar(
                 title = stringResource(id = R.string.gestures),

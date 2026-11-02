@@ -15,21 +15,34 @@ import dev.xboyrex.darkplayer.feature.videopicker.navigation.navigateToVault
 import dev.xboyrex.darkplayer.feature.videopicker.navigation.searchEntry
 import dev.xboyrex.darkplayer.settings.navigation.navigateToSettings
 
-fun EntryProviderScope<NavKey>.mediaNavGraph(context: Context, backStack: NavBackStack<NavKey>) {
+fun EntryProviderScope<NavKey>.mediaNavGraph(
+    context: Context,
+    backStack: NavBackStack<NavKey>,
+) {
+    mediaNavGraph(
+        context = context,
+        backStackProvider = { backStack },
+    )
+}
+
+fun EntryProviderScope<NavKey>.mediaNavGraph(
+    context: Context,
+    backStackProvider: () -> NavBackStack<NavKey>,
+) {
     mediaPickerEntry(
-        onNavigateUp = { backStack.removeLastIfNotRoot() },
+        onNavigateUp = { backStackProvider().removeLastIfNotRoot() },
         onPlayVideo = { uri -> context.startPlayback(uri = uri) },
         onPlayVideos = { uris -> context.startPlayback(uris = uris) },
-        onFolderClick = backStack::navigateToMediaPickerScreen,
-        onSettingsClick = backStack::navigateToSettings,
-        onSearchClick = backStack::navigateToSearch,
-        onVaultClick = backStack::navigateToVault,
+        onFolderClick = { folderId -> backStackProvider().navigateToMediaPickerScreen(folderId) },
+        onSettingsClick = { backStackProvider().navigateToSettings() },
+        onSearchClick = { backStackProvider().navigateToSearch() },
+        onVaultClick = { backStackProvider().navigateToVault() },
     )
 
     searchEntry(
-        onNavigateUp = { backStack.removeLastIfNotRoot() },
+        onNavigateUp = { backStackProvider().removeLastIfNotRoot() },
         onPlayVideo = { uri -> context.startPlayback(uri = uri) },
-        onFolderClick = backStack::navigateToMediaPickerScreen,
+        onFolderClick = { folderId -> backStackProvider().navigateToMediaPickerScreen(folderId) },
     )
 }
 
@@ -57,11 +70,13 @@ internal fun Context.startPlayback(
 private fun Context.startPlayback(uri: Uri, playlist: List<Uri>?, grantReadPermission: Boolean) {
     if (grantReadPermission) {
         (playlist ?: listOf(element = uri)).forEach {
-            grantUriPermission(
-                packageName,
-                it,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
+            runCatching {
+                grantUriPermission(
+                    packageName,
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
         }
     }
     val intent = Intent(

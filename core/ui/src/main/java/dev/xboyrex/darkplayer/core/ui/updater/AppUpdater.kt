@@ -57,6 +57,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -65,6 +67,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
+import dev.xboyrex.darkplayer.core.ui.glass.RegisterPopupBlur
 import dev.xboyrex.darkplayer.core.ui.glass.pressable
 import java.io.File
 import java.net.HttpURLConnection
@@ -89,9 +92,9 @@ data class UpdateInfo(
 
 internal val DEFAULT_RELEASE_NOTES = """
     • Liquid Glass Navigation Bar & Video Player UI with interactive spring physics.
-    • Clean 0–200% hardware LoudnessEnhancer Volume Boost & Interactive Haptic Speed Ruler.
+    • Hardware Dolby Atmos & 5-Band Studio Equalizer with Bass Boost & Virtualizer.
     • Angle-locked horizontal seek & vertical volume/brightness gestures with zero conflict.
-    • Studio Settings with Theme Mode (System/Dark/Light/AMOLED), Color Palette Picker & Storage Analyzer.
+    • Studio Settings with Theme Mode (System/Dark/Light/AMOLED) & Color Palette Picker.
     • Automatic OTA GitHub Releases Updater by ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (@xboyrex).
 """.trimIndent()
 
@@ -119,6 +122,9 @@ class UpdateState(private val scope: CoroutineScope) {
     var downloaded by mutableStateOf<File?>(null)
         private set
     var message by mutableStateOf<String?>(null)
+
+    val isPopupActive: Boolean
+        get() = (visible && info != null) || checking || message != null
 
     private var downloadJob: Job? = null
 
@@ -376,6 +382,8 @@ fun UpdateOverlayDialog(state: UpdateState) {
     val update = state.info
     val c = MaterialTheme.colorScheme
 
+    RegisterPopupBlur(active = state.isPopupActive)
+
     AnimatedVisibility(
         visible = state.visible && update != null,
         enter = fadeIn(tween(180)),
@@ -384,7 +392,7 @@ fun UpdateOverlayDialog(state: UpdateState) {
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.46f))
+                .background(Color.Black.copy(alpha = 0.56f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -403,11 +411,17 @@ fun UpdateOverlayDialog(state: UpdateState) {
                     modifier = Modifier
                         .padding(22.dp)
                         .widthIn(max = 410.dp)
+                        .shadow(28.dp, RoundedCornerShape(28.dp))
                         .clip(RoundedCornerShape(28.dp))
-                        .background(c.surfaceContainerHighest)
+                        .background(Color(0xFF101520).copy(alpha = 0.95f))
                         .border(
                             width = 1.dp,
-                            color = c.onSurface.copy(alpha = 0.12f),
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.24f),
+                                    Color.White.copy(alpha = 0.08f),
+                                ),
+                            ),
                             shape = RoundedCornerShape(28.dp),
                         )
                         .clickable(
@@ -435,7 +449,7 @@ fun UpdateOverlayDialog(state: UpdateState) {
                         Column(Modifier.weight(1f)) {
                             Text(
                                 "Update available",
-                                color = c.onSurface,
+                                color = Color.White,
                                 fontSize = 19.sp,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -444,7 +458,7 @@ fun UpdateOverlayDialog(state: UpdateState) {
                                     formatUpdateSize(update?.sizeBytes ?: 0L).let {
                                         if (it.isBlank()) "" else " · $it"
                                     },
-                                color = c.onSurfaceVariant,
+                                color = Color.White.copy(alpha = 0.7f),
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Medium,
                             )
@@ -459,7 +473,7 @@ fun UpdateOverlayDialog(state: UpdateState) {
                             Icon(
                                 Icons.Rounded.Close,
                                 contentDescription = "Close update dialog",
-                                tint = c.onSurfaceVariant,
+                                tint = Color.White.copy(alpha = 0.7f),
                                 modifier = Modifier.size(19.dp),
                             )
                         }
@@ -468,14 +482,14 @@ fun UpdateOverlayDialog(state: UpdateState) {
                     Spacer(Modifier.height(16.dp))
                     Text(
                         "What's new",
-                        color = c.onSurface,
+                        color = Color.White,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
                         update?.notes?.trim()?.ifBlank { DEFAULT_RELEASE_NOTES } ?: DEFAULT_RELEASE_NOTES,
-                        color = c.onSurface.copy(alpha = 0.92f),
+                        color = Color.White.copy(alpha = 0.90f),
                         fontSize = 13.sp,
                         lineHeight = 19.sp,
                         maxLines = 9,
@@ -505,12 +519,12 @@ fun UpdateOverlayDialog(state: UpdateState) {
                                 .height(6.dp)
                                 .clip(CircleShape),
                             color = c.primary,
-                            trackColor = c.onSurface.copy(alpha = 0.12f),
+                            trackColor = Color.White.copy(alpha = 0.12f),
                         )
                         Spacer(Modifier.height(7.dp))
                         Text(
                             "${(state.progress * 100).toInt()}% · downloading ${update?.apkName ?: "DarkPlayer.apk"}",
-                            color = c.onSurfaceVariant,
+                            color = Color.White.copy(alpha = 0.7f),
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Medium,
                         )
@@ -529,7 +543,7 @@ fun UpdateOverlayDialog(state: UpdateState) {
                         ) {
                             Text(
                                 "Cancel",
-                                color = c.onSurfaceVariant,
+                                color = Color.White.copy(alpha = 0.75f),
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
@@ -566,7 +580,7 @@ fun UpdateOverlayDialog(state: UpdateState) {
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "Official GitHub Release · github.com/xboyrex/DarkPlayer (${update?.tag.orEmpty()})",
-                        color = c.onSurfaceVariant.copy(alpha = 0.7f),
+                        color = Color.White.copy(alpha = 0.55f),
                         fontSize = 10.5.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
@@ -585,7 +599,7 @@ fun UpdateOverlayDialog(state: UpdateState) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.36f))
+                .background(Color.Black.copy(alpha = 0.52f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -600,14 +614,24 @@ fun UpdateOverlayDialog(state: UpdateState) {
                     .padding(horizontal = 24.dp)
                     .widthIn(max = 350.dp)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(c.surfaceContainerHighest)
-                    .border(1.dp, c.onSurface.copy(alpha = 0.12f), RoundedCornerShape(24.dp))
+                    .shadow(28.dp, RoundedCornerShape(26.dp))
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(Color(0xFF101520).copy(alpha = 0.94f))
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.24f),
+                                Color.White.copy(alpha = 0.08f),
+                            ),
+                        ),
+                        shape = RoundedCornerShape(26.dp),
+                    )
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ) { }
-                    .padding(22.dp),
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (state.checking) {
@@ -621,57 +645,58 @@ fun UpdateOverlayDialog(state: UpdateState) {
                         text = "Checking for updates…",
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
-                        color = c.onSurface,
+                        color = Color.White,
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "Connecting to github.com/xboyrex/DarkPlayer…",
                         fontSize = 12.sp,
-                        color = c.onSurfaceVariant,
+                        color = Color.White.copy(alpha = 0.7f),
                     )
                 } else if (state.message != null) {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF132818)),
+                            .background(Color(0xFF132A1C))
+                            .border(1.dp, Color(0xFF2ECC71).copy(alpha = 0.35f), CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             Icons.Rounded.Check,
                             contentDescription = null,
                             tint = Color(0xFF2ECC71),
-                            modifier = Modifier.size(22.dp),
+                            modifier = Modifier.size(24.dp),
                         )
                     }
                     Spacer(Modifier.height(14.dp))
                     Text(
                         text = "Up to date",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = c.onSurface,
+                        fontSize = 19.sp,
+                        color = Color.White,
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(6.dp))
                     Text(
                         text = state.message.orEmpty(),
-                        fontSize = 12.sp,
-                        color = c.onSurfaceVariant,
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.75f),
                         textAlign = TextAlign.Center,
                     )
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(18.dp))
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
                             .background(c.primary)
                             .pressable { state.message = null }
-                            .padding(horizontal = 22.dp, vertical = 8.dp),
+                            .padding(horizontal = 28.dp, vertical = 10.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = "OK",
                             color = c.onPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.5.sp,
                         )
                     }
                 }

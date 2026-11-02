@@ -1,6 +1,7 @@
 package dev.xboyrex.darkplayer.feature.player.buttons
 
 import androidx.annotation.OptIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -21,8 +22,9 @@ internal fun NextButton(modifier: Modifier = Modifier, player: Player?) {
     val controlsVisibilityState = LocalControlsVisibilityState.current
 
     PlayerButton(
-        modifier = modifier.size(48.dp),
+        modifier = modifier.size(46.dp),
         enabled = state.isEnabled,
+        contentPadding = PaddingValues(0.dp),
         onClick = {
             state.onClick()
             controlsVisibilityState?.showControls()
@@ -31,7 +33,7 @@ internal fun NextButton(modifier: Modifier = Modifier, player: Player?) {
         Icon(
             painter = painterResource(coreUiR.drawable.ic_skip_next),
             contentDescription = stringResource(coreUiR.string.player_controls_next),
-            modifier = Modifier.size(28.dp),
+            modifier = Modifier.size(24.dp),
         )
     }
 }

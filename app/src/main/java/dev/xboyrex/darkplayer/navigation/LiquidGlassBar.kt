@@ -132,9 +132,9 @@ fun LiquidBottomTabs(
     val solidContainer = if (isAmoled) Color(0xFF0E131F) else MaterialTheme.colorScheme.surfaceContainer
     val containerColor = when {
         !glassSupported -> solidContainer
-        isAmoled -> Color(0xFF000000).copy(0.45f)
-        isLightTheme -> Color(0xFFFAFAFA).copy(0.42f)
-        else -> Color(0xFF121212).copy(0.40f)
+        isAmoled -> Color(0xFF080C14).copy(0.76f)
+        isLightTheme -> Color(0xFFFAFAFA).copy(0.72f)
+        else -> Color(0xFF101520).copy(0.74f)
     }
 
     BoxWithConstraints(
@@ -242,22 +242,32 @@ fun LiquidBottomTabs(
                 }
                 .then(
                     if (glassSupported) {
-                        Modifier.drawBackdrop(
-                            backdrop = backdrop,
-                            shape = { Capsule() },
-                            effects = {
-                                vibrancy()
-                                blur(8f.dp.toPx())
-                                lens(24f.dp.toPx(), 24f.dp.toPx())
-                            },
-                            layerBlock = {
-                                val progress = dampedDragAnimation.pressProgress
-                                val scale = lerp(1f, 1f + 16f.dp.toPx() / size.width, progress)
-                                scaleX = scale
-                                scaleY = scale
-                            },
-                            onDrawSurface = { drawRect(containerColor) },
-                        )
+                        Modifier
+                            .drawBackdrop(
+                                backdrop = backdrop,
+                                shape = { Capsule() },
+                                effects = {
+                                    blur(24f.dp.toPx())
+                                    lens(10f.dp.toPx(), 10f.dp.toPx())
+                                },
+                                layerBlock = {
+                                    val progress = dampedDragAnimation.pressProgress
+                                    val scale = lerp(1f, 1f + 16f.dp.toPx() / size.width, progress)
+                                    scaleX = scale
+                                    scaleY = scale
+                                },
+                                onDrawSurface = { drawRect(containerColor) },
+                            )
+                            .border(
+                                width = 0.8.dp,
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = 0.22f),
+                                        Color.White.copy(alpha = 0.08f),
+                                    ),
+                                ),
+                                shape = Capsule(),
+                            )
                     } else {
                         Modifier
                             .clip(Capsule())
@@ -299,10 +309,10 @@ fun LiquidBottomTabs(
                             effects = {
                                 val progress = dampedDragAnimation.pressProgress
                                 vibrancy()
-                                if (progress < 0.999f) blur(8f.dp.toPx() * (1f - progress))
+                                if (progress < 0.999f) blur(16f.dp.toPx() * (1f - progress))
                                 lens(
-                                    10f.dp.toPx() * progress,
-                                    14f.dp.toPx() * progress,
+                                    8f.dp.toPx() * progress,
+                                    12f.dp.toPx() * progress,
                                     chromaticAberration = true,
                                 )
                             },
@@ -332,7 +342,7 @@ fun LiquidBottomTabs(
                                 val progress = dampedDragAnimation.pressProgress
                                 drawRect(
                                     if (isLightTheme) Color.Black.copy(0.12f)
-                                    else Color.White.copy(0.12f),
+                                    else Color.White.copy(0.14f),
                                     alpha = 1f - progress,
                                 )
                                 drawRect(Color.Black.copy(alpha = 0.03f * progress))

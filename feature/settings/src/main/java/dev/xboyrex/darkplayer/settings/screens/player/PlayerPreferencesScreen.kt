@@ -42,6 +42,7 @@ import dev.xboyrex.darkplayer.core.ui.components.rememberTvListFocusRequester
 import dev.xboyrex.darkplayer.core.ui.components.tvFocusDown
 import dev.xboyrex.darkplayer.core.ui.components.tvListFocus
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
+import dev.xboyrex.darkplayer.core.ui.glass.popupBackgroundBlur
 import dev.xboyrex.darkplayer.core.ui.preview.DayNightPreview
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.settings.composables.OptionsDialog
@@ -71,6 +72,7 @@ private fun PlayerPreferencesScreenContent(
     val navBottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     Scaffold(
+        modifier = Modifier.popupBackgroundBlur(extraBlur = state.showDialog != null),
         topBar = {
             NextTopAppBar(
                 title = stringResource(id = R.string.player_name),
@@ -105,8 +107,8 @@ private fun PlayerPreferencesScreenContent(
                 verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
             ) {
                 PreferenceSwitch(
-                    title = stringResource(id = R.string.material_you_controls),
-                    description = stringResource(id = R.string.material_you_controls_description),
+                    title = "Minimal Solid Color Player UI",
+                    description = "Use solid white & dark NextPlayer-style control buttons and compact sheets",
                     icon = NextIcons.Appearance,
                     isChecked = state.preferences.useMaterialYouControls,
                     onClick = { onAction(PlayerPreferencesUiEvent.ToggleUseMaterialYouControls) },
@@ -132,8 +134,8 @@ private fun PlayerPreferencesScreenContent(
                     onClick = { onAction(PlayerPreferencesUiEvent.ToggleShowRemainingTime) },
                 )
                 PreferenceSwitch(
-                    title = "Minimal translucent controls",
-                    description = "Use ultra-clean glass control buttons during playback",
+                    title = "Borderless minimal controls",
+                    description = "Hide background circles on secondary player buttons",
                     icon = NextIcons.Style,
                     isChecked = state.preferences.hidePlayerButtonsBackground,
                     onClick = { onAction(PlayerPreferencesUiEvent.ToggleHidePlayerButtonsBackground) },

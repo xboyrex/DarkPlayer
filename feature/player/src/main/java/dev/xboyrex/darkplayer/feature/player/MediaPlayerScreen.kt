@@ -20,6 +20,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import dev.xboyrex.darkplayer.core.ui.R
+import dev.xboyrex.darkplayer.core.ui.glass.popupBackgroundBlur
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
 import dev.xboyrex.darkplayer.feature.player.state.PlayerOrientationEffect
@@ -41,7 +42,8 @@ import dev.xboyrex.darkplayer.feature.player.utils.PlayerApi
 import kotlin.time.Duration.Companion.seconds
 
 val LocalControlsVisibilityState = compositionLocalOf<ControlsVisibilityState?> { null }
-val LocalUseMaterialYouControls = compositionLocalOf { false }
+val LocalUseMaterialYouControls = compositionLocalOf { true }
+val LocalHidePlayerButtonsBackground = compositionLocalOf { false }
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -158,6 +160,7 @@ internal fun MediaPlayerContent(
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         if (pictureInPictureState != null) {
             PlayerContentFrame(
+                modifier = Modifier.popupBackgroundBlur(),
                 player = player,
                 pictureInPictureState = pictureInPictureState,
                 videoZoomAndContentScaleState = videoZoomAndContentScaleState,

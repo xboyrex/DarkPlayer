@@ -1,6 +1,7 @@
 package dev.xboyrex.darkplayer.feature.player.ui.controls
 
 import androidx.annotation.OptIn
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -57,12 +59,21 @@ fun ControlsTopView(
         WindowInsets.displayCutout,
     ).asPaddingValues()
     val decoderDescription = stringResource(R.string.select_decoders)
-    val extraTopPadding = if (systemBarsPadding.calculateTopPadding() == 0.dp) 16.dp else 0.dp
+    val extraTopPadding = if (systemBarsPadding.calculateTopPadding() < 12.dp) 14.dp else 6.dp
     Row(
         modifier = modifier
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Black.copy(alpha = 0.68f),
+                        Color.Black.copy(alpha = 0.28f),
+                        Color.Transparent,
+                    ),
+                ),
+            )
             .padding(systemBarsPadding.copy(bottom = 0.dp))
             .padding(horizontal = 16.dp)
-            .padding(bottom = 16.dp)
+            .padding(bottom = 18.dp)
             .padding(top = extraTopPadding)
             .focusProperties { onEnter = { firstControlFocusRequester.requestFocus() } }
             .focusGroup(),

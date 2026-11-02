@@ -297,17 +297,18 @@ fun NextNavigationBar(
             .thenIf(condition = !showFabOnly) {
                 background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            bgColor.copy(alpha = 0.72f),
-                            bgColor,
-                        ),
+                        0.00f to Color.Transparent,
+                        0.22f to bgColor.copy(alpha = 0.32f),
+                        0.46f to bgColor.copy(alpha = 0.68f),
+                        0.70f to bgColor.copy(alpha = 0.90f),
+                        0.88f to bgColor.copy(alpha = 0.98f),
+                        1.00f to bgColor,
                     ),
                 )
             }
             .navigationBarsPadding()
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-            .padding(top = 18.dp, bottom = 12.dp)
+            .padding(top = 36.dp, bottom = 12.dp)
             .padding(horizontal = 16.dp)
             .thenIf(condition = !showFabOnly) { pointerInput(key1 = Unit) {} },
         contentAlignment = Alignment.BottomCenter,
@@ -326,7 +327,14 @@ fun NextNavigationBar(
                     },
                     backdrop = backdrop,
                     tabsCount = destinations.size,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .shadow(
+                            elevation = 20.dp,
+                            shape = RoundedCornerShape(999.dp),
+                            ambientColor = Color.Black,
+                            spotColor = Color.Black,
+                        ),
                 ) {
                     destinations.forEach { destination ->
                         val selected = destination.route == state.topLevelRoute
@@ -349,10 +357,10 @@ fun NextNavigationBar(
                     modifier = Modifier
                         .size(58.dp)
                         .shadow(
-                            elevation = 10.dp,
+                            elevation = 14.dp,
                             shape = CircleShape,
-                            ambientColor = primaryColor.copy(alpha = 0.45f),
-                            spotColor = primaryColor.copy(alpha = 0.55f),
+                            ambientColor = primaryColor.copy(alpha = 0.55f),
+                            spotColor = primaryColor.copy(alpha = 0.65f),
                         )
                         .testTag(tag = "top_level_fab")
                         .focusRequester(focusRequester = fabFocusRequester)

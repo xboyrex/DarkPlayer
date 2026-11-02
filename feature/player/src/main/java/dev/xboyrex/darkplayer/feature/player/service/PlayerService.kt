@@ -976,6 +976,12 @@ class PlayerService : MediaSessionService() {
 
         decoderManager.attach(player = player)
         player.addAnalyticsListener(decoderAnalyticsListener)
+        runCatching {
+            HardwareDolbyAndEqualizerEngine.init(applicationContext)
+            if (player.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+                playbackStateListener.onAudioSessionIdChanged(player.audioSessionId)
+            }
+        }
 
         try {
             mediaSession = MediaSession.Builder(

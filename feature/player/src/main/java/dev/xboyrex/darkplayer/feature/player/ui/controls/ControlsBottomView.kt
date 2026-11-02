@@ -1,6 +1,7 @@
 package dev.xboyrex.darkplayer.feature.player.ui.controls
 
 import androidx.annotation.OptIn
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -109,14 +111,23 @@ fun ControlsBottomView(
 
     Column(
         modifier = modifier
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.Black.copy(alpha = 0.42f),
+                        Color.Black.copy(alpha = 0.78f),
+                    ),
+                ),
+            )
             .padding(systemBarsPadding.copy(top = 0.dp))
             .padding(horizontal = 16.dp)
-            .padding(top = 16.dp)
+            .padding(top = 20.dp)
             .padding(
                 bottom =
-                    16.dp.takeIf { systemBarsPadding.calculateBottomPadding() == 0.dp } ?: 0.dp,
+                    16.dp.takeIf { systemBarsPadding.calculateBottomPadding() == 0.dp } ?: 6.dp,
             ),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(
             modifier = Modifier
@@ -223,7 +234,6 @@ fun ControlsBottomView(
             onSeek = { onSeek(it.toLong()) },
             onSeekFinished = { onSeekEnd() },
         )
-        // Liquid Glass circular icon buttons row with all options from 24073_c798dc.jpg & 24066_c798dc.jpg
         Row(
             modifier = Modifier
                 .fillMaxWidth()

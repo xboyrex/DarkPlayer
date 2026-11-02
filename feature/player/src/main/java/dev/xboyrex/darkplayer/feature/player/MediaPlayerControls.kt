@@ -133,6 +133,7 @@ internal fun MediaPlayerControls(
     CompositionLocalProvider(
         LocalControlsVisibilityState provides controlsVisibilityState,
         LocalUseMaterialYouControls provides playerPreferences.useMaterialYouControls,
+        LocalHidePlayerButtonsBackground provides playerPreferences.hidePlayerButtonsBackground,
     ) {
         Box(
             modifier = modifier
@@ -172,14 +173,15 @@ internal fun MediaPlayerControls(
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f)),
+                        .background(Color.Black.copy(alpha = 0.28f)),
                 )
             }
             if (mediaPresentationState.isBuffering) {
                 CircularProgressIndicator(
                     Modifier
                         .align(Alignment.Center)
-                        .size(72.dp),
+                        .size(56.dp),
+                    color = Color.White,
                 )
             }
             PlayerGestureIndicators(tapGestureState = tapGestureState)

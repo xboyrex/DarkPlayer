@@ -333,6 +333,19 @@ object HardwareDolbyAndEqualizerEngine {
     var abRepeatEndMs by mutableStateOf<Long?>(null)
         private set
 
+    var volumeBoostGainMb by mutableIntStateOf(0)
+        private set
+
+    fun setVolumeBoostMb(gainMb: Int) {
+        volumeBoostGainMb = gainMb.coerceIn(0, 4000)
+        runCatching {
+            loudnessEnhancer?.let { le ->
+                le.setTargetGain(volumeBoostGainMb)
+                le.enabled = volumeBoostGainMb > 0
+            }
+        }
+    }
+
     private var prefs: SharedPreferences? = null
     private var currentAudioSessionId: Int = 0
     private var hardwareDap: HardwareDapEffect? = null
@@ -437,7 +450,12 @@ object HardwareDolbyAndEqualizerEngine {
         }
 
         runCatching {
-            loudnessEnhancer = LoudnessEnhancer(audioSessionId)
+            loudnessEnhancer = LoudnessEnhancer(audioSessionId).apply {
+                if (volumeBoostGainMb > 0) {
+                    setTargetGain(volumeBoostGainMb)
+                    enabled = true
+                }
+            }
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

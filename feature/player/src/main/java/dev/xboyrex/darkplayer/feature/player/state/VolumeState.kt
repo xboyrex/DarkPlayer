@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
+import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
 import dev.xboyrex.darkplayer.feature.player.service.getLoudnessGain
 import dev.xboyrex.darkplayer.feature.player.service.isLoudnessGainSupported
 import dev.xboyrex.darkplayer.feature.player.service.setLoudnessGain
@@ -32,7 +33,7 @@ import kotlinx.coroutines.launch
 fun rememberVolumeState(
     player: Player?,
     showVolumePanelIfHeadsetIsOn: Boolean,
-    enableVolumeBoost: Boolean = false,
+    enableVolumeBoost: Boolean = true,
 ): VolumeState {
     val context = LocalActivity.current ?: LocalContext.current
     val volumeState = remember(player) {
@@ -56,7 +57,7 @@ class VolumeState(
     private val player: Player?,
     private val activity: Context,
     private val showVolumePanelIfHeadsetIsOn: Boolean,
-    private val enableVolumeBoost: Boolean = false,
+    private val enableVolumeBoost: Boolean = true,
 ) {
     private val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
@@ -66,12 +67,12 @@ class VolumeState(
     private val systemMaxVolume: Int =
         audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
 
-    private var isLoudnessGainSupported: Boolean by mutableStateOf(value = false)
+    private var isLoudnessGainSupported: Boolean by mutableStateOf(value = enableVolumeBoost)
 
     var isDraggingVolume: Boolean = false
 
     val maxVolume: Int
-        get() = if (isLoudnessGainSupported) systemMaxVolume * 2 else systemMaxVolume
+        get() = if (isLoudnessGainSupported) systemMaxVolume * 4 else systemMaxVolume
 
     val maxVolumePercentage: Int
         get() = if (isLoudnessGainSupported) {
@@ -141,6 +142,7 @@ class VolumeState(
         }
 
     suspend fun initializeVolumeBoost() = coroutineScope {
+        isLoudnessGainSupported = enableVolumeBoost
         val player = player as? MediaController ?: return@coroutineScope
         val scope = this
         val listener = object : Player.Listener {
@@ -166,7 +168,7 @@ class VolumeState(
         }
 
         try {
-            isLoudnessGainSupported = player.isLoudnessGainSupported()
+            isLoudnessGainSupported = player.isLoudnessGainSupported() || enableVolumeBoost
             if (!isLoudnessGainSupported) return
 
             val loudnessGain = player.getLoudnessGain()
@@ -175,14 +177,15 @@ class VolumeState(
                 currentVolume = systemVolume
                 volumePercentage = calculateVolumePercentage()
                 player.setLoudnessGain(gain = 0)
+                HardwareDolbyAndEqualizerEngine.setVolumeBoostMb(0)
             } else {
-                val boostVolume = (loudnessGain * systemMaxVolume) / MAX_BOOST_GAIN_MB
+                val boostVolume = (loudnessGain * (systemMaxVolume * 3)) / MAX_BOOST_GAIN_MB
                 currentVolume = systemMaxVolume + boostVolume
                 volumePercentage = calculateVolumePercentage()
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            isLoudnessGainSupported = false
+            isLoudnessGainSupported = enableVolumeBoost
         }
     }
 
@@ -238,11 +241,15 @@ class VolumeState(
     }
 
     private fun applyVolumeBoost(volume: Int) {
-        val player = player as? MediaController ?: return
-        val gainMillibels = (volume.toFloat() / systemMaxVolume * MAX_BOOST_GAIN_MB).toInt()
+        val maxExtraVolume = (systemMaxVolume * 3).coerceAtLeast(1)
+        val gainMillibels = (volume.toFloat() / maxExtraVolume * MAX_BOOST_GAIN_MB).roundToInt()
+            .coerceIn(0, MAX_BOOST_GAIN_MB)
 
+        HardwareDolbyAndEqualizerEngine.setVolumeBoostMb(gainMillibels)
+
+        val controller = player as? MediaController ?: return
         try {
-            player.setLoudnessGain(gain = gainMillibels)
+            controller.setLoudnessGain(gain = gainMillibels)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -267,7 +274,7 @@ class VolumeState(
     companion object {
         private const val VOLUME_CHANGED_ACTION = "android.media.VOLUME_CHANGED_ACTION"
         private const val MAX_VOLUME_PERCENTAGE_NORMAL = 100
-        private const val MAX_VOLUME_PERCENTAGE_BOOST = 200
-        private const val MAX_BOOST_GAIN_MB = 2000
+        private const val MAX_VOLUME_PERCENTAGE_BOOST = 400
+        private const val MAX_BOOST_GAIN_MB = 4000
     }
 }

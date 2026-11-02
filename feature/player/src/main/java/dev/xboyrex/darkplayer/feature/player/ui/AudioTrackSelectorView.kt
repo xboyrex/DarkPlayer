@@ -2,7 +2,6 @@ package dev.xboyrex.darkplayer.feature.player.ui
 
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,7 +31,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -56,6 +55,7 @@ import dev.xboyrex.darkplayer.core.common.extensions.getFilenameFromUri
 import dev.xboyrex.darkplayer.core.ui.R
 import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
 import dev.xboyrex.darkplayer.core.ui.audio.StereoModeType
+import dev.xboyrex.darkplayer.feature.player.LocalUseMaterialYouControls
 import dev.xboyrex.darkplayer.feature.player.extensions.externalAudio
 import dev.xboyrex.darkplayer.feature.player.extensions.externalAudioIndex
 import dev.xboyrex.darkplayer.feature.player.extensions.getName
@@ -80,6 +80,7 @@ fun BoxScope.AudioTrackSelectorView(
         C.TRACK_TYPE_AUDIO,
     )
     val context = LocalContext.current
+    val useSolidMode = LocalUseMaterialYouControls.current
     var audioNames by remember { mutableStateOf(value = emptyList<String>()) }
     var stereoMenuExpanded by remember { mutableStateOf(false) }
     var showSyncControls by remember { mutableStateOf(false) }
@@ -94,29 +95,27 @@ fun BoxScope.AudioTrackSelectorView(
     }
 
     val isSwAudioDecoder = audioMode == DecoderMode.FFMPEG || audioMode == DecoderMode.SOFTWARE
-    val accentBlue = Color(0xFF38BDF8)
+    val activeAccent = if (useSolidMode) Color.White else Color(0xFFFACC15)
 
     OverlayView(
         modifier = modifier,
         show = show,
-        title = "Audio Track",
+        title = stringResource(R.string.select_audio_track),
     ) {
         Column(
             modifier = Modifier
                 .verticalScroll(state = rememberScrollState())
-                .padding(bottom = 24.dp)
-                .padding(horizontal = 20.dp)
+                .padding(bottom = 16.dp)
+                .padding(horizontal = 14.dp)
                 .selectableGroup(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            // 1. Track list inside iOS rounded card
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Color.White.copy(alpha = 0.05f))
-                    .border(0.8.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
             ) {
                 audioTracksState.tracks.forEachIndexed { index, track ->
                     RadioButtonRow(
@@ -143,15 +142,14 @@ fun BoxScope.AudioTrackSelectorView(
                 )
 
                 HorizontalDivider(
-                    color = Color.White.copy(alpha = 0.08f),
-                    modifier = Modifier.padding(vertical = 4.dp),
+                    color = Color.White.copy(alpha = 0.07f),
+                    modifier = Modifier.padding(vertical = 2.dp),
                 )
 
-                // Use SW audio decoder checkbox row (matching 24074_c798dc.png)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .clickable {
                             val nextMode = if (isSwAudioDecoder) {
                                 DecoderMode.HARDWARE
@@ -160,41 +158,39 @@ fun BoxScope.AudioTrackSelectorView(
                             }
                             onAudioModeSelected(nextMode)
                         }
-                        .padding(horizontal = 6.dp, vertical = 8.dp),
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Checkbox(
                         checked = isSwAudioDecoder,
+                        modifier = Modifier.scale(0.88f),
                         onCheckedChange = { checked ->
                             onAudioModeSelected(
                                 if (checked) DecoderMode.FFMPEG else DecoderMode.HARDWARE,
                             )
                         },
                         colors = CheckboxDefaults.colors(
-                            checkedColor = accentBlue,
-                            uncheckedColor = Color.White.copy(alpha = 0.55f),
+                            checkedColor = activeAccent,
+                            uncheckedColor = Color.White.copy(alpha = 0.50f),
                             checkmarkColor = Color(0xFF090D16),
                         ),
                     )
                     Text(
-                        text = "Use SW audio decoder",
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = "Use SW audio decoder (FFmpeg)",
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White,
                     )
                 }
             }
 
-            // 2. Open, Stereo mode, and Synchronization iOS rows (matching 24074_c798dc.png)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White.copy(alpha = 0.05f))
-                    .border(0.8.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(18.dp)),
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color.White.copy(alpha = 0.05f)),
             ) {
-                // Open external audio file
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -202,46 +198,45 @@ fun BoxScope.AudioTrackSelectorView(
                             onSelectAudioClick()
                             onDismiss()
                         }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "Open",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        text = stringResource(R.string.open_local_audio),
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Medium,
                         color = Color.White,
                     )
                     Icon(
                         imageVector = Icons.Rounded.FolderOpen,
                         contentDescription = null,
                         tint = Color.White.copy(alpha = 0.72f),
-                        modifier = Modifier.size(19.dp),
+                        modifier = Modifier.size(17.dp),
                     )
                 }
 
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
 
-                // Stereo mode selector
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { stereoMenuExpanded = true }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column {
                         Text(
                             text = "Stereo mode",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Medium,
                             color = Color.White,
                         )
                         Text(
                             text = HardwareDolbyAndEqualizerEngine.stereoMode.title,
-                            fontSize = 12.sp,
-                            color = accentBlue,
+                            fontSize = 11.5.sp,
+                            color = Color.White.copy(alpha = 0.65f),
                         )
                     }
                     Box {
@@ -249,6 +244,7 @@ fun BoxScope.AudioTrackSelectorView(
                             imageVector = Icons.Rounded.KeyboardArrowDown,
                             contentDescription = null,
                             tint = Color.White.copy(alpha = 0.72f),
+                            modifier = Modifier.size(18.dp),
                         )
                         DropdownMenu(
                             expanded = stereoMenuExpanded,
@@ -256,7 +252,7 @@ fun BoxScope.AudioTrackSelectorView(
                         ) {
                             StereoModeType.entries.forEach { mode ->
                                 DropdownMenuItem(
-                                    text = { Text(mode.title) },
+                                    text = { Text(mode.title, fontSize = 13.sp) },
                                     onClick = {
                                         HardwareDolbyAndEqualizerEngine.setStereoModeType(mode)
                                         stereoMenuExpanded = false
@@ -267,14 +263,13 @@ fun BoxScope.AudioTrackSelectorView(
                     }
                 }
 
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
 
-                // Synchronization (Audio Delay / Sync)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showSyncControls = !showSyncControls }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -284,62 +279,65 @@ fun BoxScope.AudioTrackSelectorView(
                         Column {
                             Text(
                                 text = "Synchronization",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Medium,
                                 color = Color.White,
                             )
                             Text(
                                 text = "${HardwareDolbyAndEqualizerEngine.audioDelayMs} ms",
-                                fontSize = 12.sp,
-                                color = if (HardwareDolbyAndEqualizerEngine.audioDelayMs != 0) accentBlue else Color.White.copy(alpha = 0.65f),
+                                fontSize = 11.5.sp,
+                                color = Color.White.copy(alpha = 0.65f),
                             )
                         }
                         Icon(
                             imageVector = Icons.Rounded.GraphicEq,
                             contentDescription = null,
                             tint = Color.White.copy(alpha = 0.72f),
-                            modifier = Modifier.size(19.dp),
+                            modifier = Modifier.size(17.dp),
                         )
                     }
 
                     if (showSyncControls) {
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             FilledTonalIconButton(
+                                modifier = Modifier.size(32.dp),
                                 onClick = {
                                     HardwareDolbyAndEqualizerEngine.setAudioSyncDelayMs(
                                         HardwareDolbyAndEqualizerEngine.audioDelayMs - 50,
                                     )
                                 },
                             ) {
-                                Icon(Icons.Rounded.Remove, contentDescription = "-50 ms")
+                                Icon(Icons.Rounded.Remove, contentDescription = "-50 ms", modifier = Modifier.size(16.dp))
                             }
                             Text(
                                 text = "${HardwareDolbyAndEqualizerEngine.audioDelayMs} ms",
-                                style = MaterialTheme.typography.titleMedium,
+                                fontSize = 13.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 FilledTonalIconButton(
+                                    modifier = Modifier.size(32.dp),
                                     onClick = {
                                         HardwareDolbyAndEqualizerEngine.setAudioSyncDelayMs(0)
                                     },
                                 ) {
-                                    Icon(Icons.Rounded.RestartAlt, contentDescription = "Reset")
+                                    Icon(Icons.Rounded.RestartAlt, contentDescription = "Reset", modifier = Modifier.size(16.dp))
                                 }
                                 FilledTonalIconButton(
+                                    modifier = Modifier.size(32.dp),
                                     onClick = {
                                         HardwareDolbyAndEqualizerEngine.setAudioSyncDelayMs(
                                             HardwareDolbyAndEqualizerEngine.audioDelayMs + 50,
                                         )
                                     },
                                 ) {
-                                    Icon(Icons.Rounded.Add, contentDescription = "+50 ms")
+                                    Icon(Icons.Rounded.Add, contentDescription = "+50 ms", modifier = Modifier.size(16.dp))
                                 }
                             }
                         }

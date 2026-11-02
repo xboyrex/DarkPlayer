@@ -1,13 +1,11 @@
 package dev.xboyrex.darkplayer.settings
 
-import androidx.compose.foundation.Image
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,9 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.SystemUpdateAlt
@@ -28,22 +24,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.xboyrex.darkplayer.core.ui.R
 import dev.xboyrex.darkplayer.core.ui.components.ClickablePreferenceItem
@@ -54,6 +50,8 @@ import dev.xboyrex.darkplayer.core.ui.components.restorableFocusGroup
 import dev.xboyrex.darkplayer.core.ui.components.restorableFocusItem
 import dev.xboyrex.darkplayer.core.ui.components.tvFocusDown
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
+import dev.xboyrex.darkplayer.core.ui.glass.Motion
+import dev.xboyrex.darkplayer.core.ui.glass.popupBackgroundBlur
 import dev.xboyrex.darkplayer.core.ui.updater.UpdateOverlayDialog
 import dev.xboyrex.darkplayer.core.ui.updater.rememberUpdateState
 
@@ -86,6 +84,19 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
     val updateState = rememberUpdateState()
     val installedVersion = remember(context) { updateState.currentVersionName(context) }
 
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+    val enterAlpha by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = tween(durationMillis = 240, easing = Motion.Emphasized),
+        label = "settingsEnterAlpha",
+    )
+    val enterSlideY by animateFloatAsState(
+        targetValue = if (entered) 0f else 18f,
+        animationSpec = tween(durationMillis = 280, easing = Motion.Emphasized),
+        label = "settingsEnterSlideY",
+    )
+
     val playbackGroup = remember {
         listOf(
             SettingRow.PLAYER,
@@ -103,6 +114,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
+            modifier = Modifier.popupBackgroundBlur(extraBlur = updateState.isPopupActive),
             topBar = {
                 NextTopAppBar(
                     title = stringResource(id = R.string.settings),
@@ -122,152 +134,113 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
             },
             containerColor = MaterialTheme.colorScheme.background,
         ) { innerPadding ->
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(state = rememberScrollState())
-                    .restorableFocusGroup(state = focusState)
-                    .padding(paddingValues = innerPadding)
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 8.dp, bottom = navBottomInset + 36.dp),
-                verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+                    .padding(paddingValues = innerPadding),
             ) {
-                Surface(
-                    onClick = { onAction(SettingsAction.OpenSetting(Setting.ABOUT)) },
-                    shape = RoundedCornerShape(22.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp)
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.40f),
-                                    Color.White.copy(alpha = 0.06f),
-                                ),
-                            ),
-                            shape = RoundedCornerShape(22.dp),
-                        ),
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            alpha = enterAlpha
+                            translationY = enterSlideY
+                        }
+                        .verticalScroll(state = rememberScrollState())
+                        .restorableFocusGroup(state = focusState)
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 6.dp, bottom = navBottomInset + 36.dp),
+                    verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                                        Color.Transparent,
-                                    ),
+                    ListSectionTitle(text = "PLAYBACK, DECODERS & GESTURES")
+                    playbackGroup.forEachIndexed { index, row ->
+                        key(row) {
+                            ClickablePreferenceItem(
+                                modifier = Modifier.restorableFocusItem(
+                                    state = focusState,
+                                    row.name,
                                 ),
-                            )
-                            .padding(vertical = 14.dp, horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.darkplayer_logo),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(14.dp)),
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(id = R.string.app_name),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "by ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (@xboyrex)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                                title = stringResource(id = row.titleResId),
+                                description = stringResource(id = row.descriptionResId),
+                                icon = row.icon,
+                                onClick = { onAction(SettingsAction.OpenSetting(row.setting)) },
+                                isFirstItem = index == 0,
+                                isLastItem = index == playbackGroup.lastIndex,
                             )
                         }
-                        Icon(
-                            imageVector = NextIcons.ArrowForward,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp),
-                        )
                     }
+
+                    ListSectionTitle(text = "INTERFACE & MEDIA LIBRARY")
+                    interfaceGroup.forEachIndexed { index, row ->
+                        key(row) {
+                            ClickablePreferenceItem(
+                                modifier = Modifier.restorableFocusItem(
+                                    state = focusState,
+                                    row.name,
+                                ),
+                                title = stringResource(id = row.titleResId),
+                                description = stringResource(id = row.descriptionResId),
+                                icon = row.icon,
+                                onClick = { onAction(SettingsAction.OpenSetting(row.setting)) },
+                                isFirstItem = index == 0,
+                                isLastItem = index == interfaceGroup.lastIndex,
+                            )
+                        }
+                    }
+
+                    ListSectionTitle(text = "GENERAL & DEVELOPER")
+                    ClickablePreferenceItem(
+                        modifier = Modifier.restorableFocusItem(
+                            state = focusState,
+                            SettingRow.GENERAL.name,
+                        ),
+                        title = stringResource(id = SettingRow.GENERAL.titleResId),
+                        description = stringResource(id = SettingRow.GENERAL.descriptionResId),
+                        icon = SettingRow.GENERAL.icon,
+                        onClick = { onAction(SettingsAction.OpenSetting(Setting.GENERAL)) },
+                        isFirstItem = true,
+                        isLastItem = false,
+                    )
+                    ClickablePreferenceItem(
+                        modifier = Modifier.restorableFocusItem(
+                            state = focusState,
+                            "CHECK_UPDATES",
+                        ),
+                        title = "Check for updates",
+                        description = "Dark Player v$installedVersion • Tap to check for new release",
+                        icon = Icons.Rounded.SystemUpdateAlt,
+                        onClick = { updateState.check(context = context, manual = true) },
+                        isFirstItem = false,
+                        isLastItem = false,
+                    )
+                    ClickablePreferenceItem(
+                        modifier = Modifier.restorableFocusItem(
+                            state = focusState,
+                            SettingRow.ABOUT.name,
+                        ),
+                        title = stringResource(id = SettingRow.ABOUT.titleResId),
+                        description = stringResource(id = SettingRow.ABOUT.descriptionResId),
+                        icon = SettingRow.ABOUT.icon,
+                        onClick = { onAction(SettingsAction.OpenSetting(Setting.ABOUT)) },
+                        isFirstItem = false,
+                        isLastItem = true,
+                    )
                 }
 
-                ListSectionTitle(text = "PLAYBACK, DECODERS & GESTURES")
-                playbackGroup.forEachIndexed { index, row ->
-                    key(row) {
-                        ClickablePreferenceItem(
-                            modifier = Modifier.restorableFocusItem(
-                                state = focusState,
-                                row.name,
+                // Smooth top edge fade under the Settings top bar so scrolled items fade cleanly
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(14.dp)
+                        .align(Alignment.TopCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.background,
+                                    Color.Transparent,
+                                ),
                             ),
-                            title = stringResource(id = row.titleResId),
-                            description = stringResource(id = row.descriptionResId),
-                            icon = row.icon,
-                            onClick = { onAction(SettingsAction.OpenSetting(row.setting)) },
-                            isFirstItem = index == 0,
-                            isLastItem = index == playbackGroup.lastIndex,
-                        )
-                    }
-                }
-
-                ListSectionTitle(text = "INTERFACE & MEDIA LIBRARY")
-                interfaceGroup.forEachIndexed { index, row ->
-                    key(row) {
-                        ClickablePreferenceItem(
-                            modifier = Modifier.restorableFocusItem(
-                                state = focusState,
-                                row.name,
-                            ),
-                            title = stringResource(id = row.titleResId),
-                            description = stringResource(id = row.descriptionResId),
-                            icon = row.icon,
-                            onClick = { onAction(SettingsAction.OpenSetting(row.setting)) },
-                            isFirstItem = index == 0,
-                            isLastItem = index == interfaceGroup.lastIndex,
-                        )
-                    }
-                }
-
-                ListSectionTitle(text = "GENERAL & DEVELOPER")
-                ClickablePreferenceItem(
-                    modifier = Modifier.restorableFocusItem(
-                        state = focusState,
-                        SettingRow.GENERAL.name,
-                    ),
-                    title = stringResource(id = SettingRow.GENERAL.titleResId),
-                    description = stringResource(id = SettingRow.GENERAL.descriptionResId),
-                    icon = SettingRow.GENERAL.icon,
-                    onClick = { onAction(SettingsAction.OpenSetting(Setting.GENERAL)) },
-                    isFirstItem = true,
-                    isLastItem = false,
-                )
-                ClickablePreferenceItem(
-                    modifier = Modifier.restorableFocusItem(
-                        state = focusState,
-                        "CHECK_UPDATES",
-                    ),
-                    title = "Check for updates",
-                    description = "Dark Player v$installedVersion • Tap to check for new release",
-                    icon = Icons.Rounded.SystemUpdateAlt,
-                    onClick = { updateState.check(context = context, manual = true) },
-                    isFirstItem = false,
-                    isLastItem = false,
-                )
-                ClickablePreferenceItem(
-                    modifier = Modifier.restorableFocusItem(
-                        state = focusState,
-                        SettingRow.ABOUT.name,
-                    ),
-                    title = stringResource(id = SettingRow.ABOUT.titleResId),
-                    description = stringResource(id = SettingRow.ABOUT.descriptionResId),
-                    icon = SettingRow.ABOUT.icon,
-                    onClick = { onAction(SettingsAction.OpenSetting(Setting.ABOUT)) },
-                    isFirstItem = false,
-                    isLastItem = true,
+                        ),
                 )
             }
         }

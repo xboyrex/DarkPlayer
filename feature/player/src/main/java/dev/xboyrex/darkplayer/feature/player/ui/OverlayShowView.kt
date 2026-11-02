@@ -1,14 +1,21 @@
 package dev.xboyrex.darkplayer.feature.player.ui
 
 import android.content.res.Configuration
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.media3.common.Player
 import androidx.media3.extractor.metadata.Chapter
 import dev.xboyrex.darkplayer.core.model.VideoContentScale
 import dev.xboyrex.darkplayer.core.ui.audio.EqualizerAndDolbyStudioContent
+import dev.xboyrex.darkplayer.core.ui.glass.RegisterPopupBlur
 import dev.xboyrex.darkplayer.feature.player.extensions.noRippleClickable
 import dev.xboyrex.darkplayer.feature.player.state.SubtitleOptionsEvent
 import dev.xboyrex.darkplayer.feature.player.state.VolumeState
@@ -33,17 +40,21 @@ fun BoxScope.OverlayShowView(
     onSubtitleOptionEvent: (SubtitleOptionsEvent) -> Unit = {},
     onVideoContentScaleChanged: (VideoContentScale) -> Unit = {},
 ) {
-    Box(
-        modifier = Modifier
-            .matchParentSize()
-            .then(
-                other = if (overlayView != null) {
-                    Modifier.noRippleClickable(onClick = onDismiss)
-                } else {
-                    Modifier
-                },
-            ),
-    )
+    RegisterPopupBlur(active = overlayView != null)
+
+    AnimatedVisibility(
+        visible = overlayView != null,
+        enter = fadeIn(tween(180)),
+        exit = fadeOut(tween(150)),
+        modifier = Modifier.matchParentSize(),
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(Color(0xFF04070E).copy(alpha = 0.56f))
+                .noRippleClickable(onClick = onDismiss),
+        )
+    }
 
     AudioTrackSelectorView(
         show = overlayView == OverlayView.AUDIO_SELECTOR,
