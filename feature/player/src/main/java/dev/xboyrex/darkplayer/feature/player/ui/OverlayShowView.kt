@@ -15,7 +15,6 @@ import androidx.media3.common.Player
 import androidx.media3.extractor.metadata.Chapter
 import dev.xboyrex.darkplayer.core.model.VideoContentScale
 import dev.xboyrex.darkplayer.core.ui.audio.EqualizerAndDolbyStudioContent
-import dev.xboyrex.darkplayer.core.ui.glass.RegisterPopupBlur
 import dev.xboyrex.darkplayer.feature.player.extensions.noRippleClickable
 import dev.xboyrex.darkplayer.feature.player.state.SubtitleOptionsEvent
 import dev.xboyrex.darkplayer.feature.player.state.VolumeState
@@ -40,18 +39,16 @@ fun BoxScope.OverlayShowView(
     onSubtitleOptionEvent: (SubtitleOptionsEvent) -> Unit = {},
     onVideoContentScaleChanged: (VideoContentScale) -> Unit = {},
 ) {
-    RegisterPopupBlur(active = overlayView != null)
-
     AnimatedVisibility(
         visible = overlayView != null,
-        enter = fadeIn(tween(180)),
-        exit = fadeOut(tween(150)),
+        enter = fadeIn(tween(150)),
+        exit = fadeOut(tween(140)),
         modifier = Modifier.matchParentSize(),
     ) {
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(Color(0xFF04070E).copy(alpha = 0.56f))
+                .background(Color.Black.copy(alpha = 0.24f))
                 .noRippleClickable(onClick = onDismiss),
         )
     }

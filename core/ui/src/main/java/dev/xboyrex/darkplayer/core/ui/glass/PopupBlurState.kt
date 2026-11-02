@@ -45,12 +45,12 @@ fun RegisterPopupBlur(active: Boolean = true) {
 @Composable
 fun Modifier.popupBackgroundBlur(
     extraBlur: Boolean = false,
-    radius: Dp = 18.dp,
+    radius: Dp = 8.dp,
 ): Modifier {
     val shouldBlur = PopupBlurState.isBlurred || extraBlur
     val animatedRadius by animateDpAsState(
         targetValue = if (shouldBlur) radius else 0.dp,
-        animationSpec = tween(durationMillis = 220),
+        animationSpec = tween(durationMillis = 180),
         label = "popupBlurRadius",
     )
     return if (animatedRadius > 0.1.dp) {

@@ -26,12 +26,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
@@ -53,6 +51,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,7 +61,8 @@ import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.LocalUseMaterialYouControls
 
 /**
- * Compact, minimal NextPlayer-styled floating overlay sheet.
+ * Clean NextPlayer-styled floating overlay sheet with proper landscape (45% width)
+ * and portrait (62% height) dimensions so content never wraps or clips.
  */
 @Composable
 fun BoxScope.OverlayView(
@@ -87,11 +87,11 @@ fun BoxScope.OverlayView(
         }
     }
 
-    val sheetShape = RoundedCornerShape(22.dp)
+    val sheetShape = RoundedCornerShape(24.dp)
     val sheetBgColor = if (useSolidMode) {
-        Color(0xFF141821)
+        Color(0xFF141821).copy(alpha = 0.96f)
     } else {
-        Color(0xFF0E121A).copy(alpha = 0.94f)
+        Color(0xFF0E131D).copy(alpha = 0.92f)
     }
 
     AnimatedVisibility(
@@ -127,29 +127,33 @@ fun BoxScope.OverlayView(
             color = sheetBgColor,
             contentColor = Color.White,
             modifier = modifier
-                .padding(if (configuration.isPortrait) 10.dp else 12.dp)
-                .shadow(
-                    elevation = 20.dp,
-                    shape = sheetShape,
-                    ambientColor = Color.Black,
-                    spotColor = Color.Black,
-                )
-                .border(
-                    width = 0.8.dp,
-                    color = Color.White.copy(alpha = 0.10f),
-                    shape = sheetShape,
+                .padding(
+                    start = 12.dp,
+                    top = 12.dp,
+                    bottom = 12.dp,
+                    end = if (configuration.isPortrait) 12.dp else (12.dp + endPadding),
                 )
                 .then(
                     other = if (configuration.isPortrait) {
                         Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 420.dp)
+                            .fillMaxHeight(fraction = 0.62f)
                     } else {
                         Modifier
-                            .widthIn(max = 336.dp)
-                            .fillMaxWidth(fraction = 0.40f)
+                            .fillMaxWidth(fraction = 0.46f)
                             .fillMaxHeight()
                     },
+                )
+                .shadow(
+                    elevation = 24.dp,
+                    shape = sheetShape,
+                    ambientColor = Color.Black,
+                    spotColor = Color.Black,
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.12f),
+                    shape = sheetShape,
                 ),
         ) {
             CompositionLocalProvider(LocalContentColor provides Color.White) {
@@ -157,35 +161,36 @@ fun BoxScope.OverlayView(
                     modifier = Modifier
                         .focusRequester(focusRequester = focusRequester)
                         .focusGroup()
-                        .padding(top = 8.dp)
-                        .padding(end = endPadding),
+                        .padding(top = 10.dp),
                 ) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
-                            .width(32.dp)
-                            .height(3.5.dp)
+                            .width(36.dp)
+                            .height(4.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.22f)),
+                            .background(Color.White.copy(alpha = 0.24f)),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontSize = 15.5.sp,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 18.dp),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .height(0.6.dp)
-                            .background(Color.White.copy(alpha = 0.08f)),
+                            .padding(horizontal = 18.dp)
+                            .height(0.8.dp)
+                            .background(Color.White.copy(alpha = 0.10f)),
                     )
-                    Spacer(modifier = Modifier.size(8.dp))
+                    Spacer(modifier = Modifier.size(10.dp))
                     content()
                 }
             }
