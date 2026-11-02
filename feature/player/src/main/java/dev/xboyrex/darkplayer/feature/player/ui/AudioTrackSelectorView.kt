@@ -203,7 +203,7 @@ fun BoxScope.AudioTrackSelectorView(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = stringResource(R.string.open_local_audio),
+                        text = "Open external audio",
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White,
