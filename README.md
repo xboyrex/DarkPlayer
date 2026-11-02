@@ -73,18 +73,16 @@
 
 ## Screenshots
 
-<table>
-  <tr>
-    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-library-home.png" width="220" alt="Dark Player library home" /><br /><sub>Library home</sub></td>
-    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-library-main.png" width="220" alt="Dark Player main library list" /><br /><sub>Main library</sub></td>
-    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-library-compact.png" width="220" alt="Dark Player compact library view" /><br /><sub>Compact library view</sub></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-player-landscape.png" width="220" alt="Dark Player landscape video playback" /><br /><sub>Landscape playback</sub></td>
-    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-decoder-picker.png" width="220" alt="Dark Player decoder selection overlay" /><br /><sub>Decoder selection</sub></td>
-    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-settings.png" width="220" alt="Dark Player Settings screen" /><br /><sub>Settings</sub></td>
-  </tr>
-</table>
+<div align="center">
+  <img src="docs/assets/dark-player/fdroid-showcase/01-library-and-about.png" width="100%" alt="Dark Player local media library and About screens shown in Android phone mockups" />
+  <p><strong>Library & app experience</strong><br /><sub>Folder-first browsing, media counts, storage context, and developer information.</sub></p>
+  <img src="docs/assets/dark-player/fdroid-showcase/02-landscape-player.png" width="100%" alt="Dark Player landscape video player shown inside a device mockup" />
+  <p><strong>Immersive landscape playback</strong><br /><sub>Transport controls, seek timeline, playback gestures, and player actions.</sub></p>
+  <img src="docs/assets/dark-player/fdroid-showcase/03-playback-tools.png" width="100%" alt="Dark Player decoder, queue, subtitle, and playback speed screens in device mockups" />
+  <p><strong>Playback tools</strong><br /><sub>Decoder selection, Now Playing queue, subtitle tracks, and precision speed control.</sub></p>
+</div>
+
+> Store screenshots are also provided separately as unframed original device captures in `fastlane/metadata/android/en-US/images/phoneScreenshots/`.
 
 ## Installation
 
