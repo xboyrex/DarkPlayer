@@ -69,7 +69,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import dev.xboyrex.darkplayer.core.ui.R
-import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
 import dev.xboyrex.darkplayer.core.ui.glass.pressable
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.state.VolumeState
@@ -380,7 +379,7 @@ fun SoundAndVibrationPanel(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ) { }
-                    .padding(horizontal = 22.dp, top = 20.dp, bottom = 16.dp),
+                    .padding(start = 22.dp, top = 20.dp, end = 22.dp, bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(

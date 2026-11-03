@@ -21,7 +21,7 @@ concurrency:
 jobs:
   build:
     name: Build & Publish DarkPlayer Release APKs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout Repository
@@ -77,30 +77,25 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ env.RELEASE_VERSION }}
-          name: "Dark Player v${{ env.RELEASE_VERSION }} — Liquid Glass & Studio Edition (Build #${{ github.run_number }})"
+          name: "Dark Player v${{ env.RELEASE_VERSION }} — Studio Edition (Build #${{ github.run_number }})"
           make_latest: true
           body: |
-            <div align="center">
-              <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/docs/assets/dark-player/dark-player-logo.png" width="116" height="116" alt="Dark Player Logo" />
-              <h2>Dark Player v${{ env.RELEASE_VERSION }} (Build #${{ github.run_number }})</h2>
-              <p><strong>Crafted by ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (<code>@xboyrex</code>)</strong></p>
-              <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/docs/assets/dark-player/dark-player-showcase.gif" width="100%" alt="Dark Player Banner" />
-            </div>
+            ### NEW & HIGHLIGHTS
+            - Frosted Slate-Navy Solid Player UI with instant controls, crisp dialogs & zero self-blur.
+            - Redesigned Vertical Volume & Brightness Bar with expandable 5-channel Sound & Vibration panel.
+            - Hardware Dolby Atmos DSP & 5-Band Studio Equalizer with Bass Boost, Reverb & Virtualizer.
+            - Interactive Haptic Speed Ruler (0.25x–4.0x) with 2x hold-to-boost & A–B Repeat loop control.
 
-            ### What's New in v${{ env.RELEASE_VERSION }}
-            - **3-Layer Liquid Glass Navigation Bar & Video Player UI**: Interactive damped drag physics (`DampedDragAnimation`), AGSL shader highlights (`InteractiveHighlight`), shape-morphing `PlayPauseButton`, and `SeekBurstPill` with particle sparks—strictly scoped to the Navigation Bar and Video Player UI.
-            - **200% Hardware LoudnessEnhancer Volume Boost & Interactive Haptic Speed Ruler**: Clean 0–200% hardware audio boost (`2000 mB`) plus a precision draggable speed ruler (`0.25×–4.0×`) with real primitive tick haptics.
-            - **Zero-Conflict Angle-Locked Player Gestures**: Strict directional ratio locking (`1.25×`), system gesture edge inset rejection, and mutual exclusion between horizontal seek scrubbing and vertical volume/brightness sliders.
-            - **Studio Settings & Real-Time Storage Analyzer**: Floating blurred studio modals for Theme Mode (`System` / `Dark` / `Light` / `AMOLED`), Color Palette Swatch Picker, and live Device & App Storage Analyzer with one-tap cache cleanup.
-            - **In-App OTA Auto-Updater**: Automatic GitHub Releases version check, ABI-matched APK download with live progress bar, and instant Package Installer handoff.
+            ### PLAYER & DECODER ENGINE
+            - Full HW+ (Auto), HW (MediaCodec), SW+ (System), and SW (Bundled FFmpeg) video & audio decoding.
+            - 10-bit HEVC, AV1, EAC3, DTS, TrueHD & multi-track MKV playback with automatic decoder fallback.
+            - Audio synchronization delay (-5000 ms to +5000 ms), Stereo/Mono/L/R channel routing & Smooth Audio Fade.
+            - One-tap frame-accurate Video Screenshot capture saved directly to Pictures/DarkPlayer.
 
-            ### Direct APK Architecture Guide
-            | File | Architecture | Target Devices |
-            | :--- | :--- | :--- |
-            | `DarkPlayer-v${{ env.RELEASE_VERSION }}-arm64-v8a.apk` | **64-bit ARM (`arm64-v8a`)** | Recommended for all modern Android phones & tablets |
-            | `DarkPlayer-v${{ env.RELEASE_VERSION }}-armeabi-v7a.apk` | **32-bit ARM (`armeabi-v7a`)** | Older 32-bit Android phones & Android TV boxes |
-            | `DarkPlayer-v${{ env.RELEASE_VERSION }}-x86_64.apk` | **64-bit x86 (`x86_64`)** | Chromebooks & Android emulators |
-            | `DarkPlayer-v${{ env.RELEASE_VERSION }}-universal.apk` | **Universal (`All ABIs`)** | Works on every Android device |
+            ### INTERFACE, HUB & STABILITY
+            - Instant splash-free app startup with silent background OTA update checks.
+            - Fixed Hub navigation for Private Vault, Trash, History, Settings & external video file picker.
+            - Cinematic bottom navigation bar & smooth window-level backdrop blur behind active popups.
           files: |
             release-apks/*.apk
             release-apks/SHA256SUMS.txt
