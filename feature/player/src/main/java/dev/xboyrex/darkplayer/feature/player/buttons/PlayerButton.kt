@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -43,8 +44,8 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
-val PlayerButtonBlackAlpha = Color(0xFF141820).copy(alpha = 0.76f)
-private val PlayerSolidSurfaceColor = Color(0xFF1B202B)
+val PlayerButtonBlackAlpha = Color(0xFF222734)
+private val PlayerSolidSurfaceColor = Color(0xFF222734)
 private val PlayerSolidPrimaryWhite = Color(0xFFFFFFFF)
 private val PlayerSolidOnWhite = Color(0xFF0A0E17)
 private val PlayerActiveAccent = Color(0xFFFACC15)
@@ -103,17 +104,15 @@ fun PlayerButton(
 
     val targetContainerColor = when {
         hideBackground && !isPrimaryAction && !isActive -> Color.Transparent
-        !enabled -> if (useSolidMode) PlayerSolidSurfaceColor.copy(alpha = 0.38f) else containerColor.copy(alpha = 0.28f)
         useSolidMode && (isPrimaryAction || isActive) -> PlayerSolidPrimaryWhite
-        useSolidMode -> PlayerSolidSurfaceColor
-        isActive -> PlayerActiveAccent.copy(alpha = 0.22f)
-        else -> containerColor
+        isActive -> PlayerSolidPrimaryWhite
+        else -> PlayerSolidSurfaceColor
     }
 
     val targetContentColor = when {
-        !enabled -> Color.White.copy(alpha = 0.38f)
         useSolidMode && (isPrimaryAction || isActive) -> PlayerSolidOnWhite
-        isActive -> PlayerActiveAccent
+        isActive -> PlayerSolidOnWhite
+        !enabled -> Color.White.copy(alpha = 0.90f)
         else -> Color.White
     }
 
@@ -129,7 +128,7 @@ fun PlayerButton(
     )
 
     val rippleConfiguration = RippleConfiguration(
-        color = if (useSolidMode && (isPrimaryAction || isActive)) Color.Black else Color.White,
+        color = if (isPrimaryAction || isActive) Color.Black else Color.White,
         rippleAlpha = RippleAlpha(
             pressedAlpha = 0.28f,
             focusedAlpha = 0.28f,
@@ -137,6 +136,8 @@ fun PlayerButton(
             hoveredAlpha = 0.28f,
         ),
     )
+
+    val showBorder = !hideBackground && !isPrimaryAction && !isActive
 
     CompositionLocalProvider(
         LocalContentColor provides animatedFg,
@@ -150,6 +151,17 @@ fun PlayerButton(
                 }
                 .clip(shape = shape)
                 .background(color = animatedBg, shape = shape)
+                .then(
+                    if (showBorder) {
+                        Modifier.border(
+                            width = 0.8.dp,
+                            color = Color.White.copy(alpha = 0.13f),
+                            shape = shape,
+                        )
+                    } else {
+                        Modifier
+                    },
+                )
                 .clickable(
                     interactionSource = interactionSource,
                     enabled = enabled,

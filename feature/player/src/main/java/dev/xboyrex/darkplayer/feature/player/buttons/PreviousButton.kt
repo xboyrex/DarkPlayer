@@ -23,10 +23,14 @@ internal fun PreviousButton(modifier: Modifier = Modifier, player: Player?) {
 
     PlayerButton(
         modifier = modifier.size(46.dp),
-        enabled = state.isEnabled,
+        enabled = true,
         contentPadding = PaddingValues(0.dp),
         onClick = {
-            state.onClick()
+            if (state.isEnabled) {
+                state.onClick()
+            } else {
+                player?.seekTo(0L)
+            }
             controlsVisibilityState?.showControls()
         },
     ) {

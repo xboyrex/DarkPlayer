@@ -4,11 +4,13 @@ import android.os.Build
 import android.view.WindowManager
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
@@ -32,6 +34,10 @@ fun NextDialog(
 
     AlertDialog(
         title = title,
+        containerColor = Color(0xFF212633),
+        titleContentColor = Color.White,
+        textContentColor = Color.White.copy(alpha = 0.90f),
+        shape = RoundedCornerShape(26.dp),
         text = {
             val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
             SideEffect {
@@ -40,7 +46,7 @@ fun NextDialog(
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
                         window.attributes = window.attributes.apply {
-                            blurBehindRadius = 42
+                            blurBehindRadius = 46
                         }
                     }
                 }

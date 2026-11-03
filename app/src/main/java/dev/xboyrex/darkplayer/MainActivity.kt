@@ -77,7 +77,6 @@ import dev.xboyrex.darkplayer.core.ui.components.thenIf
 import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
 import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
 import dev.xboyrex.darkplayer.core.ui.glass.Motion
-import dev.xboyrex.darkplayer.core.ui.glass.popupBackgroundBlur
 import dev.xboyrex.darkplayer.core.ui.theme.DarkPlayerTheme
 import dev.xboyrex.darkplayer.core.ui.theme.ThemeState
 import dev.xboyrex.darkplayer.core.ui.updater.UpdateOverlayDialog
@@ -132,6 +131,8 @@ class MainActivity : FragmentActivity() {
 
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        splashScreen.setKeepOnScreenCondition { false }
         super.onCreate(savedInstanceState)
         GlassSettings.init(this)
         GlassQuality.init(this)
@@ -143,16 +144,12 @@ class MainActivity : FragmentActivity() {
         mediaService.initialize(activity = this)
         systemService.initialize(activity = this)
 
-        val splashScreen = installSplashScreen()
-        splashScreen.setKeepOnScreenCondition {
-            viewModel.state.value is MainActivityUiState.Loading
-        }
-
         setContent {
             val state by viewModel.state.collectAsStateWithLifecycle()
             val shouldUseDarkTheme = shouldUseDarkTheme(state = state)
             val updateState = rememberUpdateState()
 
+            // Run update check silently in the background on startup
             LaunchedEffect(Unit) {
                 updateState.check(context = this@MainActivity, manual = false)
             }
@@ -230,9 +227,6 @@ class MainActivity : FragmentActivity() {
                                 fabStates = fabStates,
                                 showNavigation = showNavigation,
                                 showBottomBar = showBottomBar,
-                                modifier = Modifier.popupBackgroundBlur(
-                                    extraBlur = updateState.isPopupActive,
-                                ),
                             ) { contentPadding ->
                                 val railPadding = contentPadding.calculateStartPadding(
                                     layoutDirection = layoutDirection,

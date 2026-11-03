@@ -23,6 +23,7 @@ import dev.xboyrex.darkplayer.core.ui.R
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
 import dev.xboyrex.darkplayer.feature.player.state.PlayerOrientationEffect
+import dev.xboyrex.darkplayer.feature.player.state.VerticalGesture
 import dev.xboyrex.darkplayer.feature.player.state.rememberBrightnessState
 import dev.xboyrex.darkplayer.feature.player.state.rememberControlsVisibilityState
 import dev.xboyrex.darkplayer.feature.player.state.rememberErrorState
@@ -67,7 +68,6 @@ internal fun MediaPlayerContent(
 ) {
     val playerPreferences = state.playerPreferences
     val isPreview = LocalInspectionMode.current
-    // Layout previews have neither a PlayerActivity nor a live video/audio session.
     val volumeState = if (!isPreview) {
         rememberVolumeState(
             player = player,
@@ -126,6 +126,13 @@ internal fun MediaPlayerContent(
     } else {
         null
     }
+
+    LaunchedEffect(volumeState, volumeAndBrightnessGestureState) {
+        volumeState?.onExternalVolumeChanged = {
+            volumeAndBrightnessGestureState?.showGesturePillTemporarily(VerticalGesture.VOLUME)
+        }
+    }
+
     if (!isPreview) {
         PlayerOrientationEffect(
             player = player,
@@ -193,6 +200,7 @@ internal fun MediaPlayerContent(
             seekGestureState = seekGestureState,
             videoZoomAndContentScaleState = videoZoomAndContentScaleState,
             volumeState = volumeState,
+            volumeAndBrightnessGestureState = volumeAndBrightnessGestureState,
             dpadUpDown = api?.dpadUpDown,
             isPipSupported = pictureInPictureState?.isPipSupported == true,
             onPictureInPictureClick = {
@@ -214,10 +222,9 @@ internal fun MediaPlayerContent(
             brightnessState != null
         ) {
             PlayerVerticalGestureIndicators(
-                activeGesture = volumeAndBrightnessGestureState.activeGesture,
-                volumePercentage = volumeState.volumePercentage,
-                maxVolumePercentage = volumeState.maxVolumePercentage,
-                brightnessPercentage = brightnessState.brightnessPercentage,
+                gestureState = volumeAndBrightnessGestureState,
+                volumeState = volumeState,
+                brightnessState = brightnessState,
             )
         }
     }

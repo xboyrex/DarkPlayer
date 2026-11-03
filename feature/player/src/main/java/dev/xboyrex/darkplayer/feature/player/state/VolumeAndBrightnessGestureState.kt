@@ -65,6 +65,8 @@ class VolumeAndBrightnessGestureState(
     var isDragging: Boolean by mutableStateOf(value = false)
         private set
 
+    var showSoundAndVibrationPanel: Boolean by mutableStateOf(value = false)
+
     var volumeChangePercentage: Int by mutableIntStateOf(value = 0)
         private set
 
@@ -77,6 +79,27 @@ class VolumeAndBrightnessGestureState(
     private var currentBrightnessFloat = 0f
     private var viewHeightPx = 1080f
     private var job: Job? = null
+
+    fun showGesturePillTemporarily(gesture: VerticalGesture = VerticalGesture.VOLUME) {
+        job?.cancel()
+        volumeState.syncWithSystem()
+        activeGesture = gesture
+        job = coroutineScope.launch {
+            delay(2200.milliseconds)
+            activeGesture = null
+        }
+    }
+
+    fun openSoundAndVibrationPanel() {
+        job?.cancel()
+        activeGesture = null
+        isDragging = false
+        showSoundAndVibrationPanel = true
+    }
+
+    fun closeSoundAndVibrationPanel() {
+        showSoundAndVibrationPanel = false
+    }
 
     fun onDragStart(offset: Offset, size: IntSize) {
         val viewCenterX = size.width / 2
@@ -146,7 +169,7 @@ class VolumeAndBrightnessGestureState(
 
         job?.cancel()
         job = coroutineScope.launch {
-            delay(850.milliseconds)
+            delay(1800.milliseconds)
             activeGesture = null
             volumeChangePercentage = 0
             brightnessChangePercentage = 0

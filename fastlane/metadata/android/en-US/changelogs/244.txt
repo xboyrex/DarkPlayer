@@ -1,1 +1,0 @@
-Liquid Glass player and navigation updates, 200% hardware volume boost, 0.25x–4.0x speed ruler, refined gestures, storage analyzer, and GitHub release update flow.

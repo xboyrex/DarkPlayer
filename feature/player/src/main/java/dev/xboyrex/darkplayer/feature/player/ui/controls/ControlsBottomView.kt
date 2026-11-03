@@ -97,6 +97,8 @@ fun ControlsBottomView(
     onPlayInBackgroundClick: () -> Unit,
     onSleepTimerClick: () -> Unit = {},
     onVolumeBoosterClick: () -> Unit = {},
+    onVolumeButtonClick: (() -> Unit)? = null,
+    onVolumeButtonLongClick: (() -> Unit)? = null,
     onSeek: (Long) -> Unit,
     onSeekEnd: () -> Unit,
 ) {
@@ -289,10 +291,25 @@ fun ControlsBottomView(
             PlayerButton(
                 isActive = isMuted,
                 onClick = {
-                    player?.let { p ->
-                        val nextMuted = !isMuted
-                        p.volume = if (nextMuted) 0f else 1f
-                        isMuted = nextMuted
+                    if (onVolumeButtonClick != null) {
+                        onVolumeButtonClick()
+                    } else {
+                        player?.let { p ->
+                            val nextMuted = !isMuted
+                            p.volume = if (nextMuted) 0f else 1f
+                            isMuted = nextMuted
+                        }
+                    }
+                },
+                onLongClick = {
+                    if (onVolumeButtonLongClick != null) {
+                        onVolumeButtonLongClick()
+                    } else {
+                        player?.let { p ->
+                            val nextMuted = !isMuted
+                            p.volume = if (nextMuted) 0f else 1f
+                            isMuted = nextMuted
+                        }
                     }
                 },
             ) {
@@ -302,7 +319,7 @@ fun ControlsBottomView(
                     } else {
                         Icons.AutoMirrored.Rounded.VolumeUp
                     },
-                    contentDescription = "Mute",
+                    contentDescription = "Volume & Sound Panel",
                 )
             }
             val abStart = HardwareDolbyAndEqualizerEngine.abRepeatStartMs
@@ -322,7 +339,7 @@ fun ControlsBottomView(
                     },
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if (abStart != null) Color(0xFFFACC15) else Color.White,
+                    color = if (abStart != null) Color(0xFF0A0E17) else Color.White,
                 )
             }
             PlayerButton(onClick = onPlayInBackgroundClick) {

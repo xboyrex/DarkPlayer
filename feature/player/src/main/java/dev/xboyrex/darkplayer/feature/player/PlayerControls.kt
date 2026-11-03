@@ -49,6 +49,8 @@ fun PlayerControls(
     onPlayInBackgroundClick: () -> Unit,
     onToggleTimeDisplay: () -> Unit,
     onPictureInPictureClick: () -> Unit,
+    onVolumeButtonClick: (() -> Unit)? = null,
+    onVolumeButtonLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     middleControlsModifier: Modifier = Modifier,
 ) {
@@ -99,6 +101,8 @@ fun PlayerControls(
                     onPlayInBackgroundClick = onPlayInBackgroundClick,
                     onSleepTimerClick = { onShowOverlay(OverlayView.SLEEP_TIMER) },
                     onVolumeBoosterClick = { onShowOverlay(OverlayView.VOLUME_BOOSTER) },
+                    onVolumeButtonClick = onVolumeButtonClick,
+                    onVolumeButtonLongClick = onVolumeButtonLongClick,
                     onLockControlsClick = {
                         controlsVisibilityState.showControls()
                         controlsVisibilityState.lockControls()
