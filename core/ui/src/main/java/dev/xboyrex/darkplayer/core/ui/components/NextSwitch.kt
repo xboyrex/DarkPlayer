@@ -1,13 +1,10 @@
 package dev.xboyrex.darkplayer.core.ui.components
 
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
+import dev.xboyrex.darkplayer.core.ui.glass.GlasmioSwitch
 
 @Composable
 fun NextSwitch(
@@ -15,25 +12,12 @@ fun NextSwitch(
     onCheckedChange: ((Boolean) -> Unit)?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    checkedIcon: ImageVector = NextIcons.Check,
+    @Suppress("UNUSED_PARAMETER") checkedIcon: ImageVector = NextIcons.Check,
 ) {
-    val thumbContent: (@Composable () -> Unit)? = if (checked) {
-        {
-            Icon(
-                imageVector = checkedIcon,
-                contentDescription = null,
-                modifier = Modifier.size(SwitchDefaults.IconSize),
-            )
-        }
-    } else {
-        null
-    }
-
-    Switch(
+    GlasmioSwitch(
         checked = checked,
         onCheckedChange = onCheckedChange,
         modifier = modifier,
         enabled = enabled,
-        thumbContent = thumbContent,
     )
 }

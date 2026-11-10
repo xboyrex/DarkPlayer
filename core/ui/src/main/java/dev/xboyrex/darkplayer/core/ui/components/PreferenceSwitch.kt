@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
+import dev.xboyrex.darkplayer.core.ui.glass.GlasmioSwitch
 
 @Composable
 fun PreferenceSwitch(
@@ -28,9 +29,9 @@ fun PreferenceSwitch(
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
         trailingContent = {
-            NextSwitch(
+            GlasmioSwitch(
                 checked = isChecked,
-                onCheckedChange = null,
+                onCheckedChange = { onClick() },
                 enabled = enabled,
             )
         },

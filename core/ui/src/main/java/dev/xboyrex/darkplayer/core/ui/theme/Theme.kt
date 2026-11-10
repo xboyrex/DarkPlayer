@@ -32,14 +32,15 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import dev.xboyrex.darkplayer.core.ui.glass.ProvideGlasmioTheme
 import kotlin.math.abs
 
 val ExpressiveShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(20.dp),
-    large = RoundedCornerShape(28.dp),
-    extraLarge = RoundedCornerShape(32.dp),
+    small = RoundedCornerShape(16.dp),
+    medium = RoundedCornerShape(26.dp),
+    large = RoundedCornerShape(38.dp),
+    extraLarge = RoundedCornerShape(44.dp),
 )
 
 data class ThemePaletteChoice(
@@ -130,28 +131,28 @@ private fun solarGoldScheme(dark: Boolean): ColorScheme = if (!dark) {
         secondary = Color(0xFF475569), onSecondary = Color.White,
         secondaryContainer = Color(0xFFE2E8F0), onSecondaryContainer = Color(0xFF0F172A),
         tertiary = Color(0xFF0284C7), tertiaryContainer = Color(0xFFE0F2FE), onTertiaryContainer = Color(0xFF082F49),
-        background = Color(0xFFF8FAFC), onBackground = Color(0xFF090D16),
-        surface = Color(0xFFF8FAFC), onSurface = Color(0xFF090D16),
-        surfaceVariant = Color(0xFFE2E8F0), onSurfaceVariant = Color(0xFF334155),
-        surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF1F5F9),
-        surfaceContainer = Color(0xFFEFF4FA), surfaceContainerHigh = Color(0xFFE2E8F0),
-        surfaceContainerHighest = Color(0xFFCBD5E1),
-        outline = Color(0xFF64748B), outlineVariant = Color(0xFFCBD5E1),
+        background = Color(0xFFF2F2F7), onBackground = Color(0xFF090D16),
+        surface = Color(0xFFFFFFFF), onSurface = Color(0xFF090D16),
+        surfaceVariant = Color(0xFFE5E5EA), onSurfaceVariant = Color(0xFF3C3C43),
+        surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF2F2F7),
+        surfaceContainer = Color(0xFFFFFFFF), surfaceContainerHigh = Color(0xFFE5E5EA),
+        surfaceContainerHighest = Color(0xFFD1D1D6),
+        outline = Color(0xFF8E8E93), outlineVariant = Color(0xFFE6E6E6),
     )
 } else {
     darkColorScheme(
         primary = Color(0xFFFACC15), onPrimary = Color(0xFF090D16),
         primaryContainer = Color(0xFF3F3005), onPrimaryContainer = Color(0xFFFEF08A),
         secondary = Color(0xFF94A3B8), onSecondary = Color(0xFF090D16),
-        secondaryContainer = Color(0xFF141C2B), onSecondaryContainer = Color(0xFFF8FAFC),
-        tertiary = Color(0xFF38BDF8), tertiaryContainer = Color(0xFF141C2B), onTertiaryContainer = Color(0xFFF8FAFC),
-        background = Color(0xFF000000), onBackground = Color(0xFFF8FAFC),
+        secondaryContainer = Color(0xFF1C1C1E), onSecondaryContainer = Color(0xFFF8FAFC),
+        tertiary = Color(0xFF38BDF8), tertiaryContainer = Color(0xFF1C1C1E), onTertiaryContainer = Color(0xFFF8FAFC),
+        background = Color(0xFF000000), onBackground = Color(0xFFFFFFFF),
         surface = Color(0xFF000000), onSurface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFF121926), onSurfaceVariant = Color(0xFFCBD5E1),
-        surfaceContainerLowest = Color(0xFF000000), surfaceContainerLow = Color(0xFF070A10),
-        surfaceContainer = Color(0xFF0B0F18), surfaceContainerHigh = Color(0xFF111724),
-        surfaceContainerHighest = Color(0xFF192132),
-        outline = Color(0xFF475569), outlineVariant = Color(0xFF1E293B),
+        surfaceVariant = Color(0xFF1C1C1E), onSurfaceVariant = Color(0xB2EBEBF5),
+        surfaceContainerLowest = Color(0xFF000000), surfaceContainerLow = Color(0xFF0E0E10),
+        surfaceContainer = Color(0xFF1C1C1E), surfaceContainerHigh = Color(0xFF2C2C2E),
+        surfaceContainerHighest = Color(0xFF3A3A3C),
+        outline = Color(0xFF636366), outlineVariant = Color(0x2BFFFFFF),
     )
 }
 
@@ -177,13 +178,13 @@ private fun crimsonScheme(dark: Boolean): ColorScheme = if (!dark) {
         secondary = Color(0xFFAAAAAA), onSecondary = Color(0xFF0F0F0F),
         secondaryContainer = Color(0xFF3F3F3F), onSecondaryContainer = Color(0xFFF1F1F1),
         tertiary = Color(0xFFFF4E45), tertiaryContainer = Color(0xFF272727), onTertiaryContainer = Color(0xFFF1F1F1),
-        background = Color(0xFF0F0F0F), onBackground = Color(0xFFF1F1F1),
-        surface = Color(0xFF0F0F0F), onSurface = Color(0xFFF1F1F1),
-        surfaceVariant = Color(0xFF272727), onSurfaceVariant = Color(0xFFAAAAAA),
-        surfaceContainerLowest = Color(0xFF0A0A0A), surfaceContainerLow = Color(0xFF181818),
-        surfaceContainer = Color(0xFF212121), surfaceContainerHigh = Color(0xFF2C2C2C),
-        surfaceContainerHighest = Color(0xFF3A3A3A),
-        outline = Color(0xFF717171), outlineVariant = Color(0xFF303030),
+        background = Color(0xFF000000), onBackground = Color(0xFFF1F1F1),
+        surface = Color(0xFF000000), onSurface = Color(0xFFF1F1F1),
+        surfaceVariant = Color(0xFF1C1C1E), onSurfaceVariant = Color(0xFFAAAAAA),
+        surfaceContainerLowest = Color(0xFF000000), surfaceContainerLow = Color(0xFF141416),
+        surfaceContainer = Color(0xFF1C1C1E), surfaceContainerHigh = Color(0xFF2C2C2E),
+        surfaceContainerHighest = Color(0xFF3A3A3C),
+        outline = Color(0xFF717171), outlineVariant = Color(0x2BFFFFFF),
     )
 }
 
@@ -216,15 +217,15 @@ fun schemeForSeed(
         base.copy(
             background = Color.Black,
             surface = Color.Black,
-            surfaceVariant = Color(0xFF141414),
+            surfaceVariant = Color(0xFF1C1C1E),
             surfaceContainerLowest = Color.Black,
-            surfaceContainerLow = Color(0xFF050505),
-            surfaceContainer = Color(0xFF0C0C0C),
-            surfaceContainerHigh = Color(0xFF141414),
-            surfaceContainerHighest = Color(0xFF1E1E1E),
-            onBackground = Color(0xFFF5F5F5),
-            onSurface = Color(0xFFF5F5F5),
-            outlineVariant = Color(0xFF1F1F1F),
+            surfaceContainerLow = Color(0xFF121214),
+            surfaceContainer = Color(0xFF1C1C1E),
+            surfaceContainerHigh = Color(0xFF2C2C2E),
+            surfaceContainerHighest = Color(0xFF3A3A3C),
+            onBackground = Color.White,
+            onSurface = Color.White,
+            outlineVariant = Color(0x2BFFFFFF),
         )
     } else {
         base
@@ -467,15 +468,15 @@ fun DarkPlayerTheme(
         baseScheme.copy(
             background = Color.Black,
             surface = Color.Black,
-            surfaceVariant = Color(0xFF141414),
+            surfaceVariant = Color(0xFF1C1C1E),
             surfaceContainerLowest = Color.Black,
-            surfaceContainerLow = Color(0xFF050505),
-            surfaceContainer = Color(0xFF0C0C0C),
-            surfaceContainerHigh = Color(0xFF141414),
-            surfaceContainerHighest = Color(0xFF1E1E1E),
-            onBackground = Color(0xFFF5F5F5),
-            onSurface = Color(0xFFF5F5F5),
-            outlineVariant = Color(0xFF1F1F1F),
+            surfaceContainerLow = Color(0xFF121214),
+            surfaceContainer = Color(0xFF1C1C1E),
+            surfaceContainerHigh = Color(0xFF2C2C2E),
+            surfaceContainerHighest = Color(0xFF3A3A3C),
+            onBackground = Color.White,
+            onSurface = Color.White,
+            outlineVariant = Color(0x2BFFFFFF),
         )
     } else {
         baseScheme
@@ -488,8 +489,13 @@ fun DarkPlayerTheme(
         shapes = ExpressiveShapes,
         typography = Typography,
         motionScheme = MotionScheme.expressive(),
-        content = content,
-    )
+    ) {
+        ProvideGlasmioTheme(
+            isDark = darkTheme,
+            accent = colorScheme.primary,
+            content = content,
+        )
+    }
 }
 
 @Composable

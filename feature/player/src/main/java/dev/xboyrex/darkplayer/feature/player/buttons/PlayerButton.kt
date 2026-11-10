@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -24,9 +25,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
@@ -37,14 +41,16 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.unit.dp
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.ui.components.tvFocusRing
+import dev.xboyrex.darkplayer.core.ui.glass.InteractiveHighlight
+import dev.xboyrex.darkplayer.core.ui.glass.applyGlassDragScale
 import dev.xboyrex.darkplayer.feature.player.LocalHidePlayerButtonsBackground
 import dev.xboyrex.darkplayer.feature.player.LocalUseMaterialYouControls
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
-val PlayerButtonBlackAlpha = Color(0xFF141820).copy(alpha = 0.76f)
-private val PlayerSolidSurfaceColor = Color(0xFF1B202B)
+val PlayerButtonBlackAlpha = Color(0xFF1C1C1E).copy(alpha = 0.72f)
+private val PlayerSolidSurfaceColor = Color(0xFF1C1C1E)
 private val PlayerSolidPrimaryWhite = Color(0xFFFFFFFF)
 private val PlayerSolidOnWhite = Color(0xFF0A0E17)
 private val PlayerActiveAccent = Color(0xFFFACC15)
@@ -71,10 +77,14 @@ fun PlayerButton(
     val useSolidMode = LocalUseMaterialYouControls.current
     val hideBackground = LocalHidePlayerButtonsBackground.current
     val isPressed by interactionSource.collectIsPressedAsState()
+    val animationScope = rememberCoroutineScope()
+    val interactiveHighlight = remember(animationScope) {
+        InteractiveHighlight(animationScope = animationScope)
+    }
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.88f else 1f,
-        animationSpec = spring(dampingRatio = 0.58f, stiffness = 780f),
+        targetValue = if (isPressed && enabled) 1.08f else 1f,
+        animationSpec = spring(dampingRatio = 0.62f, stiffness = 620f),
         label = "playerButtonScale",
     )
 
@@ -104,15 +114,17 @@ fun PlayerButton(
     val targetContainerColor = when {
         hideBackground && !isPrimaryAction && !isActive -> Color.Transparent
         !enabled -> if (useSolidMode) PlayerSolidSurfaceColor.copy(alpha = 0.38f) else containerColor.copy(alpha = 0.28f)
-        useSolidMode && (isPrimaryAction || isActive) -> PlayerSolidPrimaryWhite
-        useSolidMode -> PlayerSolidSurfaceColor
-        isActive -> PlayerActiveAccent.copy(alpha = 0.22f)
+        isPrimaryAction -> PlayerSolidPrimaryWhite
+        isActive && useSolidMode -> PlayerSolidPrimaryWhite
+        isActive -> PlayerActiveAccent.copy(alpha = 0.26f)
+        useSolidMode -> PlayerSolidSurfaceColor.copy(alpha = 0.88f)
         else -> containerColor
     }
 
     val targetContentColor = when {
         !enabled -> Color.White.copy(alpha = 0.38f)
-        useSolidMode && (isPrimaryAction || isActive) -> PlayerSolidOnWhite
+        isPrimaryAction -> PlayerSolidOnWhite
+        isActive && useSolidMode -> PlayerSolidOnWhite
         isActive -> PlayerActiveAccent
         else -> Color.White
     }
@@ -129,14 +141,16 @@ fun PlayerButton(
     )
 
     val rippleConfiguration = RippleConfiguration(
-        color = if (useSolidMode && (isPrimaryAction || isActive)) Color.Black else Color.White,
+        color = if (isPrimaryAction || (useSolidMode && isActive)) Color.Black else Color.White,
         rippleAlpha = RippleAlpha(
-            pressedAlpha = 0.28f,
-            focusedAlpha = 0.28f,
-            draggedAlpha = 0.28f,
-            hoveredAlpha = 0.28f,
+            pressedAlpha = 0.24f,
+            focusedAlpha = 0.24f,
+            draggedAlpha = 0.24f,
+            hoveredAlpha = 0.24f,
         ),
     )
+
+    val showGlassChrome = !(hideBackground && !isPrimaryAction && !isActive)
 
     CompositionLocalProvider(
         LocalContentColor provides animatedFg,
@@ -145,11 +159,45 @@ fun PlayerButton(
         Box(
             modifier = modifier
                 .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
+                    applyGlassDragScale(
+                        pressProgress = interactiveHighlight.pressProgress,
+                        offset = interactiveHighlight.offset,
+                        nativeButtonLift = true,
+                    )
+                    scaleX *= scale
+                    scaleY *= scale
                 }
                 .clip(shape = shape)
                 .background(color = animatedBg, shape = shape)
+                .then(
+                    if (showGlassChrome) {
+                        Modifier
+                            .drawBehind {
+                                drawRect(
+                                    Brush.verticalGradient(
+                                        0f to Color.White.copy(alpha = if (isPrimaryAction) 0.32f else 0.16f),
+                                        0.5f to Color.Transparent,
+                                        1f to Color.Black.copy(alpha = 0.12f),
+                                    ),
+                                )
+                            }
+                            .border(
+                                width = 0.75.dp,
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        if (isActive && !useSolidMode) PlayerActiveAccent.copy(alpha = 0.65f)
+                                        else Color.White.copy(alpha = 0.34f),
+                                        Color.White.copy(alpha = 0.10f),
+                                    ),
+                                ),
+                                shape = shape,
+                            )
+                    } else {
+                        Modifier
+                    },
+                )
+                .then(if (enabled) interactiveHighlight.modifier else Modifier)
+                .then(if (enabled) interactiveHighlight.gestureModifier else Modifier)
                 .clickable(
                     interactionSource = interactionSource,
                     enabled = enabled,

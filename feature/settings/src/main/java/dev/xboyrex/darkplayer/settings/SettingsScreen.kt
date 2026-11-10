@@ -45,7 +45,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.NavigateNext
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.Equalizer
@@ -63,8 +62,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -94,6 +91,8 @@ import dev.xboyrex.darkplayer.core.ui.components.restorableFocusGroup
 import dev.xboyrex.darkplayer.core.ui.components.restorableFocusItem
 import dev.xboyrex.darkplayer.core.ui.display.ColoursAndDisplayEngineContent
 import dev.xboyrex.darkplayer.core.ui.display.RealityDisplayEngine
+import dev.xboyrex.darkplayer.core.ui.glass.GlasmioIconButton
+import dev.xboyrex.darkplayer.core.ui.glass.GlasmioSwitch
 import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
 import dev.xboyrex.darkplayer.core.ui.glass.Motion
 import dev.xboyrex.darkplayer.core.ui.glass.pressable
@@ -151,7 +150,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
 
     val isOverlayOpen = activeFloatingPanel != null || updateState.isPopupActive
     val blurRadius by animateDpAsState(
-        targetValue = if (isOverlayOpen && Build.VERSION.SDK_INT >= 31) 16.dp else 0.dp,
+        targetValue = if (isOverlayOpen && Build.VERSION.SDK_INT >= 31) 18.dp else 0.dp,
         animationSpec = tween(220),
         label = "ytxSettingsBlur",
     )
@@ -178,17 +177,12 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = statusTopInset + 8.dp, bottom = 8.dp, start = 14.dp, end = 16.dp),
+                        .padding(top = statusTopInset + 8.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF16181D))
-                            .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape)
-                            .pressable { onAction(SettingsAction.NavigateUp) },
-                        contentAlignment = Alignment.Center,
+                    GlasmioIconButton(
+                        onClick = { onAction(SettingsAction.NavigateUp) },
+                        size = 44.dp,
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
@@ -201,8 +195,8 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                     Text(
                         text = stringResource(id = R.string.settings),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
-                        letterSpacing = (-0.4).sp,
+                        fontSize = 24.sp,
+                        letterSpacing = (-0.5).sp,
                         color = Color.White,
                     )
                 }
@@ -218,7 +212,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                     .padding(horizontal = 16.dp)
                     .padding(top = 4.dp, bottom = navBottomInset + 36.dp),
             ) {
-                // ── 1. YTX Expandable Nova Engine Hub Card (Open/Close like YTX Profile Card) ──
+                // ── 1. Glasmio + YTX Expandable Nova Engine Hub Card ──
                 YtxSettingsCard {
                     val chevronRotation by animateFloatAsState(
                         targetValue = if (engineCardExpanded) 90f else 0f,
@@ -250,7 +244,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = "Nova Player Studio Engine",
+                                text = "Nova Player Studio & Glasmio Engine",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.5.sp,
                                 color = Color.White,
@@ -259,7 +253,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                             Text(
                                 text = "${RealityDisplayEngine.colourProfile.title} • ${RealityDisplayEngine.engineMode.title} • Dolby ${if (HardwareDolbyAndEqualizerEngine.dolbyEnabled) "ON" else "OFF"}",
                                 fontSize = 12.sp,
-                                color = Color(0xFF9E9E9E),
+                                color = Color(0xB2EBEBF5),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -267,7 +261,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
                             contentDescription = null,
-                            tint = Color(0xFF9E9E9E),
+                            tint = Color(0xB2EBEBF5),
                             modifier = Modifier
                                 .size(20.dp)
                                 .graphicsLayer { rotationZ = chevronRotation },
@@ -282,11 +276,11 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 14.dp)
+                                .padding(horizontal = 16.dp)
                                 .padding(bottom = 12.dp),
                         ) {
                             HorizontalDivider(
-                                color = Color.White.copy(alpha = 0.07f),
+                                color = Color(0x2BFFFFFF),
                                 modifier = Modifier.padding(bottom = 8.dp),
                             )
                             YtxSwitchRow(
@@ -302,8 +296,8 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                                 onCheckedChange = { HardwareDolbyAndEqualizerEngine.setEqualizerMasterEnabled(it) },
                             )
                             YtxSwitchRow(
-                                title = "YTX Liquid Glass Navigation",
-                                subtitle = "Refractive lens blur & spring pill physics on bottom bar",
+                                title = "Glasmio Liquid Glass UI & Navigation",
+                                subtitle = "iOS 27 refractive lens blur & spring pill physics enabled by default",
                                 checked = GlassSettings.enabled,
                                 onCheckedChange = { GlassSettings.updateEnabled(it) },
                             )
@@ -311,7 +305,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                     }
                 }
 
-                // ── 2. Display Engine & Audio Studio (Opens YTX Floating Blur Panels) ──
+                // ── 2. Display Engine & Audio Studio (Opens Glasmio Floating Blur Panels) ──
                 YtxSectionHeader(
                     title = "DISPLAY ENGINE & AUDIO STUDIO",
                     expanded = true,
@@ -348,7 +342,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                     )
                 }
 
-                // ── 3. Playback, Decoders & Gestures (Expandable YTX Section) ──
+                // ── 3. Playback, Decoders & Gestures ──
                 YtxSectionHeader(
                     title = "PLAYBACK, DECODERS & GESTURES",
                     expanded = playbackSectionExpanded,
@@ -394,7 +388,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                     }
                 }
 
-                // ── 4. Interface & Media Library (Expandable YTX Section) ──
+                // ── 4. Interface & Media Library ──
                 YtxSectionHeader(
                     title = "INTERFACE & MEDIA LIBRARY",
                     expanded = interfaceSectionExpanded,
@@ -424,7 +418,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                     }
                 }
 
-                // ── 5. General, Updates & About (YTX Style) ──
+                // ── 5. General, Updates & About ──
                 YtxSectionHeader(
                     title = "GENERAL & ABOUT NOVA PLAYER",
                     expanded = systemSectionExpanded,
@@ -452,8 +446,8 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                             trailing = {
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFF132818))
+                                        .clip(RoundedCornerShape(50))
+                                        .background(Color(0xFF30D158).copy(alpha = 0.16f))
                                         .padding(horizontal = 10.dp, vertical = 5.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
@@ -462,12 +456,12 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                                             modifier = Modifier
                                                 .size(6.dp)
                                                 .clip(CircleShape)
-                                                .background(Color(0xFF2ECC71)),
+                                                .background(Color(0xFF30D158)),
                                         )
                                         Spacer(Modifier.width(5.dp))
                                         Text(
                                             text = "Up to date",
-                                            color = Color(0xFF2ECC71),
+                                            color = Color(0xFF30D158),
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 11.sp,
                                         )
@@ -500,11 +494,11 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.42f)),
+                    .background(Color.Black.copy(alpha = 0.48f)),
             )
         }
 
-        // YTX-Style Animated Floating Settings Dialogs (Colours & Reality Display Engine / Audio Studio)
+        // Glasmio + YTX Animated Floating Settings Modal Sheets
         AnimatedContent(
             targetState = activeFloatingPanel,
             transitionSpec = {
@@ -526,7 +520,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                 YtxFloatingPanel.AUDIO_DOLBY_STUDIO -> {
                     YtxFloatingModal(
                         title = "Dolby Atmos & Equalizer",
-                        subtitle = "Hardware DAP, 20-Band GEQ & Dialogue Pre-Gain",
+                        subtitle = "Media3 PCM DSP, Hardware DAP & Dialogue Pre-Gain",
                         onDismiss = { activeFloatingPanel = null },
                     ) {
                         Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
@@ -552,7 +546,7 @@ private fun YtxSectionHeader(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(start = 6.dp, end = 6.dp, top = 18.dp, bottom = 8.dp),
+            .padding(start = 10.dp, end = 10.dp, top = 20.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -560,7 +554,7 @@ private fun YtxSectionHeader(
             text = title,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF9E9E9E),
+            color = Color(0xB2EBEBF5),
             letterSpacing = 0.6.sp,
         )
         if (onClick != null) {
@@ -572,7 +566,7 @@ private fun YtxSectionHeader(
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
                 contentDescription = null,
-                tint = Color(0xFF757575),
+                tint = Color(0xB2EBEBF5),
                 modifier = Modifier
                     .size(16.dp)
                     .graphicsLayer { rotationZ = rot },
@@ -589,9 +583,9 @@ private fun YtxSettingsCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF14161A))
-            .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(20.dp)),
+            .clip(RoundedCornerShape(26.dp))
+            .background(Color(0xFF1C1C1E))
+            .border(0.75.dp, Color(0x2BFFFFFF), RoundedCornerShape(26.dp)),
         content = content,
     )
 }
@@ -600,7 +594,8 @@ private fun YtxSettingsCard(
 private fun YtxDivider() {
     HorizontalDivider(
         modifier = Modifier.padding(horizontal = 16.dp),
-        color = Color.White.copy(alpha = 0.05f),
+        color = Color(0x2BFFFFFF),
+        thickness = 0.6.dp,
     )
 }
 
@@ -624,13 +619,14 @@ private fun YtxSettingsRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF1F2229)),
+                .background(Color(0xFF2C2C2E))
+                .border(0.6.dp, Color(0x2BFFFFFF), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -639,15 +635,15 @@ private fun YtxSettingsRow(
             Text(
                 text = title,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 15.sp,
+                fontSize = 15.5.sp,
                 color = Color.White,
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 text = subtitle,
-                fontSize = 12.sp,
+                fontSize = 12.5.sp,
                 lineHeight = 16.sp,
-                color = Color(0xFF9E9E9E),
+                color = Color(0xB2EBEBF5),
             )
         }
         if (trailing != null) {
@@ -658,8 +654,8 @@ private fun YtxSettingsRow(
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
                 contentDescription = null,
-                tint = Color(0xFF757575),
-                modifier = Modifier.size(18.dp),
+                tint = Color(0x4DEBEBF5),
+                modifier = Modifier.size(20.dp),
             )
         }
     }
@@ -672,7 +668,6 @@ private fun YtxSwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    val c = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -687,25 +682,20 @@ private fun YtxSwitchRow(
         ) {
             Text(
                 text = title,
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.5.sp,
                 color = Color.White,
             )
-            Spacer(Modifier.height(1.dp))
             Text(
                 text = subtitle,
-                color = Color(0xFF9E9E9E),
-                fontSize = 11.5.sp,
+                fontSize = 12.sp,
                 lineHeight = 15.sp,
+                color = Color(0xB2EBEBF5),
             )
         }
-        Switch(
+        GlasmioSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.Black,
-                checkedTrackColor = c.primary,
-            ),
         )
     }
 }
@@ -733,14 +723,14 @@ private fun YtxFloatingModal(
                 .widthIn(max = 440.dp)
                 .fillMaxWidth()
                 .heightIn(max = 680.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(Color(0xFF0E1014))
-                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(28.dp))
+                .clip(RoundedCornerShape(38.dp))
+                .background(Color(0xFF141416).copy(alpha = 0.96f))
+                .border(0.8.dp, Color(0x2BFFFFFF), RoundedCornerShape(38.dp))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                 ) {}
-                .padding(top = 18.dp, bottom = 8.dp),
+                .padding(top = 18.dp, bottom = 10.dp),
         ) {
             Row(
                 modifier = Modifier
@@ -758,16 +748,12 @@ private fun YtxFloatingModal(
                     Text(
                         text = subtitle,
                         fontSize = 12.sp,
-                        color = Color(0xFF9E9E9E),
+                        color = Color(0xB2EBEBF5),
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF1F2229))
-                        .clickable(onClick = onDismiss),
-                    contentAlignment = Alignment.Center,
+                GlasmioIconButton(
+                    onClick = onDismiss,
+                    size = 36.dp,
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
@@ -778,7 +764,7 @@ private fun YtxFloatingModal(
                 }
             }
             Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
+            HorizontalDivider(color = Color(0x2BFFFFFF), thickness = 0.6.dp)
             content()
         }
     }

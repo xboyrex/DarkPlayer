@@ -509,6 +509,7 @@ class PlayerService : MediaSessionService() {
     }
 
     private fun setEnhancerTargetGain(gain: Int) {
+        runCatching { HardwareDolbyAndEqualizerEngine.setVolumeBoostMb(gain) }
         val enhancer = loudnessEnhancer ?: return
 
         try {
@@ -940,9 +941,21 @@ class PlayerService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         decoderManager = DecoderManager()
-        val renderersFactory = NextRenderersFactory(
+        val renderersFactory = object : NextRenderersFactory(
             context = applicationContext,
-        )
+        ) {
+            override fun buildAudioSink(
+                context: android.content.Context,
+                enableFloatOutput: Boolean,
+                enableAudioTrackPlaybackParams: Boolean,
+            ): androidx.media3.exoplayer.audio.AudioSink {
+                return androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(enableFloatOutput)
+                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                    .setAudioProcessors(arrayOf(NovaDspAudioProcessor()))
+                    .build()
+            }
+        }
             .setDecoderManager(decoderManager = decoderManager)
             .setEnableDecoderFallback(true)
 
