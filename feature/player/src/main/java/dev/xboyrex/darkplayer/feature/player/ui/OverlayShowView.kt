@@ -15,6 +15,7 @@ import androidx.media3.common.Player
 import androidx.media3.extractor.metadata.Chapter
 import dev.xboyrex.darkplayer.core.model.VideoContentScale
 import dev.xboyrex.darkplayer.core.ui.audio.EqualizerAndDolbyStudioContent
+import dev.xboyrex.darkplayer.core.ui.display.ColoursAndDisplayEngineContent
 import dev.xboyrex.darkplayer.feature.player.extensions.noRippleClickable
 import dev.xboyrex.darkplayer.feature.player.state.SubtitleOptionsEvent
 import dev.xboyrex.darkplayer.feature.player.state.VolumeState
@@ -114,6 +115,13 @@ fun BoxScope.OverlayShowView(
     ) {
         EqualizerAndDolbyStudioContent()
     }
+
+    OverlayView(
+        show = overlayView == OverlayView.DISPLAY_ENGINE,
+        title = "Colours & Reality Display Engine",
+    ) {
+        ColoursAndDisplayEngineContent(showPreviewBanner = false)
+    }
 }
 
 val Configuration.isPortrait: Boolean
@@ -129,4 +137,5 @@ enum class OverlayView {
     CHAPTERS,
     SLEEP_TIMER,
     VOLUME_BOOSTER,
+    DISPLAY_ENGINE,
 }

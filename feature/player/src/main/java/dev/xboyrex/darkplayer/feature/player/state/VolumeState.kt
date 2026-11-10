@@ -70,7 +70,6 @@ class VolumeState(
     private var isLoudnessGainSupported: Boolean by mutableStateOf(value = enableVolumeBoost)
 
     var isDraggingVolume: Boolean = false
-    var onExternalVolumeChanged: (() -> Unit)? = null
 
     val maxVolume: Int
         get() = if (isLoudnessGainSupported) systemMaxVolume * 4 else systemMaxVolume
@@ -122,13 +121,11 @@ class VolumeState(
                             if (newSystemVolume != currentVolume) {
                                 currentVolume = newSystemVolume
                                 volumePercentage = calculateVolumePercentage()
-                                onExternalVolumeChanged?.invoke()
                             }
                         } else if (newSystemVolume < systemMaxVolume) {
                             currentVolume = newSystemVolume
                             volumePercentage = calculateVolumePercentage()
                             applyVolumeBoost(volume = 0)
-                            onExternalVolumeChanged?.invoke()
                         }
                     }
                 }

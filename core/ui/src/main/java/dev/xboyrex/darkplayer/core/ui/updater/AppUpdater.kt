@@ -5,7 +5,13 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import android.view.WindowManager
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,7 +50,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -59,15 +64,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.content.FileProvider
 import dev.xboyrex.darkplayer.core.ui.glass.RegisterPopupBlur
 import dev.xboyrex.darkplayer.core.ui.glass.pressable
@@ -105,9 +106,9 @@ internal val PROFESSIONAL_DEFAULT_SECTIONS = listOf(
         category = "NEW & HIGHLIGHTS",
         badgeColor = Color(0xFFFACC15),
         items = listOf(
-            "Frosted Slate-Navy Solid Player UI with instant controls, crisp dialogs & zero self-blur.",
-            "Redesigned Vertical Volume & Brightness Bar with expandable 5-channel Sound & Vibration panel.",
+            "NextPlayer-inspired Minimal Solid & Translucent Player UI with instant mode switching.",
             "Hardware Dolby Atmos DSP & 5-Band Studio Equalizer with Bass Boost, Reverb & Virtualizer.",
+            "Animated 2x–4x (up to 400% / +40 dB) Hardware LoudnessEnhancer Volume Boost with live tier badge.",
             "Interactive Haptic Speed Ruler (0.25x–4.0x) with 2x hold-to-boost & A–B Repeat loop control.",
         ),
     ),
@@ -125,9 +126,9 @@ internal val PROFESSIONAL_DEFAULT_SECTIONS = listOf(
         category = "INTERFACE, HUB & STABILITY",
         badgeColor = Color(0xFF34D399),
         items = listOf(
-            "Instant splash-free app startup with silent background OTA update checks.",
+            "Redesigned Enso Play Adaptive Launcher Icon & Top 10 signature Nova Player color palettes.",
             "Fixed Hub navigation for Private Vault, Trash, History, Settings & external video file picker.",
-            "Cinematic bottom navigation bar & smooth window-level backdrop blur behind active popups.",
+            "Cinematic bottom navigation bar footer vignette shadow & smooth popup background blur.",
         ),
     ),
 )
@@ -189,6 +190,7 @@ internal fun parseStructuredChangelog(rawNotes: String): List<ChangelogSection> 
         sections.add(ChangelogSection(currentTitle, currentColor, currentItems.toList()))
     }
 
+    // If remote release notes are very short (e.g., 1-2 lines), append the full engine feature breakdown
     val totalBullets = sections.sumOf { it.items.size }
     if (totalBullets < 4) {
         return sections + PROFESSIONAL_DEFAULT_SECTIONS
@@ -211,8 +213,6 @@ class UpdateState(private val scope: CoroutineScope) {
         private set
     var checking by mutableStateOf(false)
         private set
-    var manualChecking by mutableStateOf(false)
-        private set
     var downloading by mutableStateOf(false)
         private set
     var progress by mutableFloatStateOf(0f)
@@ -225,7 +225,7 @@ class UpdateState(private val scope: CoroutineScope) {
     var showChangelogInStatus by mutableStateOf(false)
 
     val isPopupActive: Boolean
-        get() = (visible && info != null) || manualChecking || message != null
+        get() = (visible && info != null) || checking || message != null
 
     private var downloadJob: Job? = null
 
@@ -237,7 +237,6 @@ class UpdateState(private val scope: CoroutineScope) {
     fun check(context: Context, manual: Boolean = false) {
         if (checking) return
         checking = true
-        manualChecking = manual
         if (manual) {
             message = null
             showChangelogInStatus = false
@@ -248,10 +247,9 @@ class UpdateState(private val scope: CoroutineScope) {
                 runCatching { fetchLatest(installedVersion) }.getOrNull()
             }
             checking = false
-            manualChecking = false
             if (latest == null) {
                 if (manual) {
-                    message = "You're running the latest Dark Player (v$installedVersion) by @xboyrex."
+                    message = "You're running the latest Nova Player (v$installedVersion) by @xboyrex."
                 }
                 return@launch
             }
@@ -297,7 +295,7 @@ class UpdateState(private val scope: CoroutineScope) {
     fun install(context: Context) {
         val file = downloaded ?: return
         if (Build.VERSION.SDK_INT >= 26 && !context.packageManager.canRequestPackageInstalls()) {
-            error = "Allow installs from Dark Player, then tap Install again."
+            error = "Allow installs from Nova Player, then tap Install again."
             runCatching {
                 context.startActivity(
                     Intent(
@@ -486,22 +484,6 @@ private fun formatUpdateSize(bytes: Long): String = when {
 }
 
 @Composable
-private fun ApplyDialogWindowBlur() {
-    val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
-    SideEffect {
-        dialogWindowProvider?.window?.let { window ->
-            window.setDimAmount(0.54f)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-                window.attributes = window.attributes.apply {
-                    blurBehindRadius = 46
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun ProfessionalChangelogView(
     rawNotes: String,
     modifier: Modifier = Modifier,
@@ -511,8 +493,8 @@ private fun ProfessionalChangelogView(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF161B26))
-            .border(0.8.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+            .background(Color.White.copy(alpha = 0.04f))
+            .border(0.8.dp, Color.White.copy(alpha = 0.09f), RoundedCornerShape(16.dp))
             .padding(14.dp)
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -553,7 +535,7 @@ private fun ProfessionalChangelogView(
                         )
                         Text(
                             text = bullet,
-                            color = Color.White.copy(alpha = 0.94f),
+                            color = Color.White.copy(alpha = 0.90f),
                             fontSize = 12.5.sp,
                             lineHeight = 17.5.sp,
                             modifier = Modifier.weight(1f),
@@ -562,7 +544,7 @@ private fun ProfessionalChangelogView(
                 }
             }
             if (idx < sections.lastIndex) {
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
             }
         }
     }
@@ -576,26 +558,28 @@ fun UpdateOverlayDialog(state: UpdateState) {
 
     RegisterPopupBlur(active = state.isPopupActive)
 
-    // 1. Update Available Modal (rendered in its own sharp Dialog window so it is NEVER blurred)
-    if (state.visible && update != null) {
-        Dialog(
-            onDismissRequest = { state.dismiss() },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-                dismissOnBackPress = !state.downloading,
-                dismissOnClickOutside = !state.downloading,
-                decorFitsSystemWindows = false,
-            ),
+    AnimatedVisibility(
+        visible = state.visible && update != null,
+        enter = fadeIn(tween(180)),
+        exit = fadeOut(tween(150)),
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.56f))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) { state.dismiss() },
+            contentAlignment = Alignment.Center,
         ) {
-            ApplyDialogWindowBlur()
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) { state.dismiss() },
-                contentAlignment = Alignment.Center,
+            AnimatedVisibility(
+                visible = state.visible,
+                enter = scaleIn(
+                    animationSpec = spring(dampingRatio = 0.78f, stiffness = 380f),
+                    initialScale = 0.86f,
+                ) + fadeIn(tween(220)),
+                exit = scaleOut(tween(140), targetScale = 0.94f) + fadeOut(tween(140)),
             ) {
                 Column(
                     modifier = Modifier
@@ -604,13 +588,13 @@ fun UpdateOverlayDialog(state: UpdateState) {
                         .fillMaxWidth()
                         .shadow(28.dp, RoundedCornerShape(26.dp))
                         .clip(RoundedCornerShape(26.dp))
-                        .background(Color(0xFF212633))
+                        .background(Color(0xFF101520).copy(alpha = 0.97f))
                         .border(
                             width = 1.dp,
                             brush = Brush.verticalGradient(
                                 listOf(
                                     Color.White.copy(alpha = 0.22f),
-                                    Color.White.copy(alpha = 0.10f),
+                                    Color.White.copy(alpha = 0.08f),
                                 ),
                             ),
                             shape = RoundedCornerShape(26.dp),
@@ -626,8 +610,8 @@ fun UpdateOverlayDialog(state: UpdateState) {
                             Modifier
                                 .size(46.dp)
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(c.primary.copy(alpha = 0.18f))
-                                .border(1.dp, c.primary.copy(alpha = 0.38f), RoundedCornerShape(14.dp)),
+                                .background(c.primary.copy(alpha = 0.16f))
+                                .border(1.dp, c.primary.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
@@ -652,11 +636,11 @@ fun UpdateOverlayDialog(state: UpdateState) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(c.primary.copy(alpha = 0.22f))
+                                        .background(c.primary.copy(alpha = 0.20f))
                                         .padding(horizontal = 6.dp, vertical = 2.dp),
                                 ) {
                                     Text(
-                                        text = "v${update.version}",
+                                        text = "v${update?.version.orEmpty()}",
                                         color = c.primary,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
@@ -666,12 +650,12 @@ fun UpdateOverlayDialog(state: UpdateState) {
                             Spacer(Modifier.height(2.dp))
                             Text(
                                 buildString {
-                                    append(update.apkName)
-                                    val sz = formatUpdateSize(update.sizeBytes)
+                                    append(update?.apkName ?: "DarkPlayer.apk")
+                                    val sz = formatUpdateSize(update?.sizeBytes ?: 0L)
                                     if (sz.isNotBlank()) append(" · $sz")
-                                    if (update.publishedAt.isNotBlank()) append(" · ${update.publishedAt}")
+                                    if (!update?.publishedAt.isNullOrBlank()) append(" · ${update?.publishedAt}")
                                 },
-                                color = Color.White.copy(alpha = 0.72f),
+                                color = Color.White.copy(alpha = 0.65f),
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
@@ -688,7 +672,7 @@ fun UpdateOverlayDialog(state: UpdateState) {
                             Icon(
                                 Icons.Rounded.Close,
                                 contentDescription = "Close update dialog",
-                                tint = Color.White.copy(alpha = 0.78f),
+                                tint = Color.White.copy(alpha = 0.7f),
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -715,7 +699,7 @@ fun UpdateOverlayDialog(state: UpdateState) {
                     Spacer(Modifier.height(8.dp))
 
                     ProfessionalChangelogView(
-                        rawNotes = update.notes.trim().ifBlank { DEFAULT_RELEASE_NOTES },
+                        rawNotes = update?.notes?.trim()?.ifBlank { DEFAULT_RELEASE_NOTES } ?: DEFAULT_RELEASE_NOTES,
                         modifier = Modifier.heightIn(max = 260.dp),
                     )
 
@@ -738,12 +722,12 @@ fun UpdateOverlayDialog(state: UpdateState) {
                                 .height(6.dp)
                                 .clip(CircleShape),
                             color = c.primary,
-                            trackColor = Color.White.copy(alpha = 0.14f),
+                            trackColor = Color.White.copy(alpha = 0.12f),
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            "${(state.progress * 100).toInt()}% · downloading ${update.apkName}",
-                            color = Color.White.copy(alpha = 0.78f),
+                            "${(state.progress * 100).toInt()}% · downloading ${update?.apkName ?: "DarkPlayer.apk"}",
+                            color = Color.White.copy(alpha = 0.7f),
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Medium,
                         )
@@ -762,7 +746,7 @@ fun UpdateOverlayDialog(state: UpdateState) {
                         ) {
                             Text(
                                 "Later",
-                                color = Color.White.copy(alpha = 0.80f),
+                                color = Color.White.copy(alpha = 0.72f),
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
@@ -799,8 +783,8 @@ fun UpdateOverlayDialog(state: UpdateState) {
                     }
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Official GitHub Release · github.com/xboyrex/DarkPlayer (${update.tag})",
-                        color = Color.White.copy(alpha = 0.56f),
+                        "Official GitHub Release · github.com/xboyrex/DarkPlayer (${update?.tag.orEmpty()})",
+                        color = Color.White.copy(alpha = 0.50f),
                         fontSize = 10.5.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
@@ -810,171 +794,160 @@ fun UpdateOverlayDialog(state: UpdateState) {
         }
     }
 
-    // 2. Manual Check / Up-to-date Modal (rendered in its own sharp Dialog window so it is NEVER blurred)
-    if (state.manualChecking || state.message != null) {
-        Dialog(
-            onDismissRequest = {
-                if (!state.manualChecking) {
-                    state.message = null
-                    state.showChangelogInStatus = false
-                }
-            },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-                dismissOnBackPress = !state.manualChecking,
-                dismissOnClickOutside = !state.manualChecking,
-                decorFitsSystemWindows = false,
-            ),
+    // Status modal when manually checking and already up to date (with expandable Full Changelog)
+    AnimatedVisibility(
+        visible = state.checking || state.message != null,
+        enter = scaleIn(spring(dampingRatio = 0.8f, stiffness = 400f), initialScale = 0.88f) + fadeIn(tween(160)),
+        exit = scaleOut(tween(120), targetScale = 0.92f) + fadeOut(tween(120)),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.52f))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {
+                        if (!state.checking) {
+                            state.message = null
+                            state.showChangelogInStatus = false
+                        }
+                    },
+                ),
+            contentAlignment = Alignment.Center,
         ) {
-            ApplyDialogWindowBlur()
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .padding(horizontal = 20.dp)
+                    .widthIn(max = 400.dp)
+                    .fillMaxWidth()
+                    .shadow(28.dp, RoundedCornerShape(26.dp))
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(Color(0xFF101520).copy(alpha = 0.96f))
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.22f),
+                                Color.White.copy(alpha = 0.08f),
+                            ),
+                        ),
+                        shape = RoundedCornerShape(26.dp),
+                    )
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                        onClick = {
-                            if (!state.manualChecking) {
-                                state.message = null
-                                state.showChangelogInStatus = false
-                            }
-                        },
-                    ),
-                contentAlignment = Alignment.Center,
+                    ) { }
+                    .padding(22.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Column(
-                    modifier = Modifier
-                        .padding(horizontal = 20.dp)
-                        .widthIn(max = 400.dp)
-                        .fillMaxWidth()
-                        .shadow(28.dp, RoundedCornerShape(26.dp))
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(Color(0xFF212633))
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.verticalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.22f),
-                                    Color.White.copy(alpha = 0.10f),
-                                ),
-                            ),
-                            shape = RoundedCornerShape(26.dp),
+                if (state.checking) {
+                    CircularProgressIndicator(
+                        color = c.primary,
+                        strokeWidth = 3.5.dp,
+                        modifier = Modifier.size(40.dp),
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = "Checking for updates…",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                        color = Color.White,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Connecting to github.com/xboyrex/DarkPlayer…",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.7f),
+                    )
+                } else if (state.message != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF132A1C))
+                            .border(1.dp, Color(0xFF2ECC71).copy(alpha = 0.35f), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Rounded.Check,
+                            contentDescription = null,
+                            tint = Color(0xFF2ECC71),
+                            modifier = Modifier.size(24.dp),
                         )
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) { }
-                        .padding(22.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    if (state.manualChecking) {
-                        CircularProgressIndicator(
-                            color = c.primary,
-                            strokeWidth = 3.5.dp,
-                            modifier = Modifier.size(40.dp),
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            text = "Checking for updates…",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp,
-                            color = Color.White,
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = "Connecting to github.com/xboyrex/DarkPlayer…",
-                            fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.74f),
-                        )
-                    } else if (state.message != null) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF153121))
-                                .border(1.dp, Color(0xFF2ECC71).copy(alpha = 0.45f), CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Rounded.Check,
-                                contentDescription = null,
-                                tint = Color(0xFF2ECC71),
-                                modifier = Modifier.size(25.dp),
-                            )
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = "Up to date",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 19.sp,
-                            color = Color.White,
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = state.message.orEmpty(),
-                            fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.82f),
-                            textAlign = TextAlign.Center,
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = "Up to date",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = Color.White,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = state.message.orEmpty(),
+                        fontSize = 12.5.sp,
+                        color = Color.White.copy(alpha = 0.75f),
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(12.dp))
+
+                    if (state.showChangelogInStatus) {
+                        ProfessionalChangelogView(
+                            rawNotes = state.info?.notes?.ifBlank { DEFAULT_RELEASE_NOTES } ?: DEFAULT_RELEASE_NOTES,
+                            modifier = Modifier.heightIn(max = 240.dp),
                         )
                         Spacer(Modifier.height(14.dp))
+                    }
 
-                        if (state.showChangelogInStatus) {
-                            ProfessionalChangelogView(
-                                rawNotes = state.info?.notes?.ifBlank { DEFAULT_RELEASE_NOTES } ?: DEFAULT_RELEASE_NOTES,
-                                modifier = Modifier.heightIn(max = 240.dp),
-                            )
-                            Spacer(Modifier.height(14.dp))
-                        }
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White.copy(alpha = 0.08f))
+                                .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(12.dp))
+                                .pressable { state.showChangelogInStatus = !state.showChangelogInStatus }
+                                .padding(horizontal = 14.dp, vertical = 9.dp),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color.White.copy(alpha = 0.10f))
-                                    .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(12.dp))
-                                    .pressable { state.showChangelogInStatus = !state.showChangelogInStatus }
-                                    .padding(horizontal = 14.dp, vertical = 9.dp),
-                                contentAlignment = Alignment.Center,
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Description,
-                                        contentDescription = null,
-                                        tint = c.primary,
-                                        modifier = Modifier.size(15.dp),
-                                    )
-                                    Text(
-                                        text = if (state.showChangelogInStatus) "Hide Changelog" else "View Changelog",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 12.5.sp,
-                                    )
-                                }
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(c.primary)
-                                    .pressable {
-                                        state.message = null
-                                        state.showChangelogInStatus = false
-                                    }
-                                    .padding(horizontal = 24.dp, vertical = 9.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Description,
+                                    contentDescription = null,
+                                    tint = c.primary,
+                                    modifier = Modifier.size(15.dp),
+                                )
                                 Text(
-                                    text = "OK",
-                                    color = c.onPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
+                                    text = if (state.showChangelogInStatus) "Hide Changelog" else "View Changelog",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.5.sp,
                                 )
                             }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(c.primary)
+                                .pressable {
+                                    state.message = null
+                                    state.showChangelogInStatus = false
+                                }
+                                .padding(horizontal = 24.dp, vertical = 9.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "OK",
+                                color = c.onPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                            )
                         }
                     }
                 }

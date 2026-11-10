@@ -77,6 +77,7 @@ import dev.xboyrex.darkplayer.core.ui.components.thenIf
 import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
 import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
 import dev.xboyrex.darkplayer.core.ui.glass.Motion
+import dev.xboyrex.darkplayer.core.ui.glass.popupBackgroundBlur
 import dev.xboyrex.darkplayer.core.ui.theme.DarkPlayerTheme
 import dev.xboyrex.darkplayer.core.ui.theme.ThemeState
 import dev.xboyrex.darkplayer.core.ui.updater.UpdateOverlayDialog
@@ -131,8 +132,6 @@ class MainActivity : FragmentActivity() {
 
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        val splashScreen = installSplashScreen()
-        splashScreen.setKeepOnScreenCondition { false }
         super.onCreate(savedInstanceState)
         GlassSettings.init(this)
         GlassQuality.init(this)
@@ -144,12 +143,14 @@ class MainActivity : FragmentActivity() {
         mediaService.initialize(activity = this)
         systemService.initialize(activity = this)
 
+        installSplashScreen()
+        window.setBackgroundDrawableResource(android.R.color.black)
+
         setContent {
             val state by viewModel.state.collectAsStateWithLifecycle()
             val shouldUseDarkTheme = shouldUseDarkTheme(state = state)
             val updateState = rememberUpdateState()
 
-            // Run update check silently in the background on startup
             LaunchedEffect(Unit) {
                 updateState.check(context = this@MainActivity, manual = false)
             }
@@ -227,6 +228,9 @@ class MainActivity : FragmentActivity() {
                                 fabStates = fabStates,
                                 showNavigation = showNavigation,
                                 showBottomBar = showBottomBar,
+                                modifier = Modifier.popupBackgroundBlur(
+                                    extraBlur = updateState.isPopupActive,
+                                ),
                             ) { contentPadding ->
                                 val railPadding = contentPadding.calculateStartPadding(
                                     layoutDirection = layoutDirection,
@@ -353,27 +357,8 @@ private fun NavigationLayout(
         0.dp
     }
 
-    var launched by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { launched = true }
-    val launchAlpha by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (launched) 1f else 0f,
-        animationSpec = tween(durationMillis = 320, easing = Motion.Emphasized),
-        label = "launchAlpha",
-    )
-    val launchScale by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (launched) 1f else 0.97f,
-        animationSpec = tween(durationMillis = 380, easing = Motion.Emphasized),
-        label = "launchScale",
-    )
-
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                alpha = launchAlpha
-                scaleX = launchScale
-                scaleY = launchScale
-            },
+        modifier = modifier.fillMaxSize(),
     ) {
         Box(
             modifier = Modifier

@@ -1172,32 +1172,33 @@ private fun SelectionActionsSheet(
         enter = slideInVertically { it },
         exit = slideOutVertically { it },
     ) {
-        val shape = MaterialTheme.shapes.largeIncreased.copy(
-            bottomStart = ZeroCornerSize,
-            bottomEnd = ZeroCornerSize,
-        )
-        Column(modifier = Modifier.fillMaxWidth()) {
+        val shape = RoundedCornerShape(28.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
             Row(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .fillMaxWidth()
+                    .clip(shape = shape)
                     .background(
-                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        color = androidx.compose.ui.graphics.Color(0xFF181A20),
                         shape = shape,
                     )
-                    .clip(shape = shape)
                     .horizontalScroll(state = rememberScrollState())
                     .thenIf(condition = isTv) {
                         focusRestorer(fallback = firstActionFocusRequester).focusGroup()
                             .focusProperties { up = contentFocusRequester }
                     }
-                    .navigationBarsPadding()
                     .padding(
-                        horizontal = 8.dp,
-                        vertical = 12.dp,
+                        horizontal = 10.dp,
+                        vertical = 8.dp,
                     ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
             ) {
                 SelectionAction(
                     modifier = Modifier.thenIf(condition = isTv) {

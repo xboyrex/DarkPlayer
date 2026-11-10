@@ -65,8 +65,6 @@ class VolumeAndBrightnessGestureState(
     var isDragging: Boolean by mutableStateOf(value = false)
         private set
 
-    var showSoundAndVibrationPanel: Boolean by mutableStateOf(value = false)
-
     var volumeChangePercentage: Int by mutableIntStateOf(value = 0)
         private set
 
@@ -79,27 +77,6 @@ class VolumeAndBrightnessGestureState(
     private var currentBrightnessFloat = 0f
     private var viewHeightPx = 1080f
     private var job: Job? = null
-
-    fun showGesturePillTemporarily(gesture: VerticalGesture = VerticalGesture.VOLUME) {
-        job?.cancel()
-        volumeState.syncWithSystem()
-        activeGesture = gesture
-        job = coroutineScope.launch {
-            delay(2200.milliseconds)
-            activeGesture = null
-        }
-    }
-
-    fun openSoundAndVibrationPanel() {
-        job?.cancel()
-        activeGesture = null
-        isDragging = false
-        showSoundAndVibrationPanel = true
-    }
-
-    fun closeSoundAndVibrationPanel() {
-        showSoundAndVibrationPanel = false
-    }
 
     fun onDragStart(offset: Offset, size: IntSize) {
         val viewCenterX = size.width / 2
@@ -124,7 +101,7 @@ class VolumeAndBrightnessGestureState(
         if (!isDragging) return
 
         // Normalized sensitivity: dragging ~65% of screen height covers 0..100% at default 0.5f sensitivity
-        val baseSpan = viewHeightPx * 0.65f
+        val baseSpan = viewHeightPx * 0.52f
         when (activeGesture) {
             VerticalGesture.VOLUME -> {
                 val maxVolumePercentage = volumeState.maxVolumePercentage
@@ -161,6 +138,15 @@ class VolumeAndBrightnessGestureState(
         }
     }
 
+    fun cancelImmediate() {
+        job?.cancel()
+        isDragging = false
+        volumeState.isDraggingVolume = false
+        activeGesture = null
+        volumeChangePercentage = 0
+        brightnessChangePercentage = 0
+    }
+
     fun onDragEnd() {
         isDragging = false
         volumeState.isDraggingVolume = false
@@ -169,7 +155,7 @@ class VolumeAndBrightnessGestureState(
 
         job?.cancel()
         job = coroutineScope.launch {
-            delay(1800.milliseconds)
+            delay(850.milliseconds)
             activeGesture = null
             volumeChangePercentage = 0
             brightnessChangePercentage = 0

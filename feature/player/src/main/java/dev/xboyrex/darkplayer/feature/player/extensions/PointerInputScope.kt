@@ -138,7 +138,8 @@ suspend fun PointerInputScope.detectCustomHorizontalDragGestures(
         val drag = awaitHorizontalTouchSlopOrCancellation(down.id) { change, over ->
             val totalDx = abs(change.position.x - down.position.x)
             val totalDy = abs(change.position.y - down.position.y)
-            if (totalDy > totalDx) {
+            // Strict horizontal lock: only reject if movement is strongly vertical (dy > dx * 1.35f)
+            if (totalDy > totalDx * 1.35f) {
                 rejectedAsVertical = true
             } else if (shouldStartGesture(down.position)) {
                 change.consume()
@@ -190,7 +191,8 @@ suspend fun PointerInputScope.detectCustomVerticalDragGestures(
         val drag = awaitVerticalTouchSlopOrCancellation(down.id) { change, over ->
             val totalDx = abs(change.position.x - down.position.x)
             val totalDy = abs(change.position.y - down.position.y)
-            if (totalDx > totalDy) {
+            // Strict vertical angle requirement: dy must be at least 2.2x dx so horizontal skip/seek never triggers volume/brightness
+            if (totalDx * 2.2f > totalDy) {
                 rejectedAsHorizontal = true
             } else if (shouldStartGesture(down.position)) {
                 change.consume()
@@ -198,7 +200,8 @@ suspend fun PointerInputScope.detectCustomVerticalDragGestures(
             }
         }
         if (drag != null && !rejectedAsHorizontal && shouldStartGesture(down.position) &&
-            currentEvent.changes.count { it.pressed } == 1
+            currentEvent.changes.count { it.pressed } == 1 &&
+            abs(drag.position.y - down.position.y) > abs(drag.position.x - down.position.x) * 2.2f
         ) {
             onDragStart.invoke(drag.position)
             try {

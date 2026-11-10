@@ -150,6 +150,73 @@ fun EqualizerAndDolbyStudioContent(
             }
         }
 
+        // Force Audio Booster & Low-Sound Dialogue Normalization Card
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color(0xFF161922))
+                .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Low-Sound Fix & Dialogue Pre-Gain",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                    )
+                    Text(
+                        text = "Boosts quiet 5.1/7.1 movie dialogue & forces EQ/Dolby on all codecs",
+                        color = Color.White.copy(alpha = 0.68f),
+                        fontSize = 11.5.sp,
+                    )
+                }
+                Switch(
+                    checked = HardwareDolbyAndEqualizerEngine.lowSoundNormalizeEnabled,
+                    onCheckedChange = { HardwareDolbyAndEqualizerEngine.setLowSoundNormalize(it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.Black,
+                        checkedTrackColor = accentGold,
+                    ),
+                )
+            }
+            val boostPct = ((HardwareDolbyAndEqualizerEngine.volumeBoostGainMb / 4000f) * 300f).roundToInt() + 100
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Master Audio Booster",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "${boostPct}%",
+                    color = accentGold,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                )
+            }
+            Slider(
+                value = HardwareDolbyAndEqualizerEngine.volumeBoostGainMb.toFloat(),
+                onValueChange = { HardwareDolbyAndEqualizerEngine.setVolumeBoostMb(it.roundToInt()) },
+                valueRange = 0f..4000f,
+                colors = SliderDefaults.colors(
+                    thumbColor = accentGold,
+                    activeTrackColor = accentGold,
+                ),
+            )
+        }
+
         if (selectedTab == 0) {
             EqualizerPanelContent(accentBlue = accentBlue, accentGold = accentGold)
         } else {

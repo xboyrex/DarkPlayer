@@ -22,7 +22,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.NavigateNext
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.DarkMode
+import dev.xboyrex.darkplayer.core.ui.display.RealityDisplayEngine
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -97,8 +99,7 @@ fun ControlsBottomView(
     onPlayInBackgroundClick: () -> Unit,
     onSleepTimerClick: () -> Unit = {},
     onVolumeBoosterClick: () -> Unit = {},
-    onVolumeButtonClick: (() -> Unit)? = null,
-    onVolumeButtonLongClick: (() -> Unit)? = null,
+    onDisplayEngineClick: () -> Unit = {},
     onSeek: (Long) -> Unit,
     onSeekEnd: () -> Unit,
 ) {
@@ -291,25 +292,10 @@ fun ControlsBottomView(
             PlayerButton(
                 isActive = isMuted,
                 onClick = {
-                    if (onVolumeButtonClick != null) {
-                        onVolumeButtonClick()
-                    } else {
-                        player?.let { p ->
-                            val nextMuted = !isMuted
-                            p.volume = if (nextMuted) 0f else 1f
-                            isMuted = nextMuted
-                        }
-                    }
-                },
-                onLongClick = {
-                    if (onVolumeButtonLongClick != null) {
-                        onVolumeButtonLongClick()
-                    } else {
-                        player?.let { p ->
-                            val nextMuted = !isMuted
-                            p.volume = if (nextMuted) 0f else 1f
-                            isMuted = nextMuted
-                        }
+                    player?.let { p ->
+                        val nextMuted = !isMuted
+                        p.volume = if (nextMuted) 0f else 1f
+                        isMuted = nextMuted
                     }
                 },
             ) {
@@ -319,27 +305,16 @@ fun ControlsBottomView(
                     } else {
                         Icons.AutoMirrored.Rounded.VolumeUp
                     },
-                    contentDescription = "Volume & Sound Panel",
+                    contentDescription = "Mute",
                 )
             }
-            val abStart = HardwareDolbyAndEqualizerEngine.abRepeatStartMs
-            val abEnd = HardwareDolbyAndEqualizerEngine.abRepeatEndMs
             PlayerButton(
-                isActive = abStart != null,
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                onClick = {
-                    HardwareDolbyAndEqualizerEngine.cycleAbRepeat(progressState.currentPositionMs)
-                },
+                isActive = RealityDisplayEngine.isProcessingActive,
+                onClick = onDisplayEngineClick,
             ) {
-                Text(
-                    text = when {
-                        abStart != null && abEnd != null -> "A-B"
-                        abStart != null -> "A-"
-                        else -> "A-B"
-                    },
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (abStart != null) Color(0xFF0A0E17) else Color.White,
+                Icon(
+                    imageVector = Icons.Rounded.ColorLens,
+                    contentDescription = "Reality Display Engine",
                 )
             }
             PlayerButton(onClick = onPlayInBackgroundClick) {

@@ -1,6 +1,7 @@
 package dev.xboyrex.darkplayer.feature.videopicker.composables
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,8 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
@@ -25,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
@@ -103,44 +107,52 @@ private fun FolderListItem(
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
+    val c = MaterialTheme.colorScheme
     NextSegmentedListItem(
         modifier = modifier,
         selected = selected,
-        contentPadding = PaddingValues(8.dp),
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
         colors = ListItemDefaults.segmentedColors(
+            containerColor = Color(0xFF14161A),
             contentColor = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
-                MaterialTheme.colorScheme.primary
+                c.primary
             } else {
-                MaterialTheme.colorScheme.onSurface
+                c.onSurface
             },
-            supportingContentColor = if (isRecentlyPlayedFolder &&
-                preferences.markLastPlayedMedia
-            ) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+            supportingContentColor = c.onSurfaceVariant,
+            selectedContainerColor = c.primary.copy(alpha = 0.16f),
         ),
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
         onClick = onClick,
         onLongClick = onLongClick,
         leadingContent = {
-            Box(modifier = Modifier.padding(horizontal = 8.dp)) {
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .width(min(86.dp, LocalConfiguration.current.screenWidthDp.dp * 0.26f))
+                    .aspectRatio(20f / 16f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF1E222B),
+                                Color(0xFF15181F),
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (selected) c.primary.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.08f),
+                        shape = RoundedCornerShape(16.dp),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
                 Icon(
                     imageVector = ImageVector.vectorResource(id = R.drawable.folder_thumb),
                     contentDescription = "",
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
-                    modifier = Modifier
-                        .width(
-                            width = min(
-                                90.dp,
-                                b =
-                                    LocalConfiguration.current.screenWidthDp.dp * 0.3f,
-                            ),
-                        )
-                        .aspectRatio(ratio = 20 / 17f),
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.size(38.dp),
                 )
 
                 if (preferences.showFolderDurationField) {
@@ -148,18 +160,19 @@ private fun FolderListItem(
                         text = Utils.formatDurationMillis(folder.totalDuration),
                         modifier = Modifier
                             .padding(5.dp)
-                            .padding(bottom = 3.dp)
                             .align(Alignment.BottomEnd),
-                        backgroundColor = Color.Black.copy(alpha = 0.72f),
+                        backgroundColor = Color.Black.copy(alpha = 0.78f),
                         contentColor = Color.White,
-                        shape = MaterialTheme.shapes.extraSmall,
+                        shape = RoundedCornerShape(6.dp),
                     )
                 }
 
                 if (folder.newVideosCount > 0) {
                     NewVideosCountBadge(
                         count = folder.newVideosCount,
-                        modifier = Modifier.align(Alignment.TopEnd),
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .align(Alignment.TopEnd),
                     )
                 }
             }
@@ -169,33 +182,35 @@ private fun FolderListItem(
                 text = folder.name,
                 maxLines = 2,
                 style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
                 overflow = TextOverflow.Ellipsis,
             )
         },
         supportingContent = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+                modifier = Modifier.padding(top = 2.dp),
             ) {
                 if (preferences.showPathField) {
                     Text(
                         text = folder.path.substringBeforeLast(delimiter = "/"),
-                        maxLines = 2,
+                        maxLines = 1,
                         style = MaterialTheme.typography.bodySmall,
+                        color = c.onSurfaceVariant.copy(alpha = 0.75f),
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
                     if (folder.videosCount > 0) {
                         InfoChip(
                             text = "${folder.videosCount} " +
                                 stringResource(
-                                    id =
-                                        R.string.video.takeIf { folder.videosCount == 1 }
-                                            ?: R.string.videos,
+                                    id = R.string.video.takeIf { folder.videosCount == 1 }
+                                        ?: R.string.videos,
                                 ),
                         )
                     }
@@ -203,9 +218,8 @@ private fun FolderListItem(
                         InfoChip(
                             text = "${folder.foldersCount} " +
                                 stringResource(
-                                    id =
-                                        R.string.folder.takeIf { folder.foldersCount == 1 }
-                                            ?: R.string.folders,
+                                    id = R.string.folder.takeIf { folder.foldersCount == 1 }
+                                        ?: R.string.folders,
                                 ),
                         )
                     }
@@ -231,24 +245,20 @@ private fun FolderGridItem(
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
+    val c = MaterialTheme.colorScheme
     NextSegmentedListItem(
         modifier = modifier.width(IntrinsicSize.Min),
         selected = selected,
-        contentPadding = PaddingValues(8.dp),
+        contentPadding = PaddingValues(10.dp),
         colors = ListItemDefaults.segmentedColors(
+            containerColor = Color(0xFF14161A),
             contentColor = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
-                MaterialTheme.colorScheme.primary
+                c.primary
             } else {
-                MaterialTheme.colorScheme.onSurface
+                c.onSurface
             },
-            supportingContentColor = if (isRecentlyPlayedFolder &&
-                preferences.markLastPlayedMedia
-            ) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+            supportingContentColor = c.onSurfaceVariant,
+            selectedContainerColor = c.primary.copy(alpha = 0.16f),
         ),
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
@@ -260,20 +270,31 @@ private fun FolderGridItem(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Box {
+                Box(
+                    modifier = Modifier
+                        .width(min(92.dp, LocalConfiguration.current.screenWidthDp.dp * 0.3f))
+                        .aspectRatio(20f / 16f)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF1E222B),
+                                    Color(0xFF15181F),
+                                )
+                            )
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(18.dp),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Icon(
                         imageVector = ImageVector.vectorResource(id = R.drawable.folder_thumb),
                         contentDescription = "",
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
-                        modifier = Modifier
-                            .width(
-                                width = min(
-                                    90.dp,
-                                    b =
-                                        LocalConfiguration.current.screenWidthDp.dp * 0.3f,
-                                ),
-                            )
-                            .aspectRatio(ratio = 20 / 17f),
+                        tint = Color.White.copy(alpha = 0.85f),
+                        modifier = Modifier.size(40.dp),
                     )
 
                     if (preferences.showFolderDurationField) {
@@ -281,11 +302,10 @@ private fun FolderGridItem(
                             text = Utils.formatDurationMillis(folder.totalDuration),
                             modifier = Modifier
                                 .padding(5.dp)
-                                .padding(bottom = 3.dp)
                                 .align(Alignment.BottomEnd),
-                            backgroundColor = Color.Black.copy(alpha = 0.72f),
+                            backgroundColor = Color.Black.copy(alpha = 0.78f),
                             contentColor = Color.White,
-                            shape = MaterialTheme.shapes.extraSmall,
+                            shape = RoundedCornerShape(6.dp),
                         )
                     }
 
@@ -294,7 +314,7 @@ private fun FolderGridItem(
                             count = folder.newVideosCount,
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .offset(x = 4.dp),
+                                .offset(x = (-4).dp, y = 4.dp),
                         )
                     }
                 }
@@ -307,21 +327,21 @@ private fun FolderGridItem(
                         text = folder.name,
                         maxLines = 2,
                         style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                         overflow = TextOverflow.Ellipsis,
                         color = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
-                            MaterialTheme.colorScheme.primary
+                            c.primary
                         } else {
-                            MaterialTheme.colorScheme.onSurface
+                            c.onSurface
                         },
                         textAlign = TextAlign.Center,
                     )
                     val mediaCount = if (folder.videosCount > 0) {
                         "${folder.videosCount} " +
                             stringResource(
-                                id =
-                                    R.string.video.takeIf {
-                                        folder.videosCount == 1
-                                    } ?: R.string.videos,
+                                id = R.string.video.takeIf {
+                                    folder.videosCount == 1
+                                } ?: R.string.videos,
                             )
                     } else {
                         null
@@ -329,9 +349,8 @@ private fun FolderGridItem(
                     val folderCount = if (folder.foldersCount > 0) {
                         "${folder.foldersCount} " +
                             stringResource(
-                                id =
-                                    R.string.folder.takeIf { folder.foldersCount == 1 }
-                                        ?: R.string.folders,
+                                id = R.string.folder.takeIf { folder.foldersCount == 1 }
+                                    ?: R.string.folders,
                             )
                     } else {
                         null
@@ -343,7 +362,7 @@ private fun FolderGridItem(
                                 append(it)
                                 folderCount?.let {
                                     append(", ")
-                                    append("\u00A0")
+                                    append(" ")
                                 }
                             }
                             folderCount?.let { append(it) }
@@ -360,7 +379,6 @@ private fun FolderGridItem(
     )
 }
 
-/** Rounded badge showing the full number of new videos inside a folder. */
 @Composable
 private fun NewVideosCountBadge(count: Int, modifier: Modifier = Modifier) {
     require(value = count > 0) {
@@ -378,7 +396,7 @@ private fun NewVideosCountBadge(count: Int, modifier: Modifier = Modifier) {
             .defaultMinSize(minWidth = 20.dp)
             .height(20.dp)
             .clip(shape = CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
+            .background(Color.White)
             .semantics { contentDescription = description }
             .padding(horizontal = 6.dp),
         contentAlignment = Alignment.Center,
@@ -389,7 +407,7 @@ private fun NewVideosCountBadge(count: Int, modifier: Modifier = Modifier) {
                 fontWeight = FontWeight.Bold,
                 fontSize = 10.sp,
             ),
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = Color.Black,
             maxLines = 1,
             softWrap = false,
         )

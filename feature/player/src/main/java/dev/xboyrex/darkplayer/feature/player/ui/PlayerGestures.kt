@@ -92,6 +92,7 @@ fun PlayerGestures(
                     detectCustomVerticalDragGestures(
                         shouldStartGesture = {
                             !seekGestureState.isSeeking &&
+                                tapGestureState.seekMillis == 0L &&
                                 gestureInsets.isPlayerGestureStart(
                                     it,
                                     size,
@@ -100,7 +101,7 @@ fun PlayerGestures(
                                 )
                         },
                         onDragStart = {
-                            if (!seekGestureState.isSeeking) {
+                            if (!seekGestureState.isSeeking && tapGestureState.seekMillis == 0L) {
                                 volumeAndBrightnessGestureState.onDragStart(
                                     offset = it,
                                     size = size,
@@ -108,7 +109,9 @@ fun PlayerGestures(
                             }
                         },
                         onVerticalDrag = { change, dragAmount ->
-                            if (!seekGestureState.isSeeking) {
+                            if (seekGestureState.isSeeking || tapGestureState.seekMillis != 0L) {
+                                volumeAndBrightnessGestureState.cancelImmediate()
+                            } else {
                                 volumeAndBrightnessGestureState.onDrag(change, dragAmount)
                             }
                         },
@@ -140,11 +143,8 @@ fun PlayerGestures(
                                 )
                         },
                         onDragStart = { offset ->
-                            if (!volumeAndBrightnessGestureState.isDragging &&
-                                volumeAndBrightnessGestureState.activeGesture == null
-                            ) {
-                                seekGestureState.onDragStart(offset)
-                            }
+                            volumeAndBrightnessGestureState.cancelImmediate()
+                            seekGestureState.onDragStart(offset)
                         },
                         onHorizontalDrag = { change, dragAmount ->
                             if (!volumeAndBrightnessGestureState.isDragging) {

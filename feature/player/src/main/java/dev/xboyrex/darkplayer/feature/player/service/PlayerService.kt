@@ -171,6 +171,11 @@ class PlayerService : MediaSessionService() {
                     "as ${decoderManager.activeAudioMode}: $decoderName",
             )
             decoderRecoveryManager.onDecoderInitialized(DecoderTrackType.AUDIO)
+            mediaSession?.player?.let { p ->
+                if (p is ExoPlayer && p.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+                    runCatching { HardwareDolbyAndEqualizerEngine.attachSession(p.audioSessionId) }
+                }
+            }
         }
 
         override fun onTracksChanged(eventTime: AnalyticsListener.EventTime, tracks: Tracks) {
@@ -453,6 +458,13 @@ class PlayerService : MediaSessionService() {
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             super.onIsPlayingChanged(isPlaying)
+            if (isPlaying) {
+                (mediaSession?.player as? ExoPlayer)?.let { exo ->
+                    if (exo.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+                        runCatching { HardwareDolbyAndEqualizerEngine.attachSession(exo.audioSessionId) }
+                    }
+                }
+            }
             mediaSession?.run {
                 serviceScope.launch {
                     mediaRepository.updateMediumPosition(
@@ -483,7 +495,6 @@ class PlayerService : MediaSessionService() {
             super.onAudioSessionIdChanged(audioSessionId)
             if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
             runCatching { HardwareDolbyAndEqualizerEngine.attachSession(audioSessionId) }
-            if (!playerPreferences.enableVolumeBoost) return
             try {
                 loudnessEnhancer?.release()
                 loudnessEnhancer = LoudnessEnhancer(audioSessionId)
@@ -931,12 +942,17 @@ class PlayerService : MediaSessionService() {
         decoderManager = DecoderManager()
         val renderersFactory = NextRenderersFactory(
             context = applicationContext,
-        ).setDecoderManager(decoderManager = decoderManager)
+        )
+            .setDecoderManager(decoderManager = decoderManager)
+            .setEnableDecoderFallback(true)
 
         trackSelector = DefaultTrackSelector(applicationContext).apply {
             setParameters(
                 buildUponParameters()
-                    .setTunnelingEnabled(playerPreferences.enableTunneledPlayback)
+                    .setTunnelingEnabled(false)
+                    .setExceedVideoConstraintsIfNecessary(true)
+                    .setExceedAudioConstraintsIfNecessary(true)
+                    .setExceedRendererCapabilitiesIfNecessary(true)
                     .setPreferredAudioLanguage(playerPreferences.preferredAudioLanguage)
                     .setPreferredTextLanguage(playerPreferences.preferredSubtitleLanguage),
             )

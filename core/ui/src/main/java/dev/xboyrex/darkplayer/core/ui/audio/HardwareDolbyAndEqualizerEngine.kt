@@ -336,12 +336,31 @@ object HardwareDolbyAndEqualizerEngine {
     var volumeBoostGainMb by mutableIntStateOf(0)
         private set
 
+    var lowSoundNormalizeEnabled by mutableStateOf(true)
+        private set
+
+    fun setLowSoundNormalize(enabled: Boolean) {
+        lowSoundNormalizeEnabled = enabled
+        prefs?.edit()?.putBoolean("low_sound_norm", enabled)?.apply()
+        applyAllEffects()
+    }
+
+    private fun effectiveLoudnessGainMb(): Int {
+        val baseMakeupMb = if (lowSoundNormalizeEnabled && (dolbyEnabled || equalizerEnabled)) {
+            650 + (if (dialogueEnhancerEnabled) dialogueEnhancerAmount * 45 else 0)
+        } else {
+            0
+        }
+        return (volumeBoostGainMb + baseMakeupMb).coerceIn(0, 4500)
+    }
+
     fun setVolumeBoostMb(gainMb: Int) {
         volumeBoostGainMb = gainMb.coerceIn(0, 4000)
         runCatching {
+            val totalGain = effectiveLoudnessGainMb()
             loudnessEnhancer?.let { le ->
-                le.setTargetGain(volumeBoostGainMb)
-                le.enabled = volumeBoostGainMb > 0
+                le.setTargetGain(totalGain)
+                le.enabled = totalGain > 0
             }
         }
     }
@@ -465,7 +484,7 @@ object HardwareDolbyAndEqualizerEngine {
                     DynamicsProcessing.VARIANT_FAVOR_FREQUENCY_RESOLUTION,
                     2,
                     true, bandCount,
-                    false, 0,
+                    true, bandCount,
                     true, bandCount,
                     true,
                 ).build()
@@ -847,6 +866,15 @@ object HardwareDolbyAndEqualizerEngine {
             }
         }
 
+        // 4b. LoudnessEnhancer (Force Audio Booster + Low-Sound Dialogue Makeup Gain)
+        runCatching {
+            val totalGain = effectiveLoudnessGainMb()
+            loudnessEnhancer?.let { le ->
+                le.setTargetGain(totalGain)
+                le.enabled = totalGain > 0
+            }
+        }
+
         // 5. PresetReverb
         runCatching {
             androidReverb?.let { rev ->
@@ -900,6 +928,32 @@ object HardwareDolbyAndEqualizerEngine {
                     }
                     dp.setPreEqAllChannelsTo(eq)
                     dp.setPostEqAllChannelsTo(eq)
+
+                    val mbc = DynamicsProcessing.Mbc(true, true, 5)
+                    for (i in 0 until 5) {
+                        val postGainDb = when {
+                            !lowSoundNormalizeEnabled -> 0f
+                            i in 1..3 && dialogueEnhancerEnabled -> 4.5f + (dialogueEnhancerAmount * 0.35f)
+                            else -> 3.0f
+                        }
+                        mbc.setBand(
+                            i,
+                            DynamicsProcessing.MbcBand(
+                                true,
+                                cutoffs[i],
+                                8.0f,
+                                80.0f,
+                                2.5f,
+                                -28.0f,
+                                6.0f,
+                                -45.0f,
+                                1.0f,
+                                0.0f,
+                                postGainDb,
+                            ),
+                        )
+                    }
+                    dp.setMbcAllChannelsTo(mbc)
 
                     val limiter = DynamicsProcessing.Limiter(
                         true,

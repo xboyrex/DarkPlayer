@@ -34,13 +34,10 @@ import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
 import dev.xboyrex.darkplayer.core.ui.components.requestFocusUntilLanded
 import dev.xboyrex.darkplayer.core.ui.components.thenIf
-import dev.xboyrex.darkplayer.core.ui.glass.popupBackgroundBlur
 import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
 import dev.xboyrex.darkplayer.feature.player.state.SeekGestureState
 import dev.xboyrex.darkplayer.feature.player.state.TapGestureState
-import dev.xboyrex.darkplayer.feature.player.state.VerticalGesture
 import dev.xboyrex.darkplayer.feature.player.state.VideoZoomAndContentScaleState
-import dev.xboyrex.darkplayer.feature.player.state.VolumeAndBrightnessGestureState
 import dev.xboyrex.darkplayer.feature.player.state.VolumeState
 import dev.xboyrex.darkplayer.feature.player.state.rememberChaptersState
 import dev.xboyrex.darkplayer.feature.player.state.rememberMediaPresentationState
@@ -50,7 +47,6 @@ import dev.xboyrex.darkplayer.feature.player.ui.DpadSeekIndicator
 import dev.xboyrex.darkplayer.feature.player.ui.OverlayShowView
 import dev.xboyrex.darkplayer.feature.player.ui.OverlayView
 import dev.xboyrex.darkplayer.feature.player.ui.PlayerGestureIndicators
-import dev.xboyrex.darkplayer.feature.player.ui.SoundAndVibrationPanel
 import kotlin.time.Duration.Companion.seconds
 
 /** Controls and overlays shared by live playback and the previewable content. */
@@ -65,7 +61,6 @@ internal fun MediaPlayerControls(
     seekGestureState: SeekGestureState,
     videoZoomAndContentScaleState: VideoZoomAndContentScaleState,
     volumeState: VolumeState? = null,
-    volumeAndBrightnessGestureState: VolumeAndBrightnessGestureState? = null,
     dpadUpDown: Int? = null,
     isPipSupported: Boolean,
     onPictureInPictureClick: () -> Unit,
@@ -102,7 +97,6 @@ internal fun MediaPlayerControls(
 
     fun showOverlay(overlay: OverlayView) {
         controlsVisibilityState.hideControls()
-        volumeAndBrightnessGestureState?.closeSoundAndVibrationPanel()
         overlayView = overlay
     }
 
@@ -136,9 +130,6 @@ internal fun MediaPlayerControls(
         }
     }
 
-    val isSoundPanelOpen = volumeAndBrightnessGestureState?.showSoundAndVibrationPanel == true
-    val shouldBlurControls = overlayView != null || isSoundPanelOpen
-
     CompositionLocalProvider(
         LocalControlsVisibilityState provides controlsVisibilityState,
         LocalUseMaterialYouControls provides playerPreferences.useMaterialYouControls,
@@ -151,7 +142,7 @@ internal fun MediaPlayerControls(
                     focusRequester(focusRequester = rootFocusRequester)
                         .focusable()
                         .onPreviewKeyEvent { keyEvent ->
-                            if (overlayView != null || isSoundPanelOpen) {
+                            if (overlayView != null) {
                                 false
                             } else {
                                 keyInputState.onKeyEvent(keyEvent = keyEvent)
@@ -159,101 +150,79 @@ internal fun MediaPlayerControls(
                         }
                 },
         ) {
-            // Underlying player chrome layer (blurs cleanly behind any open overlay sheet or Sound & Vibration panel)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .popupBackgroundBlur(
-                        extraBlur = shouldBlurControls,
-                        radius = 12.dp,
-                    ),
-            ) {
-                if (HardwareDolbyAndEqualizerEngine.nightModeEnabled) {
-                    Box(
-                        Modifier
-                            .fillMaxSize()
-                            .background(
-                                Color(0xFF140C00).copy(
-                                    alpha = HardwareDolbyAndEqualizerEngine.nightModeAlpha,
-                                ),
+            // Eye-comfort Night Mode overlay when enabled from quick actions
+            if (HardwareDolbyAndEqualizerEngine.nightModeEnabled) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Color(0xFF140C00).copy(
+                                alpha = HardwareDolbyAndEqualizerEngine.nightModeAlpha,
                             ),
-                    )
-                }
-
-                AnimatedVisibility(
-                    visible =
-                        controlsVisibilityState.controlsVisible &&
-                            !controlsVisibilityState.controlsLocked,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.28f)),
-                    )
-                }
-                if (mediaPresentationState.isBuffering) {
-                    CircularProgressIndicator(
-                        Modifier
-                            .align(Alignment.Center)
-                            .size(56.dp),
-                        color = Color.White,
-                    )
-                }
-                PlayerGestureIndicators(tapGestureState = tapGestureState)
-                DpadSeekIndicator(
-                    visible = keyInputState.isSeeking && keyInputState.seekOffsetMs != 0L,
-                    offsetMs = keyInputState.seekOffsetMs,
-                    positionMs = keyInputState.seekPositionMs,
+                        ),
                 )
-
-                if (controlsVisibilityState.controlsVisible && controlsVisibilityState.controlsLocked) {
-                    PlayerLockedControls(
-                        onUnlockControls = controlsVisibilityState::unlockControls,
-                        unlockButtonModifier = Modifier.thenIf(condition = isTv) {
-                            focusRequester(focusRequester = unlockFocusRequester)
-                                .onFocusChanged { isUnlockFocused = it.hasFocus }
-                        },
-                    )
-                } else {
-                    PlayerControls(
-                        player = player,
-                        title = metadataState.title.orEmpty(),
-                        playerPreferences = playerPreferences,
-                        videoDecoderMode = state.decoderServiceState.videoMode,
-                        controlsVisibilityState = controlsVisibilityState,
-                        seekGestureState = seekGestureState,
-                        videoZoomAndContentScaleState = videoZoomAndContentScaleState,
-                        progressState = progressState,
-                        chaptersState = chaptersState,
-                        isPipSupported = isPipSupported,
-                        onShowOverlay = ::showOverlay,
-                        onBackClick = { onAction(PlayerAction.NavigateUp) },
-                        onPlayInBackgroundClick = { onAction(PlayerAction.PlayInBackground) },
-                        onToggleTimeDisplay = { onAction(PlayerAction.ToggleTimeDisplay) },
-                        onPictureInPictureClick = onPictureInPictureClick,
-                        onVolumeButtonClick = {
-                            if (volumeAndBrightnessGestureState != null) {
-                                if (volumeAndBrightnessGestureState.activeGesture == VerticalGesture.VOLUME) {
-                                    volumeAndBrightnessGestureState.openSoundAndVibrationPanel()
-                                } else {
-                                    volumeAndBrightnessGestureState.showGesturePillTemporarily(VerticalGesture.VOLUME)
-                                }
-                            }
-                        },
-                        onVolumeButtonLongClick = {
-                            volumeAndBrightnessGestureState?.openSoundAndVibrationPanel()
-                        },
-                        middleControlsModifier = Modifier.thenIf(condition = isTv) {
-                            focusRequester(focusRequester = middleControlsFocusRequester)
-                                .onFocusChanged { isMiddleControlsFocused = it.hasFocus }
-                        },
-                    )
-                }
             }
 
-            // Sharp top-level overlays (never self-blurred!)
+            AnimatedVisibility(
+                visible =
+                    controlsVisibilityState.controlsVisible &&
+                        !controlsVisibilityState.controlsLocked,
+                enter = fadeIn(),
+                exit = fadeOut(),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.28f)),
+                )
+            }
+            if (mediaPresentationState.isBuffering) {
+                CircularProgressIndicator(
+                    Modifier
+                        .align(Alignment.Center)
+                        .size(56.dp),
+                    color = Color.White,
+                )
+            }
+            PlayerGestureIndicators(tapGestureState = tapGestureState)
+            DpadSeekIndicator(
+                visible = keyInputState.isSeeking && keyInputState.seekOffsetMs != 0L,
+                offsetMs = keyInputState.seekOffsetMs,
+                positionMs = keyInputState.seekPositionMs,
+            )
+
+            if (controlsVisibilityState.controlsVisible && controlsVisibilityState.controlsLocked) {
+                PlayerLockedControls(
+                    onUnlockControls = controlsVisibilityState::unlockControls,
+                    unlockButtonModifier = Modifier.thenIf(condition = isTv) {
+                        focusRequester(focusRequester = unlockFocusRequester)
+                            .onFocusChanged { isUnlockFocused = it.hasFocus }
+                    },
+                )
+            } else {
+                PlayerControls(
+                    player = player,
+                    title = metadataState.title.orEmpty(),
+                    playerPreferences = playerPreferences,
+                    videoDecoderMode = state.decoderServiceState.videoMode,
+                    controlsVisibilityState = controlsVisibilityState,
+                    seekGestureState = seekGestureState,
+                    videoZoomAndContentScaleState = videoZoomAndContentScaleState,
+                    progressState = progressState,
+                    chaptersState = chaptersState,
+                    isPipSupported = isPipSupported,
+                    onShowOverlay = ::showOverlay,
+                    onBackClick = { onAction(PlayerAction.NavigateUp) },
+                    onPlayInBackgroundClick = { onAction(PlayerAction.PlayInBackground) },
+                    onToggleTimeDisplay = { onAction(PlayerAction.ToggleTimeDisplay) },
+                    onPictureInPictureClick = onPictureInPictureClick,
+                    middleControlsModifier = Modifier.thenIf(condition = isTv) {
+                        focusRequester(focusRequester = middleControlsFocusRequester)
+                            .onFocusChanged { isMiddleControlsFocused = it.hasFocus }
+                    },
+                )
+            }
+
             OverlayShowView(
                 player = player,
                 overlayView = overlayView,
@@ -283,27 +252,11 @@ internal fun MediaPlayerControls(
                 onVideoContentScaleChanged =
                     videoZoomAndContentScaleState::onVideoContentScaleChanged,
             )
-
-            // 5-Channel "Sound and vibration" Modal (matching 3113.png, rendered sharp on top!)
-            SoundAndVibrationPanel(
-                visible = isSoundPanelOpen,
-                volumeState = volumeState,
-                player = player,
-                onDismiss = {
-                    volumeAndBrightnessGestureState?.closeSoundAndVibrationPanel()
-                },
-                onOpenAudioSettings = {
-                    volumeAndBrightnessGestureState?.closeSoundAndVibrationPanel()
-                    showOverlay(OverlayView.VOLUME_BOOSTER)
-                },
-            )
         }
     }
 
     BackHandler {
         when {
-            isSoundPanelOpen -> volumeAndBrightnessGestureState?.closeSoundAndVibrationPanel()
-
             overlayView != null -> overlayView = null
 
             isTv && controlsVisibilityState.controlsVisible ->

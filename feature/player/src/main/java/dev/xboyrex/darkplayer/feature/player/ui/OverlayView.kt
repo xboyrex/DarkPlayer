@@ -46,7 +46,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -59,10 +58,11 @@ import androidx.compose.ui.unit.sp
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.ui.components.requestFocusUntilLanded
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
+import dev.xboyrex.darkplayer.feature.player.LocalUseMaterialYouControls
 
 /**
- * Solid frosted slate-navy floating overlay sheet (#212633) matching the
- * Sound & Vibration panel aesthetic, while the underlying player video & controls blur cleanly.
+ * Clean NextPlayer-styled floating overlay sheet with proper landscape (45% width)
+ * and portrait (62% height) dimensions so content never wraps or clips.
  */
 @Composable
 fun BoxScope.OverlayView(
@@ -74,6 +74,7 @@ fun BoxScope.OverlayView(
     val configuration = LocalConfiguration.current
     val context = LocalContext.current
     val isTv = remember { context.isTelevision }
+    val useSolidMode = LocalUseMaterialYouControls.current
     val layoutDirection = LocalLayoutDirection.current
     val endPadding = WindowInsets.safeDrawing
         .asPaddingValues()
@@ -86,8 +87,12 @@ fun BoxScope.OverlayView(
         }
     }
 
-    val sheetShape = RoundedCornerShape(26.dp)
-    val sheetBgColor = Color(0xFF212633)
+    val sheetShape = RoundedCornerShape(24.dp)
+    val sheetBgColor = if (useSolidMode) {
+        Color(0xFF141821).copy(alpha = 0.96f)
+    } else {
+        Color(0xFF0E131D).copy(alpha = 0.92f)
+    }
 
     AnimatedVisibility(
         modifier = Modifier.align(
@@ -140,19 +145,14 @@ fun BoxScope.OverlayView(
                     },
                 )
                 .shadow(
-                    elevation = 28.dp,
+                    elevation = 24.dp,
                     shape = sheetShape,
                     ambientColor = Color.Black,
                     spotColor = Color.Black,
                 )
                 .border(
                     width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            Color.White.copy(alpha = 0.20f),
-                            Color.White.copy(alpha = 0.08f),
-                        ),
-                    ),
+                    color = Color.White.copy(alpha = 0.12f),
                     shape = sheetShape,
                 ),
         ) {
@@ -161,7 +161,7 @@ fun BoxScope.OverlayView(
                     modifier = Modifier
                         .focusRequester(focusRequester = focusRequester)
                         .focusGroup()
-                        .padding(top = 12.dp),
+                        .padding(top = 10.dp),
                 ) {
                     Box(
                         modifier = Modifier
@@ -169,9 +169,9 @@ fun BoxScope.OverlayView(
                             .width(36.dp)
                             .height(4.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.28f)),
+                            .background(Color.White.copy(alpha = 0.24f)),
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
@@ -182,13 +182,13 @@ fun BoxScope.OverlayView(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(horizontal = 18.dp),
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 18.dp)
                             .height(0.8.dp)
-                            .background(Color.White.copy(alpha = 0.12f)),
+                            .background(Color.White.copy(alpha = 0.10f)),
                     )
                     Spacer(modifier = Modifier.size(10.dp))
                     content()

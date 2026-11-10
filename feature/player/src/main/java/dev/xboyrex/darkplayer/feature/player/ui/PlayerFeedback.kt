@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.res.painterResource
@@ -39,20 +40,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.xboyrex.darkplayer.core.ui.R as coreUiR
-import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
 import dev.xboyrex.darkplayer.core.ui.extensions.copy
 import dev.xboyrex.darkplayer.feature.player.extensions.formatted
-import dev.xboyrex.darkplayer.feature.player.state.BrightnessState
 import dev.xboyrex.darkplayer.feature.player.state.TapGestureState
 import dev.xboyrex.darkplayer.feature.player.state.VerticalGesture
-import dev.xboyrex.darkplayer.feature.player.state.VolumeAndBrightnessGestureState
-import dev.xboyrex.darkplayer.feature.player.state.VolumeState
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Normal plain text indicator for time seek (+00:10 [01:25]), crop/aspect ratio ("Best fit", "Crop", "Stretch", "100%"),
- * and pinch zoom percentage.
+ * and pinch zoom percentage, with zero box or liquid glass wrapper.
  */
 @Composable
 internal fun InfoView(
@@ -95,7 +92,7 @@ internal fun BoxScope.DpadSeekIndicator(visible: Boolean, offsetMs: Long, positi
     ) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = Color(0xFF212633),
+            color = Color.Black.copy(alpha = 0.65f),
         ) {
             Row(
                 modifier = Modifier.padding(
@@ -125,7 +122,7 @@ internal fun BoxScope.DpadSeekIndicator(visible: Boolean, offsetMs: Long, positi
                     Text(
                         text = positionMs.milliseconds.formatted(),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.85f),
+                        color = Color.White.copy(alpha = 0.8f),
                     )
                 }
             }
@@ -137,7 +134,7 @@ internal fun BoxScope.DpadSeekIndicator(visible: Boolean, offsetMs: Long, positi
 internal fun BoxScope.PlayerGestureIndicators(tapGestureState: TapGestureState) {
     DoubleTapIndicator(tapGestureState = tapGestureState)
 
-    // 2x Hold Speed Solid Frosted Slate Capsule Pill
+    // 2x Hold Speed Liquid Glass Capsule Pill
     AnimatedVisibility(
         modifier = Modifier
             .padding(top = 24.dp)
@@ -149,10 +146,22 @@ internal fun BoxScope.PlayerGestureIndicators(tapGestureState: TapGestureState) 
         Box(
             modifier = Modifier
                 .clip(CircleShape)
-                .background(Color(0xFF222734))
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.24f),
+                            Color(0xFF0A0E17).copy(alpha = 0.68f),
+                        ),
+                    ),
+                )
                 .border(
                     width = 1.dp,
-                    color = Color.White.copy(alpha = 0.16f),
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.48f),
+                            Color.White.copy(alpha = 0.14f),
+                        ),
+                    ),
                     shape = CircleShape,
                 )
                 .padding(
@@ -187,11 +196,11 @@ internal fun BoxScope.PlayerGestureIndicators(tapGestureState: TapGestureState) 
 
 @Composable
 internal fun BoxScope.PlayerVerticalGestureIndicators(
-    gestureState: VolumeAndBrightnessGestureState,
-    volumeState: VolumeState,
-    brightnessState: BrightnessState,
+    activeGesture: VerticalGesture?,
+    volumePercentage: Int,
+    maxVolumePercentage: Int,
+    brightnessPercentage: Int,
 ) {
-    val activeGesture = gestureState.activeGesture
     val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
     Box(
         modifier = Modifier
@@ -203,7 +212,7 @@ internal fun BoxScope.PlayerVerticalGestureIndicators(
                     bottom = 0.dp,
                 ),
             )
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(24.dp),
     ) {
         AnimatedVisibility(
             modifier = Modifier.align(Alignment.CenterStart),
@@ -212,22 +221,9 @@ internal fun BoxScope.PlayerVerticalGestureIndicators(
             exit = fadeOut(),
         ) {
             VerticalProgressView(
-                value = volumeState.volumePercentage,
-                maxValue = volumeState.maxVolumePercentage,
-                isVolume = true,
+                value = volumePercentage,
+                maxValue = maxVolumePercentage,
                 icon = painterResource(coreUiR.drawable.ic_volume),
-                onValueChange = { newPct ->
-                    gestureState.showGesturePillTemporarily(VerticalGesture.VOLUME)
-                    volumeState.updateVolumePercentage(newPct)
-                },
-                onSecondaryClick = {
-                    gestureState.showGesturePillTemporarily(VerticalGesture.VOLUME)
-                    val nextBoost = if (volumeState.volumePercentage > 100) 100 else 200.coerceAtMost(volumeState.maxVolumePercentage)
-                    volumeState.updateVolumePercentage(nextBoost)
-                },
-                onExpandClick = {
-                    gestureState.openSoundAndVibrationPanel()
-                },
             )
         }
 
@@ -238,20 +234,8 @@ internal fun BoxScope.PlayerVerticalGestureIndicators(
             exit = fadeOut(),
         ) {
             VerticalProgressView(
-                value = brightnessState.brightnessPercentage,
-                isVolume = false,
+                value = brightnessPercentage,
                 icon = painterResource(coreUiR.drawable.ic_brightness),
-                onValueChange = { newPct ->
-                    gestureState.showGesturePillTemporarily(VerticalGesture.BRIGHTNESS)
-                    brightnessState.updateBrightnessPercentage(newPct)
-                },
-                onSecondaryClick = {
-                    gestureState.showGesturePillTemporarily(VerticalGesture.BRIGHTNESS)
-                    HardwareDolbyAndEqualizerEngine.toggleNightMode()
-                },
-                onExpandClick = {
-                    gestureState.openSoundAndVibrationPanel()
-                },
             )
         }
     }

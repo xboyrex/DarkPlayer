@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -38,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
@@ -123,18 +123,19 @@ fun LiquidBottomTabs(
     backdrop: Backdrop,
     tabsCount: Int,
     modifier: Modifier = Modifier,
+    isDarkSurface: Boolean = false,
     content: @Composable RowScope.() -> Unit,
 ) {
     val bgLum = MaterialTheme.colorScheme.background.luminance()
-    val isLightTheme = bgLum >= 0.5f
-    val isAmoled = bgLum < 0.002f
+    val isLightTheme = !isDarkSurface && !isSystemInDarkTheme() && bgLum >= 0.5f
+    val isAmoled = bgLum < 0.005f
     val glassSupported = GlassQuality.effectsSupported
-    val solidContainer = if (isAmoled) Color(0xFF0E131F) else MaterialTheme.colorScheme.surfaceContainer
+    val solidContainer = if (isAmoled) Color(0xFF141416) else MaterialTheme.colorScheme.surfaceContainer
     val containerColor = when {
         !glassSupported -> solidContainer
-        isAmoled -> Color(0xFF080C14).copy(0.76f)
-        isLightTheme -> Color(0xFFFAFAFA).copy(0.72f)
-        else -> Color(0xFF101520).copy(0.74f)
+        isAmoled -> Color(0xFF000000).copy(0.45f)
+        isLightTheme -> Color(0xFFFAFAFA).copy(0.4f)
+        else -> Color(0xFF121212).copy(0.4f)
     }
 
     BoxWithConstraints(
@@ -234,7 +235,7 @@ fun LiquidBottomTabs(
             )
         }
 
-        // 1. Bottom navigation bar background capsule
+        // 1. Bottom navigation bar background capsule (Verbatim YTX GlassNavBar.kt)
         Box(
             Modifier
                 .graphicsLayer {
@@ -242,47 +243,29 @@ fun LiquidBottomTabs(
                 }
                 .then(
                     if (glassSupported) {
-                        Modifier
-                            .drawBackdrop(
-                                backdrop = backdrop,
-                                shape = { Capsule() },
-                                effects = {
-                                    blur(24f.dp.toPx())
-                                    lens(10f.dp.toPx(), 10f.dp.toPx())
-                                },
-                                layerBlock = {
-                                    val progress = dampedDragAnimation.pressProgress
-                                    val scale = lerp(1f, 1f + 16f.dp.toPx() / size.width, progress)
-                                    scaleX = scale
-                                    scaleY = scale
-                                },
-                                onDrawSurface = { drawRect(containerColor) },
-                            )
-                            .border(
-                                width = 0.8.dp,
-                                brush = Brush.verticalGradient(
-                                    listOf(
-                                        Color.White.copy(alpha = 0.22f),
-                                        Color.White.copy(alpha = 0.08f),
-                                    ),
-                                ),
-                                shape = Capsule(),
-                            )
+                        Modifier.drawBackdrop(
+                            backdrop = backdrop,
+                            shape = { Capsule() },
+                            effects = {
+                                vibrancy()
+                                blur(8f.dp.toPx())
+                                lens(24f.dp.toPx(), 24f.dp.toPx())
+                            },
+                            layerBlock = {
+                                val progress = dampedDragAnimation.pressProgress
+                                val scale = lerp(1f, 1f + 16f.dp.toPx() / size.width, progress)
+                                scaleX = scale
+                                scaleY = scale
+                            },
+                            onDrawSurface = { drawRect(containerColor) },
+                        )
                     } else {
                         Modifier
                             .clip(Capsule())
-                            .background(
-                                if (isLightTheme) MaterialTheme.colorScheme.surfaceContainerHigh
-                                else Color(0xFF0E131F),
-                            )
+                            .background(containerColor)
                             .border(
                                 1.dp,
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                                        Color.White.copy(alpha = 0.14f),
-                                    ),
-                                ),
+                                MaterialTheme.colorScheme.outlineVariant,
                                 Capsule(),
                             )
                     },
@@ -292,7 +275,7 @@ fun LiquidBottomTabs(
                 .fillMaxWidth(),
         )
 
-        // 2. Moving active tab indicator pill
+        // 2. Moving active tab indicator pill (Verbatim YTX GlassNavBar.kt — stays behind tab row)
         Box(
             Modifier
                 .padding(horizontal = 4f.dp)
@@ -309,10 +292,10 @@ fun LiquidBottomTabs(
                             effects = {
                                 val progress = dampedDragAnimation.pressProgress
                                 vibrancy()
-                                if (progress < 0.999f) blur(16f.dp.toPx() * (1f - progress))
+                                if (progress < 0.999f) blur(8f.dp.toPx() * (1f - progress))
                                 lens(
-                                    8f.dp.toPx() * progress,
-                                    12f.dp.toPx() * progress,
+                                    10f.dp.toPx() * progress,
+                                    14f.dp.toPx() * progress,
                                     chromaticAberration = true,
                                 )
                             },
@@ -342,7 +325,7 @@ fun LiquidBottomTabs(
                                 val progress = dampedDragAnimation.pressProgress
                                 drawRect(
                                     if (isLightTheme) Color.Black.copy(0.12f)
-                                    else Color.White.copy(0.14f),
+                                    else Color.White.copy(0.12f),
                                     alpha = 1f - progress,
                                 )
                                 drawRect(Color.Black.copy(alpha = 0.03f * progress))
@@ -351,19 +334,14 @@ fun LiquidBottomTabs(
                     } else {
                         Modifier
                             .clip(Capsule())
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.20f))
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
-                                Capsule(),
-                            )
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                     },
                 )
                 .height(56f.dp)
                 .fillMaxWidth(1f / tabsCount),
         )
 
-        // 3. Tab icons and labels on top
+        // 3. Tab icons and labels on top (Verbatim YTX GlassNavBar.kt)
         CompositionLocalProvider(
             LocalLiquidBottomTabScale provides {
                 lerp(1f, 1.15f, dampedDragAnimation.pressProgress)
@@ -393,6 +371,7 @@ fun LiquidBottomBar(
     backdrop: Backdrop,
     modifier: Modifier = Modifier,
     tabsCount: Int = TopLevelDestination.entries.size,
+    isDarkSurface: Boolean = false,
     content: @Composable RowScope.() -> Unit,
 ) {
     LiquidBottomTabs(
@@ -401,6 +380,7 @@ fun LiquidBottomBar(
         backdrop = backdrop,
         tabsCount = tabsCount,
         modifier = modifier,
+        isDarkSurface = isDarkSurface,
         content = content,
     )
 }
@@ -411,15 +391,11 @@ fun RowScope.LiquidNavTab(
     icon: ImageVector,
     selectedIcon: ImageVector,
     selected: Boolean,
+    isDarkSurface: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val isLightTheme = MaterialTheme.colorScheme.background.luminance() >= 0.5f
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val contentColor = when {
-        selected -> primaryColor
-        isLightTheme -> Color(0xFF0F172A)
-        else -> Color.White.copy(alpha = 0.85f)
-    }
+    val isLightTheme = !isDarkSurface && !isSystemInDarkTheme() && MaterialTheme.colorScheme.background.luminance() >= 0.5f
+    val contentColor = if (isLightTheme) Color.Black else Color.White
 
     LiquidBottomTab(onClick = onClick) {
         Box(

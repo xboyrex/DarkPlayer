@@ -15,13 +15,17 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.SURFACE_TYPE_SURFACE_VIEW
+import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import androidx.media3.ui.compose.modifiers.resizeWithContentScale
 import androidx.media3.ui.compose.state.rememberPresentationState
+import dev.xboyrex.darkplayer.core.ui.display.RealityDisplayEngine
+import dev.xboyrex.darkplayer.core.ui.display.applyRealityDisplayEngine
 import dev.xboyrex.darkplayer.feature.player.extensions.toContentScale
 import dev.xboyrex.darkplayer.feature.player.state.PictureInPictureState
 import dev.xboyrex.darkplayer.feature.player.state.VideoZoomAndContentScaleState
@@ -40,6 +44,11 @@ fun PlayerContentFrame(
     videoVisible: Boolean = true,
     displayAspectRatio: Float? = null,
 ) {
+    val context = LocalContext.current
+    LaunchedEffect(context) {
+        RealityDisplayEngine.init(context)
+    }
+
     val presentationState = rememberPresentationState(player = player)
     val mediaId = player.currentMediaItem?.mediaId
     var stableVideoSizeDp by remember(mediaId) { mutableStateOf<Size?>(null) }
@@ -56,12 +65,13 @@ fun PlayerContentFrame(
     }
 
     val effectiveSizeDp = currentVideoSizeDp?.takeIf { it.width > 0f && it.height > 0f } ?: stableVideoSizeDp
+    val useDisplayShader = RealityDisplayEngine.isProcessingActive
 
     Box(modifier.fillMaxSize()) {
         if (videoVisible) {
             PlayerSurface(
                 player = player,
-                surfaceType = SURFACE_TYPE_SURFACE_VIEW,
+                surfaceType = if (useDisplayShader) SURFACE_TYPE_TEXTURE_VIEW else SURFACE_TYPE_SURFACE_VIEW,
                 modifier = Modifier
                     .resizeWithContentScale(
                         contentScale = videoZoomAndContentScaleState.videoContentScale
@@ -94,7 +104,8 @@ fun PlayerContentFrame(
                         scaleY = videoZoomAndContentScaleState.zoom
                         translationX = videoZoomAndContentScaleState.offset.x
                         translationY = videoZoomAndContentScaleState.offset.y
-                    },
+                    }
+                    .applyRealityDisplayEngine(),
             )
         }
 
