@@ -9,7 +9,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -25,7 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -39,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -47,6 +45,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.ui.components.requestFocusUntilLanded
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
@@ -73,7 +72,11 @@ fun BoxScope.OverlayView(
         }
     }
 
-    val sheetShape = RoundedCornerShape(26.dp)
+    val sheetShape = if (configuration.isPortrait) {
+        RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+    } else {
+        RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
+    }
 
     AnimatedVisibility(
         modifier = Modifier.align(
@@ -85,76 +88,50 @@ fun BoxScope.OverlayView(
         ),
         visible = show,
         enter = if (configuration.isPortrait) {
-            slideInVertically(tween(260)) { it } + fadeIn(tween(200))
+            slideInVertically(tween(240)) { it } + fadeIn(tween(180))
         } else {
-            slideInHorizontally(tween(260)) { it } + fadeIn(tween(200))
+            slideInHorizontally(tween(240)) { it } + fadeIn(tween(180))
         },
         exit = if (configuration.isPortrait) {
-            slideOutVertically(tween(220)) { it } + fadeOut(tween(160))
+            slideOutVertically(tween(200)) { it } + fadeOut(tween(150))
         } else {
-            slideOutHorizontally(tween(220)) { it } + fadeOut(tween(160))
+            slideOutHorizontally(tween(200)) { it } + fadeOut(tween(150))
         },
     ) {
         Surface(
             shape = sheetShape,
-            color = Color(0xFF070A12).copy(alpha = 0.68f),
+            color = Color(0xFF080A10).copy(alpha = 0.84f),
             contentColor = Color.White,
-            modifier = modifier
-                .padding(if (configuration.isPortrait) 8.dp else 10.dp)
-                .border(
-                    width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.24f),
-                            Color.White.copy(alpha = 0.06f),
-                        ),
-                    ),
-                    shape = sheetShape,
-                )
-                .then(
-                    other = if (configuration.isPortrait) {
-                        Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(fraction = 0.54f)
-                    } else {
-                        Modifier
-                            .fillMaxWidth(fraction = 0.45f)
-                            .fillMaxHeight()
-                    },
-                ),
+            modifier = modifier.then(
+                other = if (configuration.isPortrait) {
+                    Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(fraction = 0.58f)
+                } else {
+                    Modifier
+                        .width(350.dp)
+                        .fillMaxHeight()
+                },
+            ),
         ) {
             CompositionLocalProvider(LocalContentColor provides Color.White) {
                 Column(
                     modifier = Modifier
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.08f),
-                                    Color.Transparent,
-                                ),
-                            ),
-                        )
                         .focusRequester(focusRequester = focusRequester)
                         .focusGroup()
                         .padding(top = 20.dp)
                         .padding(end = endPadding),
                 ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
-                            .height(0.8.dp)
-                            .background(Color.White.copy(alpha = 0.12f)),
-                    )
-                    Spacer(modifier = Modifier.size(12.dp))
+                    if (title.isNotEmpty()) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 20.dp),
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
                     content()
                 }
             }
@@ -169,7 +146,7 @@ private fun PreviewOverlayView() {
         Box(modifier = Modifier.fillMaxSize()) {
             OverlayView(
                 modifier = Modifier.align(Alignment.BottomCenter),
-                title = "Selector view",
+                title = "Audio Track",
                 show = true,
             ) {
                 Text(text = "Sample content")

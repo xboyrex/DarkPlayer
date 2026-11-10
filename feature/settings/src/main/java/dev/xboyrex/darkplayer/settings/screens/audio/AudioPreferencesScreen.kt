@@ -102,9 +102,9 @@ private fun AudioPreferencesScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(paddingValues = innerPadding)
                 .verticalScroll(state = rememberScrollState())
                 .tvListFocus(focusRequester = listFocusRequester)
-                .padding(paddingValues = innerPadding)
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 32.dp),
         ) {

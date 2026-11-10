@@ -737,91 +737,118 @@ fun GlasmioSwitch(
     backdrop: Backdrop? = LocalGlassBackdrop.current,
     onTintColor: Color = Color.Unspecified,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(context) {
+        UiStylePreferences.init(context)
+    }
+    val switchStyle = UiStylePreferences.switchStyle
     val colors = LocalGlassColors.current
     val appearance = LocalGlassAppearance.current
     val light = !colors.isDark
-    val onColor = if (onTintColor == Color.Unspecified) {
-        if (colors.isDark) Color(0xFF30D158) else Color(0xFF34C759)
-    } else onTintColor
+    val onColor = when {
+        onTintColor != Color.Unspecified && onTintColor != Color(0xFFFACC15) -> onTintColor
+        switchStyle == SwitchStyle.MX_PRO_BLUE -> Color(0xFF38BDF8)
+        switchStyle == SwitchStyle.YTX_EXPRESSIVE -> UiStylePreferences.activeAccentColor
+        else -> if (colors.isDark) Color(0xFF30D158) else Color(0xFF34C759)
+    }
     val track = (if (light) {
-        Color(0xFF787878).copy(alpha = 0.20f)
+        Color(0xFF787878).copy(alpha = 0.24f)
     } else {
-        Color(0xFF787880).copy(alpha = 0.36f)
+        Color(0xFF787880).copy(alpha = 0.38f)
     }).let {
         if (appearance.reduceTransparency) it.compositeOver(colors.elevatedBackground) else it
     }
     val density = LocalDensity.current
     val view = LocalView.current
     val ltr = LocalLayoutDirection.current == LayoutDirection.Ltr
-    val travelPx = with(density) { 22.dp.toPx() }
+    val trackWidthDp = if (switchStyle == SwitchStyle.MX_PRO_BLUE) 52.dp else 63.dp
+    val trackHeightDp = if (switchStyle == SwitchStyle.MX_PRO_BLUE) 26.dp else 28.dp
+    val thumbWidthDp = if (switchStyle == SwitchStyle.MX_PRO_BLUE) 22.dp else 37.dp
+    val thumbHeightDp = if (switchStyle == SwitchStyle.MX_PRO_BLUE) 22.dp else 24.dp
+    val travelDp = trackWidthDp - thumbWidthDp - 4.dp
+    val travelPx = with(density) { travelDp.toPx() }
     val scope = rememberCoroutineScope()
     val currentEnabled by rememberUpdatedState(enabled && onCheckedChange != null)
     val currentChecked by rememberUpdatedState(checked)
     val currentOnCheckedChange by rememberUpdatedState(onCheckedChange)
-    var didDrag by remember { mutableStateOf(false) }
     var fraction by remember { mutableFloatStateOf(if (checked) 1f else 0f) }
+    val animatedFraction by animateFloatAsState(
+        targetValue = fraction,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = 780f),
+        label = "switchFraction",
+    )
+    var isPressed by remember { mutableStateOf(false) }
+    val pressProgress by animateFloatAsState(
+        targetValue = if (isPressed) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.68f, stiffness = 900f),
+        label = "switchPress",
+    )
 
-    val animation = remember(scope, enabled, travelPx, ltr) {
-        DampedDragAnimation(
-            animationScope = scope,
-            initialValue = fraction,
-            valueRange = 0f..1f,
-            visibilityThreshold = 0.001f,
-            initialScale = 1f,
-            pressedScale = 1.42f,
-            onDragStarted = {
-                view.navHaptic(10L, 110)
-            },
-            onDragStopped = {
-                if (!currentEnabled) return@DampedDragAnimation
-                fraction = if (didDrag) {
-                    if (fraction >= 0.5f) 1f else 0f
-                } else if (currentChecked) 0f else 1f
-                didDrag = false
-                updateValue(fraction)
-                view.navHaptic(14L, 150)
-                currentOnCheckedChange?.invoke(fraction == 1f)
-            },
-            onDrag = { _, dragAmount ->
-                if (!currentEnabled) return@DampedDragAnimation
-                didDrag = didDrag || dragAmount.x != 0f
-                val delta = dragAmount.x / travelPx
-                fraction = if (ltr) (fraction + delta).fastCoerceIn(0f, 1f)
-                else (fraction - delta).fastCoerceIn(0f, 1f)
-                updateValue(fraction)
-            },
-        )
-    }
-
-    LaunchedEffect(checked, enabled, animation) {
-        didDrag = false
-        val target = if (checked) 1f else 0f
-        if (target != fraction || target != animation.targetValue) {
-            fraction = target
-            animation.updateValue(target)
-        }
+    LaunchedEffect(checked) {
+        fraction = if (checked) 1f else 0f
     }
 
     Box(
         modifier = modifier
             .alpha(if (enabled) 1f else 0.5f)
-            .size(width = 63.dp, height = 28.dp)
+            .size(width = trackWidthDp, height = trackHeightDp)
             .then(
-                if (onCheckedChange != null) {
+                if (onCheckedChange != null && enabled) {
                     Modifier
                         .semantics(mergeDescendants = true) {
                             role = Role.Switch
                             toggleableState = if (checked) ToggleableState.On else ToggleableState.Off
-                            if (!enabled) disabled()
                             onClick {
                                 if (currentEnabled) {
-                                    view.navHaptic(14L, 150)
-                                    currentOnCheckedChange?.invoke(!currentChecked)
+                                    view.navHaptic(14L, 155)
+                                    val next = !currentChecked
+                                    fraction = if (next) 1f else 0f
+                                    currentOnCheckedChange?.invoke(next)
                                 }
                                 currentEnabled
                             }
                         }
-                        .then(if (enabled) animation.modifier else Modifier)
+                        .pointerInput(enabled, travelPx, ltr) {
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                down.consume()
+                                isPressed = true
+                                view.navHaptic(10L, 110)
+                                var didDrag = false
+                                var dragFraction = if (currentChecked) 1f else 0f
+                                try {
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                        if (!change.pressed) {
+                                            change.consume()
+                                            isPressed = false
+                                            val nextChecked = if (didDrag) {
+                                                dragFraction >= 0.5f
+                                            } else {
+                                                !currentChecked
+                                            }
+                                            fraction = if (nextChecked) 1f else 0f
+                                            view.navHaptic(14L, 155)
+                                            currentOnCheckedChange?.invoke(nextChecked)
+                                            break
+                                        }
+                                        val dx = change.position.x - change.previousPosition.x
+                                        if (abs(change.position.x - down.position.x) > viewConfiguration.touchSlop * 0.4f) {
+                                            didDrag = true
+                                        }
+                                        if (didDrag && travelPx > 0f) {
+                                            val delta = dx / travelPx * if (ltr) 1f else -1f
+                                            dragFraction = (dragFraction + delta).fastCoerceIn(0f, 1f)
+                                            fraction = dragFraction
+                                        }
+                                        change.consume()
+                                    }
+                                } finally {
+                                    isPressed = false
+                                }
+                            }
+                        }
                 } else {
                     Modifier
                 },
@@ -833,83 +860,63 @@ fun GlasmioSwitch(
             Modifier
                 .clip(Capsule())
                 .drawBehind {
-                    val activeTrackColor = colorLerp(track, onColor, animation.value)
+                    val activeTrackColor = colorLerp(track, onColor, animatedFraction)
                     drawRect(activeTrackColor)
                 }
                 .border(
-                    width = 0.6.dp,
-                    color = Color.White.copy(alpha = if (colors.isDark) 0.14f else 0.25f),
+                    width = 0.75.dp,
+                    color = Color.White.copy(alpha = if (colors.isDark) 0.16f else 0.25f),
                     shape = Capsule(),
                 )
-                .size(width = 63.dp, height = 28.dp),
+                .size(width = trackWidthDp, height = trackHeightDp),
         )
-        // Elastic Liquid Glass Thumb (37 x 24 dp resting, expands with NativeControlLensStyle.SwitchThumb)
+        // Elastic Liquid Glass Thumb
         Box(
             Modifier
                 .graphicsLayer {
                     val padding = 2.dp.toPx()
-                    translationX = if (ltr) lerp(padding, padding + travelPx, animation.value)
-                    else lerp(-padding, -(padding + travelPx), animation.value)
-                    val velocity = animation.velocity / 50f
-                    scaleX = 1f / (1f - (velocity * 0.75f).fastCoerceIn(-0.2f, 0.2f))
-                    scaleY = 1f - (velocity * 0.25f).fastCoerceIn(-0.2f, 0.2f)
+                    translationX = if (ltr) lerp(padding, padding + travelPx, animatedFraction)
+                    else lerp(-padding, -(padding + travelPx), animatedFraction)
                 }
-                .size(width = 37.dp, height = 24.dp)
-                .nativeControlLensGeometry(
-                    NativeControlLensStyle.SwitchThumb,
-                    horizontalProgress = { if (appearance.usesRefraction) animation.pressProgress else 0f },
-                )
+                .size(width = thumbWidthDp, height = thumbHeightDp)
                 .then(
-                    if (backdrop != null && appearance.usesBackdrop) {
-                        Modifier.drawBackdrop(
-                            backdrop = backdrop,
-                            shape = { Capsule() },
-                            effects = {
-                                val press = animation.pressProgress
-                                vibrancy()
-                                blur(lerp(4f, 1.5f, press).dp.toPx())
-                                lens(
-                                    (10f + 8f * press).dp.toPx(),
-                                    (14f + 12f * press).dp.toPx(),
-                                    chromaticAberration = true,
-                                )
-                            },
-                            highlight = { Highlight.Default },
-                            shadow = { Shadow.Default.copy(alpha = 0.35f) },
-                            innerShadow = { InnerShadow(radius = 6.dp, alpha = 0.55f) },
-                            onDrawSurface = {
-                                val press = animation.pressProgress
-                                drawRect(Color.White.copy(alpha = lerp(0.95f, 0.28f, press)))
-                            },
+                    if (switchStyle == SwitchStyle.GLASMIO_LIQUID) {
+                        Modifier.nativeControlLensGeometry(
+                            NativeControlLensStyle.SwitchThumb,
+                            horizontalProgress = { if (appearance.usesRefraction) pressProgress else 0f },
                         )
                     } else {
                         Modifier
-                            .clip(Capsule())
-                            .drawBehind {
-                                val press = animation.pressProgress
-                                val fillAlpha = if (appearance.usesRefraction) lerp(0.96f, 0.36f, press) else 0.98f
-                                drawRect(Color.White.copy(alpha = fillAlpha))
-                                if (press > 0.01f) {
-                                    drawRect(
-                                        Brush.verticalGradient(
-                                            0f to Color.White.copy(alpha = 0.55f * press),
-                                            0.5f to onColor.copy(alpha = 0.18f * press),
-                                            1f to Color.White.copy(alpha = 0.35f * press),
-                                        ),
-                                    )
-                                }
-                            }
-                            .border(
-                                width = 1.dp,
-                                brush = Brush.verticalGradient(
-                                    listOf(
-                                        Color.White,
-                                        Color.White.copy(alpha = 0.45f),
-                                    ),
-                                ),
-                                shape = Capsule(),
-                            )
                     },
+                )
+                .clip(Capsule())
+                .drawBehind {
+                    val press = pressProgress
+                    val fillAlpha = if (appearance.usesRefraction && switchStyle == SwitchStyle.GLASMIO_LIQUID) {
+                        lerp(0.97f, 0.42f, press)
+                    } else {
+                        0.98f
+                    }
+                    drawRect(Color.White.copy(alpha = fillAlpha))
+                    if (press > 0.01f) {
+                        drawRect(
+                            Brush.verticalGradient(
+                                0f to Color.White.copy(alpha = 0.62f * press),
+                                0.5f to onColor.copy(alpha = 0.22f * press),
+                                1f to Color.White.copy(alpha = 0.40f * press),
+                            ),
+                        )
+                    }
+                }
+                .border(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color.White,
+                            Color.White.copy(alpha = 0.52f),
+                        ),
+                    ),
+                    shape = Capsule(),
                 ),
         )
     }

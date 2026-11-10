@@ -135,6 +135,19 @@ internal fun MediaPlayerControls(
                         }
                 },
         ) {
+            if (dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences.nightModeEnabled) {
+                androidx.compose.foundation.layout.Box(
+                    Modifier
+                        .fillMaxSize()
+                        . thenIf(true) {
+                            androidx.compose.foundation.background(
+                                androidx.compose.ui.graphics.Color(0xFF0A0602).copy(
+                                    alpha = dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences.nightModeIntensity,
+                                ),
+                            )
+                        },
+                )
+            }
             if (mediaPresentationState.isBuffering) {
                 CircularProgressIndicator(
                     Modifier
@@ -196,6 +209,7 @@ internal fun MediaPlayerControls(
                 videoDecoderMode = state.decoderServiceState.videoMode,
                 audioDecoderMode = state.decoderServiceState.audioMode,
                 videoContentScale = videoZoomAndContentScaleState.videoContentScale,
+                onShowOverlay = { overlayView = it },
                 onDismiss = { overlayView = null },
                 onVideoDecoderModeSelected = {
                     onAction(PlayerAction.SetVideoDecoderMode(mode = it))

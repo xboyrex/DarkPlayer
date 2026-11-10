@@ -23,6 +23,7 @@ fun BoxScope.OverlayShowView(
     chapters: List<Chapter>,
     currentChapterIndex: Int,
     onChapterSelected: (Chapter) -> Unit,
+    onShowOverlay: (OverlayView) -> Unit = {},
     onDismiss: () -> Unit = {},
     onVideoDecoderModeSelected: (DecoderMode) -> Unit = {},
     onAudioDecoderModeSelected: (DecoderMode) -> Unit = {},
@@ -46,6 +47,8 @@ fun BoxScope.OverlayShowView(
     AudioTrackSelectorView(
         show = overlayView == OverlayView.AUDIO_SELECTOR,
         player = player,
+        audioDecoderMode = audioDecoderMode,
+        onAudioDecoderModeSelected = onAudioDecoderModeSelected,
         onSelectAudioClick = onSelectAudioClick,
         onDismiss = onDismiss,
     )
@@ -56,6 +59,7 @@ fun BoxScope.OverlayShowView(
         audioMode = audioDecoderMode,
         onVideoModeSelected = onVideoDecoderModeSelected,
         onAudioModeSelected = onAudioDecoderModeSelected,
+        onDismiss = onDismiss,
     )
 
     SubtitleSelectorView(
@@ -96,6 +100,17 @@ fun BoxScope.OverlayShowView(
         onDismiss = onDismiss,
     )
 
+    MxMoreDrawerView(
+        show = overlayView == OverlayView.MX_MORE_DRAWER,
+        player = player,
+        onAspectRatioClick = { onShowOverlay(OverlayView.VIDEO_CONTENT_SCALE) },
+        onPlaybackSpeedClick = { onShowOverlay(OverlayView.PLAYBACK_SPEED) },
+        onPlaylistClick = { onShowOverlay(OverlayView.PLAYLIST) },
+        onChaptersClick = { onShowOverlay(OverlayView.CHAPTERS) },
+        onEqualizerClick = { onShowOverlay(OverlayView.EQUALIZER_AND_DOLBY) },
+        onDismiss = onDismiss,
+    )
+
     OverlayView(
         show = overlayView == OverlayView.EQUALIZER_AND_DOLBY,
         title = "Equalizer & Dolby Atmos",
@@ -117,4 +132,5 @@ enum class OverlayView {
     CHAPTERS,
     SLEEP_TIMER,
     EQUALIZER_AND_DOLBY,
+    MX_MORE_DRAWER,
 }

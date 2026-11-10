@@ -61,6 +61,7 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -291,16 +292,15 @@ fun NextNavigationBar(
     onExpandCompact: () -> Unit = {},
     backdrop: Backdrop = rememberLayerBackdrop(),
 ) {
-    val isTv = LocalContext.current.isTelevision
+    val context = LocalContext.current
+    androidx.compose.runtime.LaunchedEffect(context) {
+        dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences.init(context)
+    }
+    val isTv = context.isTelevision
     val bgColor = MaterialTheme.colorScheme.background
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
-
-    val compactProgress by animateFloatAsState(
-        targetValue = if (isCompact && !isTv) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.78f, stiffness = 480f),
-        label = "navBarCompactProgress",
-    )
+    val primaryColor = dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences.activeAccentColor
+    val onPrimaryColor = if (primaryColor.luminance() > 0.55f) Color.Black else Color.White
+    val bottomLiftDp = dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences.navBarBottomOffsetDp.dp
 
     Box(
         modifier = Modifier
@@ -309,66 +309,56 @@ fun NextNavigationBar(
                 background(
                     brush = Brush.verticalGradient(
                         0.00f to Color.Transparent,
-                        0.22f to bgColor.copy(alpha = 0.32f),
-                        0.46f to bgColor.copy(alpha = 0.68f),
-                        0.70f to bgColor.copy(alpha = 0.90f),
-                        0.88f to bgColor.copy(alpha = 0.98f),
+                        0.28f to bgColor.copy(alpha = 0.38f),
+                        0.60f to bgColor.copy(alpha = 0.78f),
                         1.00f to bgColor,
                     ),
                 )
             }
             .navigationBarsPadding()
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-            .padding(top = 36.dp, bottom = 12.dp)
+            .padding(top = 24.dp, bottom = bottomLiftDp)
             .padding(horizontal = 16.dp)
-            .thenIf(condition = !showFabOnly && compactProgress < 0.5f) { pointerInput(key1 = Unit) {} },
+            .thenIf(condition = !showFabOnly) { pointerInput(key1 = Unit) {} },
         contentAlignment = Alignment.BottomCenter,
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
             if (!showFabOnly) {
                 val destinations = state.destinations
-                val selectedDest = destinations.getOrElse(state.selectedIndex) { TopLevelDestination.MEDIA }
-                LiquidBottomTabs(
+                val tabItems = destinations.map { destination ->
+                    NavTabItemData(
+                        label = stringResource(destination.labelRes),
+                        icon = destination.icon,
+                        selectedIcon = destination.selectedIcon,
+                        selected = destination.route == state.topLevelRoute,
+                        onClick = { state.switchTo(destination.route) },
+                    )
+                }
+                NovaMultiStyleBottomBar(
+                    tabs = tabItems,
                     selectedTabIndex = { state.selectedIndex },
                     onTabSelected = { index ->
                         destinations.getOrNull(index)?.let { state.switchTo(it.route) }
                     },
                     backdrop = backdrop,
-                    tabsCount = destinations.size,
-                    compactProgress = compactProgress,
-                    compactIcon = selectedDest.selectedIcon,
-                    onExpandCompact = onExpandCompact,
                     modifier = Modifier
                         .weight(1f)
-                        .height(64.dp)
                         .shadow(
                             elevation = 20.dp,
                             shape = RoundedCornerShape(999.dp),
                             ambientColor = Color.Black,
                             spotColor = Color.Black,
                         ),
-                ) {
-                    destinations.forEach { destination ->
-                        val selected = destination.route == state.topLevelRoute
-                        LiquidNavTab(
-                            label = stringResource(destination.labelRes),
-                            icon = destination.icon,
-                            selectedIcon = destination.selectedIcon,
-                            selected = selected,
-                            onClick = { state.switchTo(destination.route) },
-                        )
-                    }
-                }
+                )
             } else {
                 Spacer(Modifier.weight(weight = 1f))
             }
 
             fabState?.let { fab ->
-                // Solid Circle FAB next to the Liquid Glass Navigation Bar
                 Box(
                     modifier = Modifier
                         .size(58.dp)

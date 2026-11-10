@@ -4,14 +4,19 @@ import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.state.ProgressStateWithTickInterval
@@ -65,10 +70,16 @@ fun PlayerControls(
                 ControlsTopView(
                     title = title,
                     videoDecoderMode = videoDecoderMode,
+                    player = player,
                     onDecoderClick = { onShowOverlay(OverlayView.DECODER_SELECTOR) },
                     onAudioClick = { onShowOverlay(OverlayView.AUDIO_SELECTOR) },
                     onSubtitleClick = { onShowOverlay(OverlayView.SUBTITLE_SELECTOR) },
                     onPlaylistClick = { onShowOverlay(OverlayView.PLAYLIST) },
+                    onMoreDrawerClick = { onShowOverlay(OverlayView.MX_MORE_DRAWER) },
+                    onPlaybackSpeedClick = { onShowOverlay(OverlayView.PLAYBACK_SPEED) },
+                    onSleepTimerClick = { onShowOverlay(OverlayView.SLEEP_TIMER) },
+                    onEqualizerClick = { onShowOverlay(OverlayView.EQUALIZER_AND_DOLBY) },
+                    onPlayInBackgroundClick = onPlayInBackgroundClick,
                     onBackClick = onBackClick,
                 )
             }
@@ -121,9 +132,30 @@ fun PlayerControls(
                         "[${seekGestureState.seekToPositionFormated}]",
             )
 
-            videoZoomAndContentScaleState.isZooming -> InfoView(
-                info = "${(videoZoomAndContentScaleState.zoom * 100).toInt()}%",
-            )
+            videoZoomAndContentScaleState.isZooming -> {
+                Box(contentAlignment = Alignment.Center) {
+                    // MX Player Pro center crosshair (+) during zoom/pan (155632_MX Player Pro.png)
+                    Canvas(modifier = Modifier.size(68.dp)) {
+                        val halfW = size.width / 2f
+                        val halfH = size.height / 2f
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.85f),
+                            start = Offset(0f, halfH),
+                            end = Offset(size.width, halfH),
+                            strokeWidth = 1.8.dp.toPx(),
+                        )
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.85f),
+                            start = Offset(halfW, 0f),
+                            end = Offset(halfW, size.height),
+                            strokeWidth = 1.8.dp.toPx(),
+                        )
+                    }
+                    InfoView(
+                        info = "${(videoZoomAndContentScaleState.zoom * 100).toInt()}%",
+                    )
+                }
+            }
 
             videoZoomAndContentScaleState.showContentScaleIndicator -> InfoView(
                 info = stringResource(videoZoomAndContentScaleState.videoContentScale.nameRes()),

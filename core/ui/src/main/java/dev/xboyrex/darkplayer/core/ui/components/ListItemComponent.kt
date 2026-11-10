@@ -8,7 +8,6 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ListItemColors
@@ -22,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -40,11 +40,14 @@ fun NextSegmentedListItem(
     isLastItem: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
     colors: ListItemColors = ListItemDefaults.segmentedColors(
-        containerColor = GlasmioTheme.colors.elevatedBackground,
-        contentColor = GlasmioTheme.colors.content,
-        supportingContentColor = GlasmioTheme.colors.secondaryContent,
+        containerColor = Color(0xFF16181D),
+        contentColor = Color.White,
+        supportingContentColor = Color(0xB8EBEBF5),
         leadingContentColor = GlasmioTheme.colors.accent,
-        trailingContentColor = GlasmioTheme.colors.secondaryContent,
+        trailingContentColor = Color(0xB8EBEBF5),
+        selectedContainerColor = Color(0xFF1F2430),
+        selectedContentColor = Color.White,
+        selectedSupportingContentColor = Color(0xFFE2E8F0),
     ),
     shapes: ListItemShapes = ListItemDefaults.shapes(),
     leadingContent: @Composable (() -> Unit)? = null,
@@ -56,31 +59,39 @@ fun NextSegmentedListItem(
     onLongClick: (() -> Unit)? = null,
     interactionSource: MutableInteractionSource? = null,
 ) {
-    val overrideShape = RoundedCornerShape(26.dp)
-    val innerCornerShape = RoundedCornerShape(6.dp)
-
     val focusInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
     val isFocused by focusInteractionSource.collectIsFocusedAsState()
     val isPressed by focusInteractionSource.collectIsPressedAsState()
     val interactiveScale by animateFloatAsState(
         targetValue = when {
-            isPressed -> 0.975f
+            isPressed -> 0.988f
             isFocused -> 1.01f
             else -> 1f
         },
         animationSpec = spring(
-            dampingRatio = 0.65f,
-            stiffness = if (isPressed) 850f else 420f,
+            dampingRatio = 0.72f,
+            stiffness = if (isPressed) 900f else 480f,
         ),
         label = "interactiveScale",
     )
 
     val resolvedShape = remember(isFirstItem, isLastItem) {
         RoundedCornerShape(
-            topStart = if (isFirstItem) 26.dp else 6.dp,
-            topEnd = if (isFirstItem) 26.dp else 6.dp,
-            bottomStart = if (isLastItem) 26.dp else 6.dp,
-            bottomEnd = if (isLastItem) 26.dp else 6.dp,
+            topStart = if (isFirstItem) 22.dp else 4.dp,
+            topEnd = if (isFirstItem) 22.dp else 4.dp,
+            bottomStart = if (isLastItem) 22.dp else 4.dp,
+            bottomEnd = if (isLastItem) 22.dp else 4.dp,
+        )
+    }
+
+    val fixedShapes = remember(resolvedShape, shapes) {
+        shapes.copy(
+            shape = resolvedShape,
+            selectedShape = resolvedShape,
+            pressedShape = resolvedShape,
+            focusedShape = resolvedShape,
+            hoveredShape = resolvedShape,
+            draggedShape = resolvedShape,
         )
     }
 
@@ -88,43 +99,28 @@ fun NextSegmentedListItem(
         modifier = modifier
             .zIndex(zIndex = if (isFocused) 1f else 0f)
             .scale(scale = interactiveScale)
-            .border(
-                width = if (isFocused) 2.dp else 0.6.dp,
-                color = if (isFocused) {
-                    MaterialTheme.colorScheme.primary
+            .clip(resolvedShape)
+            .then(
+                if (isFocused) {
+                    Modifier.border(
+                        width = 1.8.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = resolvedShape,
+                    )
                 } else {
-                    GlasmioTheme.colors.subtleStroke.copy(alpha = 0.14f)
+                    Modifier.border(
+                        width = 0.5.dp,
+                        color = Color.White.copy(alpha = 0.07f),
+                        shape = resolvedShape,
+                    )
                 },
-                shape = resolvedShape,
             ),
         selected = selected,
         onClick = onClick,
         onLongClick = onLongClick,
         enabled = enabled,
         verticalAlignment = Alignment.CenterVertically,
-        shapes = remember(
-            isFirstItem,
-            isLastItem,
-            shapes,
-        ) {
-            val defaultBaseShape = shapes.shape
-            if (defaultBaseShape is CornerBasedShape) {
-                shapes.copy(
-                    shape = defaultBaseShape.copy(
-                        topStart = overrideShape.topStart.takeIf { isFirstItem }
-                            ?: innerCornerShape.topStart,
-                        topEnd = overrideShape.topEnd.takeIf { isFirstItem }
-                            ?: innerCornerShape.topEnd,
-                        bottomStart = overrideShape.bottomStart.takeIf { isLastItem }
-                            ?: innerCornerShape.bottomStart,
-                        bottomEnd = overrideShape.bottomEnd.takeIf { isLastItem }
-                            ?: innerCornerShape.bottomEnd,
-                    ),
-                )
-            } else {
-                shapes
-            }
-        },
+        shapes = fixedShapes,
         colors = colors,
         contentPadding = contentPadding,
         leadingContent = leadingContent,
@@ -141,11 +137,11 @@ fun ListSectionTitle(
     modifier: Modifier = Modifier,
     text: String,
     contentPadding: PaddingValues = PaddingValues(
-        start = 16.dp,
-        top = 22.dp,
+        start = 14.dp,
+        top = 20.dp,
         bottom = 8.dp,
     ),
-    color: Color = GlasmioTheme.colors.secondaryContent,
+    color: Color = Color(0xFF38BDF8),
 ) {
     Text(
         text = text,
@@ -153,8 +149,8 @@ fun ListSectionTitle(
         color = color,
         style = MaterialTheme.typography.labelLarge.copy(
             fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 0.6.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.4.sp,
         ),
     )
 }

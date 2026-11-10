@@ -95,9 +95,9 @@ private fun GesturePreferencesScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(paddingValues = innerPadding)
                 .verticalScroll(state = rememberScrollState())
                 .tvListFocus(focusRequester = listFocusRequester)
-                .padding(paddingValues = innerPadding)
                 .padding(horizontal = 16.dp),
         ) {
             ListSectionTitle(text = stringResource(id = R.string.gestures))

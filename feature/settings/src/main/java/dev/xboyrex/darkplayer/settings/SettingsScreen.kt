@@ -16,6 +16,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,6 +60,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -88,9 +91,14 @@ import dev.xboyrex.darkplayer.core.ui.components.restorableFocusItem
 import dev.xboyrex.darkplayer.core.ui.glass.GlasmioSwitch
 import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
 import dev.xboyrex.darkplayer.core.ui.glass.Motion
+import dev.xboyrex.darkplayer.core.ui.glass.NavBarStyle
+import dev.xboyrex.darkplayer.core.ui.glass.SwitchStyle
+import dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences
+import dev.xboyrex.darkplayer.core.ui.glass.VolumeHudStyle
 import dev.xboyrex.darkplayer.core.ui.glass.pressable
 import dev.xboyrex.darkplayer.core.ui.updater.UpdateOverlayDialog
 import dev.xboyrex.darkplayer.core.ui.updater.rememberUpdateState
+import kotlin.math.roundToInt
 
 data class SettingsOutput(val navigateUp: () -> Unit, val openSetting: (Setting) -> Unit)
 
@@ -127,10 +135,12 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
     LaunchedEffect(context) {
         HardwareDolbyAndEqualizerEngine.init(context)
         GlassSettings.init(context)
+        UiStylePreferences.init(context)
     }
 
     var activeFloatingPanel by rememberSaveable { mutableStateOf<YtxFloatingPanel?>(null) }
     var engineCardExpanded by rememberSaveable { mutableStateOf(true) }
+    var uiCustomizerExpanded by rememberSaveable { mutableStateOf(true) }
     var playbackSectionExpanded by rememberSaveable { mutableStateOf(true) }
     var interfaceSectionExpanded by rememberSaveable { mutableStateOf(true) }
     var systemSectionExpanded by rememberSaveable { mutableStateOf(true) }
@@ -209,7 +219,10 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { engineCardExpanded = !engineCardExpanded }
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) { engineCardExpanded = !engineCardExpanded }
                             .padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -238,7 +251,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                             )
                             Spacer(Modifier.height(1.dp))
                             Text(
-                                text = "Dolby ${if (HardwareDolbyAndEqualizerEngine.dolbyEnabled) "ON (${HardwareDolbyAndEqualizerEngine.dolbyProfile.title})" else "OFF"} • EQ ${HardwareDolbyAndEqualizerEngine.selectedPresetName}",
+                                text = "Dolby ${if (HardwareDolbyAndEqualizerEngine.dolbyEnabled) "ON (${HardwareDolbyAndEqualizerEngine.dolbyProfile.title})" else "OFF"} • ${UiStylePreferences.navBarStyle.title}",
                                 fontSize = 12.sp,
                                 color = c.onSurfaceVariant,
                                 maxLines = 1,
@@ -284,10 +297,145 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                             )
                             YtxSwitchRow(
                                 title = "Liquid Glass Navigation Bar",
-                                subtitle = "YTX Liquid Glass bottom bar with scroll-collapse animation",
+                                subtitle = "YTX Liquid Glass bottom bar raised above footer",
                                 checked = GlassSettings.enabled,
                                 onCheckedChange = { GlassSettings.updateEnabled(it) },
                             )
+                        }
+                    }
+                }
+
+                // ── 1B. Interactive UI/UX Style, Nav Bar, Volume HUD & Switch Toggle Switcher ──
+                YtxSectionHeader(
+                    title = "UI / UX STYLE, NAV BAR & VOLUME HUD SWITCHER",
+                    expanded = uiCustomizerExpanded,
+                    onClick = { uiCustomizerExpanded = !uiCustomizerExpanded },
+                )
+                AnimatedVisibility(
+                    visible = uiCustomizerExpanded,
+                    enter = fadeIn(tween(140)) + expandVertically(spring(dampingRatio = 0.82f, stiffness = 1200f)),
+                    exit = fadeOut(tween(110)) + shrinkVertically(spring(dampingRatio = 0.85f, stiffness = 1200f)),
+                ) {
+                    YtxSettingsCard {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                        ) {
+                            Text(
+                                text = "Navigation Bar Style",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.5.sp,
+                                color = c.onSurface,
+                            )
+                            Text(
+                                text = "Switch between YTX Liquid Glass, Cutout Floating Circle, Expandable Pill, Cradle & Glasmio",
+                                fontSize = 11.5.sp,
+                                color = c.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                NavBarStyle.entries.forEach { style ->
+                                    val selected = UiStylePreferences.navBarStyle == style
+                                    StyleChipButton(
+                                        title = style.title,
+                                        subtitle = style.subtitle,
+                                        selected = selected,
+                                        onClick = { UiStylePreferences.updateNavBarStyle(style) },
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = "Navigation Bar Lift from Footer",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.5.sp,
+                                    color = c.onSurface,
+                                )
+                                Text(
+                                    text = "${UiStylePreferences.navBarBottomOffsetDp} dp",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = c.primary,
+                                )
+                            }
+                            Slider(
+                                value = UiStylePreferences.navBarBottomOffsetDp.toFloat(),
+                                onValueChange = { UiStylePreferences.updateNavBarBottomOffsetDp(it.roundToInt()) },
+                                valueRange = 6f..48f,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = c.primary,
+                                    activeTrackColor = c.primary,
+                                ),
+                            )
+
+                            HorizontalDivider(
+                                color = c.outlineVariant,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+
+                            Text(
+                                text = "Volume & Brightness HUD Style",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.5.sp,
+                                color = c.onSurface,
+                            )
+                            Text(
+                                text = "Choose in-player vertical volume & brightness bar design",
+                                fontSize = 11.5.sp,
+                                color = c.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                VolumeHudStyle.entries.forEach { style ->
+                                    val selected = UiStylePreferences.volumeHudStyle == style
+                                    StyleChipButton(
+                                        title = style.title,
+                                        subtitle = style.subtitle,
+                                        selected = selected,
+                                        onClick = { UiStylePreferences.updateVolumeHudStyle(style) },
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(
+                                color = c.outlineVariant,
+                                modifier = Modifier.padding(vertical = 10.dp),
+                            )
+
+                            Text(
+                                text = "Toggle Switch UI Style",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.5.sp,
+                                color = c.onSurface,
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                SwitchStyle.entries.forEach { style ->
+                                    val selected = UiStylePreferences.switchStyle == style
+                                    StyleChipButton(
+                                        title = style.title,
+                                        subtitle = style.subtitle,
+                                        selected = selected,
+                                        onClick = { UiStylePreferences.updateSwitchStyle(style) },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -508,6 +656,46 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
 }
 
 @Composable
+private fun StyleChipButton(
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val c = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier
+            .widthIn(min = 132.dp, max = 185.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (selected) c.primary.copy(alpha = 0.16f) else c.surfaceContainerHigh)
+            .border(
+                width = if (selected) 1.4.dp else 0.75.dp,
+                color = if (selected) c.primary else c.outlineVariant,
+                shape = RoundedCornerShape(16.dp),
+            )
+            .pressable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(
+            text = title,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.5.sp,
+            color = if (selected) c.primary else c.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = subtitle,
+            fontSize = 10.5.sp,
+            color = c.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
 private fun YtxSectionHeader(
     title: String,
     expanded: Boolean,
@@ -517,7 +705,17 @@ private fun YtxSectionHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onClick,
+                    )
+                } else {
+                    Modifier
+                },
+            )
             .padding(start = 10.dp, end = 10.dp, top = 20.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -646,7 +844,10 @@ private fun YtxSwitchRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+            ) { onCheckedChange(!checked) }
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

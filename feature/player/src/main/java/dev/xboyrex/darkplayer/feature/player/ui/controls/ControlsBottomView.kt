@@ -2,13 +2,12 @@ package dev.xboyrex.darkplayer.feature.player.ui.controls
 
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.NavigateNext
 import androidx.compose.material3.Icon
@@ -28,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -43,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -54,18 +52,17 @@ import dev.xboyrex.darkplayer.core.model.VideoContentScale
 import dev.xboyrex.darkplayer.core.ui.R
 import dev.xboyrex.darkplayer.core.ui.extensions.copy
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
-import dev.xboyrex.darkplayer.feature.player.buttons.LoopButton
-import dev.xboyrex.darkplayer.feature.player.buttons.PlaybackSpeedButton
+import dev.xboyrex.darkplayer.feature.player.buttons.NextButton
+import dev.xboyrex.darkplayer.feature.player.buttons.PlayPauseButton
 import dev.xboyrex.darkplayer.feature.player.buttons.PlayerButton
 import dev.xboyrex.darkplayer.feature.player.buttons.PlayerButtonBlackAlpha
+import dev.xboyrex.darkplayer.feature.player.buttons.PreviousButton
 import dev.xboyrex.darkplayer.feature.player.buttons.RotateButton
-import dev.xboyrex.darkplayer.feature.player.buttons.ShuffleButton
 import dev.xboyrex.darkplayer.feature.player.extensions.drawableRes
 import dev.xboyrex.darkplayer.feature.player.state.ChaptersState
 import dev.xboyrex.darkplayer.feature.player.state.rememberChaptersState
 import dev.xboyrex.darkplayer.feature.player.ui.preview.rememberPreviewPlayer
 import dev.xboyrex.darkplayer.feature.player.ui.titleOrDefault
-import dev.xboyrex.darkplayer.feature.player.utils.VideoFrameCapture
 
 private const val MILLISECONDS_PER_SECOND = 1_000L
 
@@ -97,96 +94,66 @@ fun ControlsBottomView(
         WindowInsets.displayCutout,
     ).asPaddingValues()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val isTv = remember { context.isTelevision }
     val timeButtonFocusRequester = remember { FocusRequester() }
+
+    val timeTextPositionMs by remember(progressState) {
+        derivedStateOf {
+            val wholeSeconds = progressState.currentPositionMs / MILLISECONDS_PER_SECOND
+            wholeSeconds * MILLISECONDS_PER_SECOND
+        }
+    }
+    val elapsedText = getStringForTime(timeTextPositionMs)
+    val rightTimeText = if (progressState.durationMs != C.TIME_UNSET && progressState.durationMs > 0) {
+        if (showRemainingTime) {
+            val remainingMs = (progressState.durationMs - timeTextPositionMs).coerceAtLeast(0L)
+            "-${getStringForTime(remainingMs)}"
+        } else {
+            "-${getStringForTime((progressState.durationMs - timeTextPositionMs).coerceAtLeast(0L))}"
+        }
+    } else {
+        getStringForTime(C.TIME_UNSET)
+    }
+
     Column(
         modifier = modifier
+            .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.Black.copy(alpha = 0.35f),
-                        Color.Black.copy(alpha = 0.72f),
+                        Color.Black.copy(alpha = 0.45f),
+                        Color.Black.copy(alpha = 0.80f),
                     ),
                 ),
             )
             .padding(systemBarsPadding.copy(top = 0.dp))
             .padding(horizontal = 16.dp)
-            .padding(top = 16.dp)
+            .padding(top = 12.dp)
             .padding(
-                bottom =
-                    16.dp.takeIf { systemBarsPadding.calculateBottomPadding() == 0.dp } ?: 6.dp,
+                bottom = 14.dp.takeIf { systemBarsPadding.calculateBottomPadding() == 0.dp } ?: 6.dp,
             ),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .focusProperties { onEnter = { timeButtonFocusRequester.requestFocus() } }
-                .focusGroup(),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            PlayerButton(
-                modifier = Modifier.focusRequester(focusRequester = timeButtonFocusRequester),
-                onClick = onToggleTimeDisplay,
-                containerColor = PlayerButtonBlackAlpha,
-                contentPadding = PaddingValues(
-                    horizontal = 10.dp,
-                    vertical = 3.dp,
-                ),
+        // Optional Chapter indicator pill
+        if (chaptersState.chapters.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start,
             ) {
-                val timeTextPositionMs by remember(progressState) {
-                    derivedStateOf {
-                        val wholeSeconds = progressState.currentPositionMs / MILLISECONDS_PER_SECOND
-                        wholeSeconds * MILLISECONDS_PER_SECOND
-                    }
-                }
-                Text(
-                    text = buildString {
-                        val positionText = when (showRemainingTime) {
-                            true -> if (progressState.durationMs != C.TIME_UNSET) {
-                                val remainingMs = timeTextPositionMs - progressState.durationMs
-                                getStringForTime(remainingMs)
-                            } else {
-                                getStringForTime(C.TIME_UNSET)
-                            }
-
-                            false -> getStringForTime(timeTextPositionMs)
-                        }
-                        append(positionText)
-                        append(" / ")
-                        append(getStringForTime(progressState.durationMs))
-                    },
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
-                )
-            }
-
-            if (chaptersState.chapters.isNotEmpty()) {
                 PlayerButton(
                     onClick = onChaptersClick,
                     containerColor = PlayerButtonBlackAlpha,
-                    contentPadding = PaddingValues(
-                        vertical = 3.dp,
-                        horizontal = 10.dp,
-                    ).copy(end = 4.dp),
+                    contentPadding = PaddingValues(vertical = 3.dp, horizontal = 10.dp).copy(end = 4.dp),
                 ) {
                     Row(
-                        modifier = Modifier,
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text =
-                                chaptersState.chapters.getOrNull(chaptersState.currentChapterIndex)
-                                    ?.titleOrDefault(chaptersState.currentChapterIndex)
-                                    ?: stringResource(R.string.chapters),
-                            modifier = Modifier.weight(
-                                weight = 1f,
-                                fill = false,
-                            ),
+                            text = chaptersState.chapters.getOrNull(chaptersState.currentChapterIndex)
+                                ?.titleOrDefault(chaptersState.currentChapterIndex)
+                                ?: stringResource(R.string.chapters),
                             style = MaterialTheme.typography.labelLarge,
                             color = Color.White,
                             maxLines = 1,
@@ -201,97 +168,104 @@ fun ControlsBottomView(
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.weight(weight = 1f))
+        // Row 1: MX Player Pro Seekbar Row (Elapsed Time — Seekbar — Remaining Time)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusProperties { onEnter = { timeButtonFocusRequester.requestFocus() } }
+                .focusGroup(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = elapsedText,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                modifier = Modifier
+                    .focusRequester(timeButtonFocusRequester)
+                    .clickable(onClick = onToggleTimeDisplay),
+            )
+            PlayerSeekbar(
+                modifier = Modifier.weight(1f),
+                position = progressState.currentPositionMs.toFloat(),
+                duration = progressState.durationMs.toFloat(),
+                chapters = chaptersState.chapters,
+                onSeek = { onSeek(it.toLong()) },
+                onSeekFinished = { onSeekEnd() },
+            )
+            Text(
+                text = rightTimeText,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                modifier = Modifier.clickable(onClick = onToggleTimeDisplay),
+            )
+        }
 
+        // Row 2: MX Player Pro Bottom Transport & Action Bar (155632, 155634, 155640)
+        // Left: Lock + Rotate | Center: Previous, Play/Pause, Next | Right: PiP + Aspect Ratio
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            // Left group: Lock & Rotate
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                PlaybackSpeedButton(
-                    player = player,
-                    onClick = onPlaybackSpeedClick,
-                )
-
+                PlayerButton(onClick = onLockControlsClick) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_lock_open),
+                        contentDescription = "Lock controls",
+                        tint = Color.White,
+                    )
+                }
                 if (!isTv) {
                     RotateButton()
                 }
             }
-        }
-        PlayerSeekbar(
-            position = progressState.currentPositionMs.toFloat(),
-            duration = progressState.durationMs.toFloat(),
-            chapters = chaptersState.chapters,
-            onSeek = { onSeek(it.toLong()) },
-            onSeekFinished = { onSeekEnd() },
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(state = rememberScrollState()),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(
-                8.dp,
-                alignment = controlsAlignment,
-            ),
-        ) {
-            PlayerButton(onClick = onLockControlsClick) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_lock_open),
-                    contentDescription = null,
-                )
-            }
-            PlayerButton(
-                onClick = onVideoContentScaleClick,
-                onLongClick = onVideoContentScaleLongClick,
+
+            // Center group: Previous |< , Play/Pause ▶ , Next >|
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                Icon(
-                    painter = painterResource(videoContentScale.drawableRes()),
-                    contentDescription = null,
-                )
+                if (player != null) {
+                    PreviousButton(player = player)
+                    PlayPauseButton(player = player)
+                    NextButton(player = player)
+                }
             }
-            if (isPipSupported) {
-                PlayerButton(onClick = onPictureInPictureClick) {
+
+            // Right group: PiP & Aspect Ratio / Crop
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (isPipSupported) {
+                    PlayerButton(onClick = onPictureInPictureClick) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_pip),
+                            contentDescription = "Picture in Picture",
+                            tint = Color.White,
+                        )
+                    }
+                }
+                PlayerButton(
+                    onClick = onVideoContentScaleClick,
+                    onLongClick = onVideoContentScaleLongClick,
+                ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_pip),
-                        contentDescription = null,
+                        painter = painterResource(videoContentScale.drawableRes()),
+                        contentDescription = "Aspect Ratio",
+                        tint = Color.White,
                     )
                 }
             }
-            PlayerButton(onClick = onPlayInBackgroundClick) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_headset),
-                    contentDescription = null,
-                )
-            }
-            PlayerButton(
-                onClick = {
-                    VideoFrameCapture.captureCurrentFrame(
-                        context = context,
-                        player = player,
-                        scope = scope,
-                    )
-                },
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_screenshot),
-                    contentDescription = "Screenshot",
-                )
-            }
-            PlayerButton(onClick = onSleepTimerClick) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_timer),
-                    contentDescription = "Sleep timer",
-                )
-            }
-            PlayerButton(onClick = onEqualizerClick) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_equalizer),
-                    contentDescription = "Equalizer & Dolby Atmos",
-                )
-            }
-            LoopButton(player = player)
-            ShuffleButton(player = player)
         }
     }
 }
@@ -314,7 +288,7 @@ private fun ControlsBottomViewPreview() {
                 controlsAlignment = Alignment.Start,
                 videoContentScale = VideoContentScale.BEST_FIT,
                 isPipSupported = true,
-                showRemainingTime = false,
+                showRemainingTime = true,
                 onToggleTimeDisplay = {},
                 onChaptersClick = {},
                 onVideoContentScaleClick = {},

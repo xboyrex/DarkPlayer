@@ -1177,7 +1177,8 @@ private fun SelectionActionsSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 14.dp)
+                .padding(top = 8.dp, bottom = 24.dp),
         ) {
             Row(
                 modifier = Modifier

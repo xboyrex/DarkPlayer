@@ -1,55 +1,50 @@
 package dev.xboyrex.darkplayer.feature.videopicker.composables
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import dev.xboyrex.darkplayer.core.common.Utils
 import dev.xboyrex.darkplayer.core.model.ApplicationPreferences
 import dev.xboyrex.darkplayer.core.model.Folder
 import dev.xboyrex.darkplayer.core.model.MediaLayoutMode
 import dev.xboyrex.darkplayer.core.ui.R
-import dev.xboyrex.darkplayer.core.ui.components.NextSegmentedListItem
+import dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 
 @Composable
@@ -70,8 +65,6 @@ fun FolderItem(
             isRecentlyPlayedFolder = isRecentlyPlayedFolder,
             preferences = preferences,
             modifier = modifier,
-            isFirstItem = isFirstItem,
-            isLastItem = isLastItem,
             selected = selected,
             onClick = onClick,
             onLongClick = onLongClick,
@@ -82,8 +75,6 @@ fun FolderItem(
             isRecentlyPlayedFolder = isRecentlyPlayedFolder,
             preferences = preferences,
             modifier = modifier,
-            isFirstItem = isFirstItem,
-            isLastItem = isLastItem,
             selected = selected,
             onClick = onClick,
             onLongClick = onLongClick,
@@ -91,383 +82,235 @@ fun FolderItem(
     }
 }
 
-@OptIn(
-    ExperimentalLayoutApi::class,
-    ExperimentalMaterial3ExpressiveApi::class,
-)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 private fun FolderListItem(
     folder: Folder,
     isRecentlyPlayedFolder: Boolean,
     preferences: ApplicationPreferences,
     modifier: Modifier = Modifier,
-    isFirstItem: Boolean = false,
-    isLastItem: Boolean = false,
     selected: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
-    val c = MaterialTheme.colorScheme
-    NextSegmentedListItem(
-        modifier = modifier,
-        selected = selected,
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
-        colors = ListItemDefaults.segmentedColors(
-            containerColor = Color(0xFF14161A),
-            contentColor = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
-                c.primary
-            } else {
-                c.onSurface
-            },
-            supportingContentColor = c.onSurfaceVariant,
-            selectedContainerColor = c.primary.copy(alpha = 0.16f),
-        ),
-        isFirstItem = isFirstItem,
-        isLastItem = isLastItem,
-        onClick = onClick,
-        onLongClick = onLongClick,
-        leadingContent = {
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 4.dp)
-                    .width(min(86.dp, LocalConfiguration.current.screenWidthDp.dp * 0.26f))
-                    .aspectRatio(20f / 16f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFF1E222B),
-                                Color(0xFF15181F),
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = if (selected) c.primary.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.08f),
-                        shape = RoundedCornerShape(16.dp),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = ImageVector.vectorResource(id = R.drawable.folder_thumb),
-                    contentDescription = "",
-                    tint = Color.White.copy(alpha = 0.85f),
-                    modifier = Modifier.size(38.dp),
-                )
+    val accent = UiStylePreferences.activeAccentColor
+    val cardShape = RoundedCornerShape(16.dp)
+    val bgColor = if (selected) accent.copy(alpha = 0.16f) else Color(0xFF12151C)
+    val borderColor = if (selected) accent.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.06f)
 
-                if (preferences.showFolderDurationField) {
-                    InfoChip(
-                        text = Utils.formatDurationMillis(folder.totalDuration),
-                        modifier = Modifier
-                            .padding(5.dp)
-                            .align(Alignment.BottomEnd),
-                        backgroundColor = Color.Black.copy(alpha = 0.78f),
-                        contentColor = Color.White,
-                        shape = RoundedCornerShape(6.dp),
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp)
+            .clip(cardShape)
+            .background(bgColor)
+            .border(0.8.dp, borderColor, cardShape)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        // Sleek MX Player Folder Icon Box
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFF1B202C)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Folder,
+                contentDescription = null,
+                tint = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
+                    accent
+                } else {
+                    Color(0xFF38BDF8)
+                },
+                modifier = Modifier.size(34.dp),
+            )
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(3.dp)
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(16.dp),
                     )
                 }
-
-                if (folder.newVideosCount > 0) {
-                    NewVideosCountBadge(
-                        count = folder.newVideosCount,
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .align(Alignment.TopEnd),
+            } else if (folder.newVideosCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(3.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEF4444))
+                        .padding(horizontal = 5.dp, vertical = 1.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = folder.newVideosCount.coerceAtMost(99).toString(),
+                        color = Color.White,
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
                     )
                 }
             }
-        },
-        content = {
+        }
+
+        // Folder Title + Metadata
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
             Text(
                 text = folder.name,
-                maxLines = 2,
-                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.5.sp),
                 fontWeight = FontWeight.SemiBold,
+                color = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
+                    accent
+                } else {
+                    Color.White
+                },
                 overflow = TextOverflow.Ellipsis,
             )
-        },
-        supportingContent = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-                modifier = Modifier.padding(top = 2.dp),
-            ) {
-                if (preferences.showPathField) {
-                    Text(
-                        text = folder.path.substringBeforeLast(delimiter = "/"),
-                        maxLines = 1,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.onSurfaceVariant.copy(alpha = 0.75f),
-                        overflow = TextOverflow.Ellipsis,
+
+            val metaParts = buildList {
+                if (folder.videosCount > 0) {
+                    val label = stringResource(
+                        id = R.string.video.takeIf { folder.videosCount == 1 } ?: R.string.videos,
                     )
+                    add("${folder.videosCount} $label")
                 }
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
-                    if (folder.videosCount > 0) {
-                        InfoChip(
-                            text = "${folder.videosCount} " +
-                                stringResource(
-                                    id = R.string.video.takeIf { folder.videosCount == 1 }
-                                        ?: R.string.videos,
-                                ),
-                        )
-                    }
-                    if (folder.foldersCount > 0) {
-                        InfoChip(
-                            text = "${folder.foldersCount} " +
-                                stringResource(
-                                    id = R.string.folder.takeIf { folder.foldersCount == 1 }
-                                        ?: R.string.folders,
-                                ),
-                        )
-                    }
-                    if (preferences.showSizeField) {
-                        InfoChip(text = Utils.formatFileSize(folder.totalSize))
-                    }
+                if (folder.foldersCount > 0) {
+                    val label = stringResource(
+                        id = R.string.folder.takeIf { folder.foldersCount == 1 } ?: R.string.folders,
+                    )
+                    add("${folder.foldersCount} $label")
+                }
+                if (preferences.showSizeField && folder.totalSize > 0) {
+                    add(Utils.formatFileSize(folder.totalSize))
+                }
+                if (preferences.showFolderDurationField && folder.totalDuration > 0) {
+                    add(Utils.formatDurationMillis(folder.totalDuration))
                 }
             }
-        },
-    )
+            if (metaParts.isNotEmpty()) {
+                Text(
+                    text = metaParts.joinToString("  •  "),
+                    maxLines = 1,
+                    fontSize = 12.5.sp,
+                    color = Color.White.copy(alpha = 0.62f),
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (preferences.showPathField) {
+                Text(
+                    text = folder.path.substringBeforeLast(delimiter = "/"),
+                    maxLines = 1,
+                    fontSize = 11.sp,
+                    color = Color.White.copy(alpha = 0.42f),
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
+        if (onLongClick != null) {
+            IconButton(
+                onClick = onLongClick,
+                modifier = Modifier.size(34.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.MoreVert,
+                    contentDescription = "Folder actions",
+                    tint = Color.White.copy(alpha = 0.55f),
+                    modifier = Modifier.size(19.dp),
+                )
+            }
+        }
+    }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FolderGridItem(
     folder: Folder,
     isRecentlyPlayedFolder: Boolean,
     preferences: ApplicationPreferences,
     modifier: Modifier = Modifier,
-    isFirstItem: Boolean = false,
-    isLastItem: Boolean = false,
     selected: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
-    val c = MaterialTheme.colorScheme
-    NextSegmentedListItem(
-        modifier = modifier.width(IntrinsicSize.Min),
-        selected = selected,
-        contentPadding = PaddingValues(10.dp),
-        colors = ListItemDefaults.segmentedColors(
-            containerColor = Color(0xFF14161A),
-            contentColor = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
-                c.primary
-            } else {
-                c.onSurface
-            },
-            supportingContentColor = c.onSurfaceVariant,
-            selectedContainerColor = c.primary.copy(alpha = 0.16f),
-        ),
-        isFirstItem = isFirstItem,
-        isLastItem = isLastItem,
-        onClick = onClick,
-        onLongClick = onLongClick,
-        content = {
-            Column(
-                modifier = modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(min(92.dp, LocalConfiguration.current.screenWidthDp.dp * 0.3f))
-                        .aspectRatio(20f / 16f)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFF1E222B),
-                                    Color(0xFF15181F),
-                                )
-                            )
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = Color.White.copy(alpha = 0.08f),
-                            shape = RoundedCornerShape(18.dp),
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(id = R.drawable.folder_thumb),
-                        contentDescription = "",
-                        tint = Color.White.copy(alpha = 0.85f),
-                        modifier = Modifier.size(40.dp),
-                    )
-
-                    if (preferences.showFolderDurationField) {
-                        InfoChip(
-                            text = Utils.formatDurationMillis(folder.totalDuration),
-                            modifier = Modifier
-                                .padding(5.dp)
-                                .align(Alignment.BottomEnd),
-                            backgroundColor = Color.Black.copy(alpha = 0.78f),
-                            contentColor = Color.White,
-                            shape = RoundedCornerShape(6.dp),
-                        )
-                    }
-
-                    if (folder.newVideosCount > 0) {
-                        NewVideosCountBadge(
-                            count = folder.newVideosCount,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = (-4).dp, y = 4.dp),
-                        )
-                    }
-                }
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = folder.name,
-                        maxLines = 2,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        overflow = TextOverflow.Ellipsis,
-                        color = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
-                            c.primary
-                        } else {
-                            c.onSurface
-                        },
-                        textAlign = TextAlign.Center,
-                    )
-                    val mediaCount = if (folder.videosCount > 0) {
-                        "${folder.videosCount} " +
-                            stringResource(
-                                id = R.string.video.takeIf {
-                                    folder.videosCount == 1
-                                } ?: R.string.videos,
-                            )
-                    } else {
-                        null
-                    }
-                    val folderCount = if (folder.foldersCount > 0) {
-                        "${folder.foldersCount} " +
-                            stringResource(
-                                id = R.string.folder.takeIf { folder.foldersCount == 1 }
-                                    ?: R.string.folders,
-                            )
-                    } else {
-                        null
-                    }
-
-                    Text(
-                        text = buildString {
-                            mediaCount?.let {
-                                append(it)
-                                folderCount?.let {
-                                    append(", ")
-                                    append(" ")
-                                }
-                            }
-                            folderCount?.let { append(it) }
-                        },
-                        maxLines = 2,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Normal,
-                        ),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-        },
-    )
-}
-
-@Composable
-private fun NewVideosCountBadge(count: Int, modifier: Modifier = Modifier) {
-    require(value = count > 0) {
-        "NewVideosCountBadge should only be shown for a positive count, was $count"
-    }
-
-    val description = pluralStringResource(
-        R.plurals.new_videos_count,
-        count = count,
-        count,
-    )
-
-    Box(
+    val accent = UiStylePreferences.activeAccentColor
+    val cardShape = RoundedCornerShape(18.dp)
+    Column(
         modifier = modifier
-            .defaultMinSize(minWidth = 20.dp)
-            .height(20.dp)
-            .clip(shape = CircleShape)
-            .background(Color.White)
-            .semantics { contentDescription = description }
-            .padding(horizontal = 6.dp),
-        contentAlignment = Alignment.Center,
+            .clip(cardShape)
+            .background(if (selected) accent.copy(alpha = 0.16f) else Color(0xFF12151C))
+            .border(
+                width = 0.8.dp,
+                color = if (selected) accent.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.06f),
+                shape = cardShape,
+            )
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 11f)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFF1B202C)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Folder,
+                contentDescription = null,
+                tint = Color(0xFF38BDF8),
+                modifier = Modifier.size(44.dp),
+            )
+        }
         Text(
-            text = count.toString(),
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.sp,
-            ),
-            color = Color.Black,
+            text = folder.name,
             maxLines = 1,
-            softWrap = false,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = "${folder.videosCount} videos",
+            maxLines = 1,
+            fontSize = 11.5.sp,
+            color = Color.White.copy(alpha = 0.6f),
         )
     }
 }
 
 @PreviewLightDark
 @Composable
-fun FolderItemRecentlyPlayedPreview() {
+private fun FolderItemPreview() {
     NextPlayerTheme {
-        FolderListItem(
+        FolderItem(
             folder = Folder.sample,
-            preferences = ApplicationPreferences(),
-            isRecentlyPlayedFolder = true,
-        )
-    }
-}
-
-@PreviewLightDark
-@Composable
-fun FolderItemPreview() {
-    NextPlayerTheme {
-        FolderListItem(
-            folder = Folder.sample,
-            preferences = ApplicationPreferences(),
-            isRecentlyPlayedFolder = false,
-        )
-    }
-}
-
-@PreviewLightDark
-@Composable
-fun FolderGridViewPreview() {
-    NextPlayerTheme {
-        FolderGridItem(
-            folder = Folder.sample,
-            preferences = ApplicationPreferences(),
-            isRecentlyPlayedFolder = true,
-        )
-    }
-}
-
-@PreviewLightDark
-@Composable
-fun FolderItemWithNewVideosPreview() {
-    NextPlayerTheme {
-        FolderListItem(
-            folder = Folder.sample.copy(newVideosCount = 3),
-            preferences = ApplicationPreferences(),
-            isRecentlyPlayedFolder = false,
-        )
-    }
-}
-
-@PreviewLightDark
-@Composable
-fun FolderGridItemWithNewVideosOverflowPreview() {
-    NextPlayerTheme {
-        FolderGridItem(
-            folder = Folder.sample.copy(newVideosCount = 42),
             preferences = ApplicationPreferences(),
             isRecentlyPlayedFolder = false,
         )

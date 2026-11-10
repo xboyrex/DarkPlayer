@@ -341,7 +341,7 @@ private fun EqualizerPanelContent(
         GlasmioSwitch(
             checked = HardwareDolbyAndEqualizerEngine.audioFadeEnabled,
             onCheckedChange = { HardwareDolbyAndEqualizerEngine.setAudioFade(it) },
-            onTintColor = accentGold,
+            onTintColor = Color(0xFF30D158),
         )
     }
 }
@@ -530,7 +530,7 @@ private fun DolbyAtmosPanelContent(
             GlasmioSwitch(
                 checked = dolbyOn,
                 onCheckedChange = { HardwareDolbyAndEqualizerEngine.setDolbyMasterEnabled(it) },
-                onTintColor = accentGold,
+                onTintColor = Color(0xFF30D158),
             )
         }
     }
@@ -643,7 +643,7 @@ private fun DolbyAtmosPanelContent(
                 onCheckedChange = {
                     HardwareDolbyAndEqualizerEngine.setDialogueEnhancer(enabled = it)
                 },
-                onTintColor = accentGold,
+                onTintColor = Color(0xFF30D158),
             )
         }
         if (HardwareDolbyAndEqualizerEngine.dialogueEnhancerEnabled) {
@@ -722,7 +722,7 @@ private fun DolbyAtmosPanelContent(
                 onCheckedChange = {
                     HardwareDolbyAndEqualizerEngine.setDolbySurround(hpVirt = it)
                 },
-                onTintColor = accentGold,
+                onTintColor = Color(0xFF30D158),
             )
         }
 
@@ -749,7 +749,7 @@ private fun DolbyAtmosPanelContent(
                 onCheckedChange = {
                     HardwareDolbyAndEqualizerEngine.setDolbySurround(spkVirt = it)
                 },
-                onTintColor = accentGold,
+                onTintColor = Color(0xFF30D158),
             )
         }
 
@@ -785,7 +785,7 @@ private fun DolbyAtmosPanelContent(
                 onCheckedChange = {
                     HardwareDolbyAndEqualizerEngine.setDolbySurround(volLeveler = it)
                 },
-                onTintColor = accentGold,
+                onTintColor = Color(0xFF30D158),
             )
         }
     }

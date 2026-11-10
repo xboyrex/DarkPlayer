@@ -24,7 +24,7 @@ fun NextTopAppBar(
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.88f),
         titleContentColor = MaterialTheme.colorScheme.onSurface,
         navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
@@ -50,7 +50,7 @@ fun NextTopAppBar(
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.88f),
         titleContentColor = MaterialTheme.colorScheme.onSurface,
         navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
