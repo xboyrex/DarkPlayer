@@ -62,7 +62,6 @@ import dev.xboyrex.darkplayer.feature.player.state.rememberChaptersState
 import dev.xboyrex.darkplayer.feature.player.ui.preview.rememberPreviewPlayer
 import dev.xboyrex.darkplayer.feature.player.ui.titleOrDefault
 import dev.xboyrex.darkplayer.feature.player.utils.VideoFrameCapture
-import kotlinx.coroutines.launch
 
 private const val MILLISECONDS_PER_SECOND = 1_000L
 
@@ -257,12 +256,11 @@ fun ControlsBottomView(
             }
             PlayerButton(
                 onClick = {
-                    scope.launch {
-                        VideoFrameCapture.captureCurrentFrame(
-                            context = context,
-                            player = player,
-                        )
-                    }
+                    VideoFrameCapture.captureCurrentFrame(
+                        context = context,
+                        player = player,
+                        scope = scope,
+                    )
                 },
             ) {
                 Icon(
