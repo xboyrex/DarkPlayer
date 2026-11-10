@@ -21,7 +21,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,7 +75,7 @@ fun BoxScope.AudioTrackSelectorView(
     var showSyncControl by remember { mutableStateOf(false) }
     var syncDelayMs by remember { mutableIntStateOf(0) }
     val mxBlue = Color(0xFF38BDF8)
-    val swAudioChecked = audioDecoderMode == DecoderMode.SOFTWARE
+    val swAudioChecked = audioDecoderMode == DecoderMode.FFMPEG || audioDecoderMode == DecoderMode.SOFTWARE
 
     LaunchedEffect(
         key1 = player,
@@ -129,7 +128,7 @@ fun BoxScope.AudioTrackSelectorView(
                     .fillMaxWidth()
                     .clickable {
                         onAudioDecoderModeSelected(
-                            if (swAudioChecked) DecoderMode.PREFER_DEVICE else DecoderMode.SOFTWARE,
+                            if (swAudioChecked) DecoderMode.AUTO else DecoderMode.FFMPEG,
                         )
                     }
                     .padding(horizontal = 8.dp, vertical = 10.dp),

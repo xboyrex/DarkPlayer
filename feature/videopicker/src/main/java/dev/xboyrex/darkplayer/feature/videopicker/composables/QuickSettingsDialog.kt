@@ -426,11 +426,11 @@ fun QuickSettingsDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text("Floating play button", color = Color.White, fontSize = 14.sp)
+                            Text("Include network watch history", color = Color.White, fontSize = 14.sp)
                             NextSwitch(
-                                checked = preferences.showFloatingPlayButton,
+                                checked = preferences.includeNetworkWatchHistory,
                                 onCheckedChange = {
-                                    preferences = preferences.copy(showFloatingPlayButton = it)
+                                    preferences = preferences.copy(includeNetworkWatchHistory = it)
                                 },
                             )
                         }

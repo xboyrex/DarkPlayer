@@ -190,7 +190,7 @@ fun BoxScope.SubtitleSelectorView(
                     color = Color.White,
                 )
                 Text(
-                    text = "${subtitleOptionsState.delayMs} ms",
+                    text = "${subtitleOptionsState.delayMilliseconds} ms",
                     fontSize = 13.5.sp,
                     color = mxBlue,
                     fontWeight = FontWeight.SemiBold,
@@ -211,7 +211,7 @@ fun BoxScope.SubtitleSelectorView(
                     ) {
                         IconButton(
                             onClick = {
-                                subtitleOptionsState.setDelay(subtitleOptionsState.delayMs - 100L)
+                                subtitleOptionsState.setDelay(subtitleOptionsState.delayMilliseconds - 100L)
                             },
                             modifier = Modifier
                                 .size(36.dp)
@@ -225,14 +225,14 @@ fun BoxScope.SubtitleSelectorView(
                             )
                         }
                         Text(
-                            text = "Delay: ${subtitleOptionsState.delayMs} ms",
+                            text = "Delay: ${subtitleOptionsState.delayMilliseconds} ms",
                             color = Color.White,
                             fontWeight = FontWeight.SemiBold,
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         IconButton(
                             onClick = {
-                                subtitleOptionsState.setDelay(subtitleOptionsState.delayMs + 100L)
+                                subtitleOptionsState.setDelay(subtitleOptionsState.delayMilliseconds + 100L)
                             },
                             modifier = Modifier
                                 .size(36.dp)
@@ -248,12 +248,12 @@ fun BoxScope.SubtitleSelectorView(
                     }
 
                     Text(
-                        text = "Subtitle Speed: ${String.format("%.2fx", subtitleOptionsState.speed)}",
+                        text = "Subtitle Speed: ${String.format("%.2fx", subtitleOptionsState.speedMultiplier)}",
                         color = Color.White.copy(alpha = 0.85f),
                         fontSize = 13.sp,
                     )
                     GlasmioSlider(
-                        value = subtitleOptionsState.speed,
+                        value = subtitleOptionsState.speedMultiplier,
                         valueRange = 0.5f..2.0f,
                         accentColor = mxBlue,
                         onValueChange = {

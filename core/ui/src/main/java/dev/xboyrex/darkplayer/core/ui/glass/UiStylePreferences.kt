@@ -16,6 +16,8 @@ enum class NavBarStyle(val id: String, val label: String, val subtitle: String) 
     CRADLE_INTERACTIVE("cradle_interactive", "Interactive Cradle Bar", "Curved center cradle with radial quick-action bubbles"),
     GLASMIO_LIQUID("glasmio_liquid", "Glasmio iOS 27 Bar", "Glasmio specular glass bar with elastic spring pill");
 
+    val title: String get() = label
+
     companion object {
         fun fromId(id: String): NavBarStyle = entries.firstOrNull { it.id == id } ?: YTX_LIQUID_GLASS
     }
@@ -28,15 +30,19 @@ enum class VolumeHudStyle(val id: String, val label: String, val subtitle: Strin
     XIAOMI_MIUI("xiaomi_miui", "Xiaomi HyperOS", "Wide vertical pill with quick boost/mute & night mode buttons"),
     ONEPLUS_OXYGEN("oneplus_oxygen", "OnePlus OxygenOS", "Tall crisp bar with bottom Equalizer & Mute oval pills");
 
+    val title: String get() = label
+
     companion object {
         fun fromId(id: String): VolumeHudStyle = entries.firstOrNull { it.id == id } ?: APPLE_IOS
     }
 }
 
-enum class SwitchStyle(val id: String, val label: String) {
-    GLASMIO_LIQUID("glasmio_liquid", "Glasmio Liquid Glass (iOS 27)"),
-    MX_PRO_BLUE("mx_pro_blue", "MX Player Pro Blue"),
-    YTX_EXPRESSIVE("ytx_expressive", "YTX Material Expressive");
+enum class SwitchStyle(val id: String, val label: String, val subtitle: String) {
+    GLASMIO_LIQUID("glasmio_liquid", "Glasmio Liquid Glass (iOS 27)", "Refractive iOS 27 spring capsule switch"),
+    MX_PRO_BLUE("mx_pro_blue", "MX Player Pro Blue", "Crisp sky-blue MX Player Pro switch"),
+    YTX_EXPRESSIVE("ytx_expressive", "YTX Material Expressive", "Dynamic theme accent capsule switch");
+
+    val title: String get() = label
 
     companion object {
         fun fromId(id: String): SwitchStyle = entries.firstOrNull { it.id == id } ?: GLASMIO_LIQUID
@@ -55,7 +61,9 @@ enum class MxQuickShortcut(val id: String, val label: String) {
     SPEED("speed", "Speed"),
     SCREENSHOT("screenshot", "Screenshot"),
     BACKGROUND_PLAY("background_play", "Background Play"),
-    ROTATION("rotation", "Screen Rotation"),
+    ROTATION("rotation", "Screen Rotation");
+
+    val title: String get() = label
 }
 
 val MxClassicThemeSwatches = listOf(
@@ -97,6 +105,9 @@ object UiStylePreferences {
 
     var mxSwatchIndex by mutableIntStateOf(0)
         private set
+
+    val mxThemeSwatchIndex: Int
+        get() = mxSwatchIndex
 
     var nightModeEnabled by mutableStateOf(false)
         private set
@@ -161,6 +172,8 @@ object UiStylePreferences {
         mxSwatchIndex = clamped
         prefs?.edit()?.putInt("mx_swatch_index", clamped)?.apply()
     }
+
+    fun updateMxThemeSwatchIndex(index: Int) = updateMxSwatchIndex(index)
 
     fun toggleNightMode(enabled: Boolean = !nightModeEnabled) {
         nightModeEnabled = enabled

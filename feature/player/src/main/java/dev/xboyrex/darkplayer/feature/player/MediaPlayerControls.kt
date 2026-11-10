@@ -2,6 +2,7 @@ package dev.xboyrex.darkplayer.feature.player
 
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -30,6 +32,7 @@ import androidx.media3.ui.compose.state.rememberProgressStateWithTickInterval
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.ui.components.requestFocusUntilLanded
 import dev.xboyrex.darkplayer.core.ui.components.thenIf
+import dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences
 import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
 import dev.xboyrex.darkplayer.feature.player.state.SeekGestureState
 import dev.xboyrex.darkplayer.feature.player.state.TapGestureState
@@ -135,17 +138,15 @@ internal fun MediaPlayerControls(
                         }
                 },
         ) {
-            if (dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences.nightModeEnabled) {
-                androidx.compose.foundation.layout.Box(
+            if (UiStylePreferences.nightModeEnabled) {
+                Box(
                     Modifier
                         .fillMaxSize()
-                        . thenIf(true) {
-                            androidx.compose.foundation.background(
-                                androidx.compose.ui.graphics.Color(0xFF0A0602).copy(
-                                    alpha = dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences.nightModeIntensity,
-                                ),
-                            )
-                        },
+                        .background(
+                            Color(0xFF0A0602).copy(
+                                alpha = UiStylePreferences.nightModeIntensity,
+                            ),
+                        ),
                 )
             }
             if (mediaPresentationState.isBuffering) {

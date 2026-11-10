@@ -238,21 +238,24 @@ private fun AppearancePreferencesScreenContent(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    MxClassicThemeSwatches.forEachIndexed { index, swatch ->
-                        val isSelected = UiStylePreferences.mxThemeSwatchIndex == index
+                    MxClassicThemeSwatches.forEachIndexed { index, swatchColor ->
+                        val isSelected = UiStylePreferences.mxSwatchIndex == index
                         Box(
                             modifier = Modifier
                                 .size(width = 58.dp, height = 42.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(Color(swatch.primaryHex))
+                                .background(swatchColor)
                                 .border(
                                     width = if (isSelected) 2.2.dp else 0.8.dp,
-                                    color = if (isSelected) Color(0xFF2979FF) else Color.White.copy(alpha = 0.22f),
+                                    color = if (isSelected) Color.White else Color.White.copy(alpha = 0.22f),
                                     shape = RoundedCornerShape(10.dp),
                                 )
                                 .clickable {
-                                    UiStylePreferences.updateMxThemeSwatchIndex(index)
-                                    val hexStr = String.format("#%06X", 0xFFFFFF and swatch.accentHex.toInt())
+                                    UiStylePreferences.updateMxSwatchIndex(index)
+                                    val r = (swatchColor.red * 255).roundToInt().coerceIn(0, 255)
+                                    val g = (swatchColor.green * 255).roundToInt().coerceIn(0, 255)
+                                    val b = (swatchColor.blue * 255).roundToInt().coerceIn(0, 255)
+                                    val hexStr = String.format("#%02X%02X%02X", r, g, b)
                                     onAction(AppearancePreferencesEvent.UpdateThemeAccentSeed(hexStr))
                                 },
                             contentAlignment = Alignment.Center,
@@ -260,8 +263,8 @@ private fun AppearancePreferencesScreenContent(
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Rounded.Check,
-                                    contentDescription = swatch.name,
-                                    tint = if (index == 0) Color(0xFF2979FF) else Color.White,
+                                    contentDescription = "Theme Swatch",
+                                    tint = Color.Black,
                                     modifier = Modifier.size(20.dp),
                                 )
                             }
@@ -297,7 +300,7 @@ private fun AppearancePreferencesScreenContent(
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = style.title,
+                                text = style.label,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp,
                                 color = c.onSurface,
@@ -368,7 +371,7 @@ private fun AppearancePreferencesScreenContent(
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = style.title,
+                                text = style.label,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp,
                                 color = c.onSurface,
@@ -410,7 +413,7 @@ private fun AppearancePreferencesScreenContent(
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = style.title,
+                                text = style.label,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp,
                                 color = c.onSurface,

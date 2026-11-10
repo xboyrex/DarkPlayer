@@ -48,7 +48,7 @@ fun BoxScope.DecoderSelectorView(
 ) {
     val mxBlue = Color(0xFF38BDF8)
     val currentVideo = videoMode ?: DecoderMode.HARDWARE
-    val swAudioEnabled = audioMode == DecoderMode.SOFTWARE
+    val swAudioEnabled = audioMode == DecoderMode.FFMPEG || audioMode == DecoderMode.SOFTWARE
 
     AnimatedVisibility(
         modifier = Modifier
@@ -75,13 +75,13 @@ fun BoxScope.DecoderSelectorView(
 
             val decoderItems = listOf(
                 Triple(DecoderMode.HARDWARE, "HW decoder", "Hardware MediaCodec decoder"),
-                Triple(DecoderMode.PREFER_HARDWARE, "HW+ decoder", "Hybrid Hardware + FFmpeg decoder"),
-                Triple(DecoderMode.SOFTWARE, "SW decoder", "Bundled FFmpeg software decoder"),
+                Triple(DecoderMode.SOFTWARE, "HW+ decoder", "Hybrid Hardware + System decoder"),
+                Triple(DecoderMode.FFMPEG, "SW decoder", "Bundled FFmpeg software decoder"),
             )
 
             decoderItems.forEach { (mode, title, _) ->
                 val isSelected = currentVideo == mode ||
-                    (mode == DecoderMode.PREFER_HARDWARE && currentVideo == DecoderMode.PREFER_SOFTWARE)
+                    (mode == DecoderMode.HARDWARE && currentVideo == DecoderMode.AUTO)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -127,7 +127,7 @@ fun BoxScope.DecoderSelectorView(
                     .fillMaxWidth()
                     .clickable {
                         onAudioModeSelected(
-                            if (swAudioEnabled) DecoderMode.PREFER_DEVICE else DecoderMode.SOFTWARE,
+                            if (swAudioEnabled) DecoderMode.AUTO else DecoderMode.FFMPEG,
                         )
                     }
                     .padding(vertical = 8.dp),
