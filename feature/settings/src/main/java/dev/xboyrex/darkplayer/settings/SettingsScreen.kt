@@ -42,9 +42,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.NavigateNext
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.Info
@@ -54,7 +54,6 @@ import androidx.compose.material.icons.rounded.Subtitles
 import androidx.compose.material.icons.rounded.Swipe
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.VideoLibrary
-import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -86,8 +85,6 @@ import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
 import dev.xboyrex.darkplayer.core.ui.components.rememberRestorableFocusState
 import dev.xboyrex.darkplayer.core.ui.components.restorableFocusGroup
 import dev.xboyrex.darkplayer.core.ui.components.restorableFocusItem
-import dev.xboyrex.darkplayer.core.ui.display.ColoursAndDisplayEngineContent
-import dev.xboyrex.darkplayer.core.ui.display.RealityDisplayEngine
 import dev.xboyrex.darkplayer.core.ui.glass.GlasmioSwitch
 import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
 import dev.xboyrex.darkplayer.core.ui.glass.Motion
@@ -103,7 +100,6 @@ private sealed interface SettingsAction {
 }
 
 private enum class YtxFloatingPanel {
-    COLOURS_DISPLAY_ENGINE,
     AUDIO_DOLBY_STUDIO,
 }
 
@@ -129,7 +125,6 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
     val installedVersion = remember(context) { updateState.currentVersionName(context) }
 
     LaunchedEffect(context) {
-        RealityDisplayEngine.init(context)
         HardwareDolbyAndEqualizerEngine.init(context)
         GlassSettings.init(context)
     }
@@ -148,18 +143,18 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
     LaunchedEffect(Unit) { entered = true }
     val enterAlpha by animateFloatAsState(
         targetValue = if (entered) 1f else 0f,
-        animationSpec = tween(durationMillis = 220, easing = Motion.Emphasized),
+        animationSpec = tween(durationMillis = 160, easing = Motion.Emphasized),
         label = "settingsEnterAlpha",
     )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(c.background),
     ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            containerColor = Color.Black,
+            containerColor = c.background,
             topBar = {
                 Row(
                     modifier = Modifier
@@ -171,15 +166,15 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF1C1C1E))
-                            .border(0.75.dp, Color(0x2BFFFFFF), CircleShape)
+                            .background(c.surfaceContainer)
+                            .border(0.75.dp, c.outlineVariant, CircleShape)
                             .pressable(pressedScale = 0.90f) { onAction(SettingsAction.NavigateUp) },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = stringResource(id = R.string.navigate_up),
-                            tint = Color.White,
+                            tint = c.onSurface,
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -189,7 +184,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                         fontWeight = FontWeight.Bold,
                         fontSize = 24.sp,
                         letterSpacing = (-0.5).sp,
-                        color = Color.White,
+                        color = c.onSurface,
                     )
                 }
             },
@@ -204,11 +199,11 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                     .padding(horizontal = 16.dp)
                     .padding(top = 4.dp, bottom = navBottomInset + 36.dp),
             ) {
-                // ── 1. Glasmio + YTX Expandable Nova Engine Hub Card ──
+                // ── 1. YTX Expandable Nova Studio & Dolby Quick Hub Card ──
                 YtxSettingsCard {
                     val chevronRotation by animateFloatAsState(
                         targetValue = if (engineCardExpanded) 90f else 0f,
-                        animationSpec = spring(dampingRatio = 0.75f, stiffness = 400f),
+                        animationSpec = spring(dampingRatio = 0.72f, stiffness = 1200f),
                         label = "engineChevron",
                     )
                     Row(
@@ -236,16 +231,16 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = "Nova Player Studio & Glasmio Engine",
+                                text = "Nova Player Audio & Navigation Hub",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.5.sp,
-                                color = Color.White,
+                                color = c.onSurface,
                             )
                             Spacer(Modifier.height(1.dp))
                             Text(
-                                text = "${RealityDisplayEngine.colourProfile.title} • ${RealityDisplayEngine.engineMode.title} • Dolby ${if (HardwareDolbyAndEqualizerEngine.dolbyEnabled) "ON" else "OFF"}",
+                                text = "Dolby ${if (HardwareDolbyAndEqualizerEngine.dolbyEnabled) "ON (${HardwareDolbyAndEqualizerEngine.dolbyProfile.title})" else "OFF"} • EQ ${HardwareDolbyAndEqualizerEngine.selectedPresetName}",
                                 fontSize = 12.sp,
-                                color = Color(0xB2EBEBF5),
+                                color = c.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -253,7 +248,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
                             contentDescription = null,
-                            tint = Color(0xB2EBEBF5),
+                            tint = c.onSurfaceVariant,
                             modifier = Modifier
                                 .size(20.dp)
                                 .graphicsLayer { rotationZ = chevronRotation },
@@ -262,8 +257,8 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
 
                     AnimatedVisibility(
                         visible = engineCardExpanded,
-                        enter = fadeIn(tween(180)) + expandVertically(tween(260)),
-                        exit = fadeOut(tween(140)) + shrinkVertically(tween(200)),
+                        enter = fadeIn(tween(140)) + expandVertically(spring(dampingRatio = 0.82f, stiffness = 1200f)),
+                        exit = fadeOut(tween(110)) + shrinkVertically(spring(dampingRatio = 0.85f, stiffness = 1200f)),
                     ) {
                         Column(
                             modifier = Modifier
@@ -272,24 +267,24 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                                 .padding(bottom = 12.dp),
                         ) {
                             HorizontalDivider(
-                                color = Color(0x2BFFFFFF),
+                                color = c.outlineVariant,
                                 modifier = Modifier.padding(bottom = 8.dp),
                             )
                             YtxSwitchRow(
                                 title = "Dolby Atmos & Dialogue Enhancer",
-                                subtitle = "Force crystal-clear vocal boost & surround stage on all videos",
+                                subtitle = "Spatial surround sound & vocal clarity across all videos",
                                 checked = HardwareDolbyAndEqualizerEngine.dolbyEnabled,
                                 onCheckedChange = { HardwareDolbyAndEqualizerEngine.setDolbyMasterEnabled(it) },
                             )
                             YtxSwitchRow(
-                                title = "5-Band / 20-Band Studio Equalizer",
+                                title = "5-Band Studio Equalizer",
                                 subtitle = "Active preset: ${HardwareDolbyAndEqualizerEngine.selectedPresetName}",
                                 checked = HardwareDolbyAndEqualizerEngine.equalizerEnabled,
                                 onCheckedChange = { HardwareDolbyAndEqualizerEngine.setEqualizerMasterEnabled(it) },
                             )
                             YtxSwitchRow(
-                                title = "Glasmio Liquid Glass UI & Navigation",
-                                subtitle = "iOS 27 refractive lens blur & spring pill physics enabled by default",
+                                title = "Liquid Glass Navigation Bar",
+                                subtitle = "YTX Liquid Glass bottom bar with scroll-collapse animation",
                                 checked = GlassSettings.enabled,
                                 onCheckedChange = { GlassSettings.updateEnabled(it) },
                             )
@@ -297,40 +292,33 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                     }
                 }
 
-                // ── 2. Display Engine & Audio Studio (Opens Glasmio Floating Panels) ──
+                // ── 2. Dolby Atmos & Equalizer Studio ──
                 YtxSectionHeader(
-                    title = "DISPLAY ENGINE & AUDIO STUDIO",
+                    title = "AUDIO & DOLBY ATMOS STUDIO",
                     expanded = true,
                     onClick = null,
                 )
                 YtxSettingsCard {
                     YtxSettingsRow(
-                        icon = Icons.Rounded.ColorLens,
-                        title = "Colours & Reality Display Engine",
-                        subtitle = "${RealityDisplayEngine.colourProfile.title} • ${RealityDisplayEngine.engineMode.title} (Bravia / X-Reality)",
-                        onClick = { activeFloatingPanel = YtxFloatingPanel.COLOURS_DISPLAY_ENGINE },
+                        icon = Icons.Rounded.Equalizer,
+                        title = "Dolby Atmos & Equalizer Studio",
+                        subtitle = "Configure 5-band EQ, Bass Boost, Virtualizer & Dolby Atmos profiles",
+                        onClick = { activeFloatingPanel = YtxFloatingPanel.AUDIO_DOLBY_STUDIO },
                         trailing = {
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(50))
-                                    .background(Color(0xFFF4A298).copy(alpha = 0.16f))
+                                    .background(c.primary.copy(alpha = 0.16f))
                                     .padding(horizontal = 10.dp, vertical = 4.dp),
                             ) {
                                 Text(
-                                    text = RealityDisplayEngine.colourProfile.title,
-                                    color = Color(0xFFF4A298),
+                                    text = if (HardwareDolbyAndEqualizerEngine.dolbyEnabled) "Dolby ON" else "Studio",
+                                    color = c.primary,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                 )
                             }
                         },
-                    )
-                    YtxDivider()
-                    YtxSettingsRow(
-                        icon = Icons.Rounded.Equalizer,
-                        title = "Dolby Atmos & Equalizer Studio",
-                        subtitle = "Configure 20-band GEQ, Bass Boost, Virtualizer & Low-Sound Pre-Gain",
-                        onClick = { activeFloatingPanel = YtxFloatingPanel.AUDIO_DOLBY_STUDIO },
                     )
                 }
 
@@ -342,8 +330,8 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                 )
                 AnimatedVisibility(
                     visible = playbackSectionExpanded,
-                    enter = fadeIn(tween(180)) + expandVertically(tween(240)),
-                    exit = fadeOut(tween(140)) + shrinkVertically(tween(180)),
+                    enter = fadeIn(tween(140)) + expandVertically(spring(dampingRatio = 0.82f, stiffness = 1200f)),
+                    exit = fadeOut(tween(110)) + shrinkVertically(spring(dampingRatio = 0.85f, stiffness = 1200f)),
                 ) {
                     YtxSettingsCard {
                         YtxSettingsRow(
@@ -364,7 +352,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                         YtxDivider()
                         YtxSettingsRow(
                             modifier = Modifier.restorableFocusItem(focusState, SettingRow.AUDIO.name),
-                            icon = Icons.Rounded.VolumeUp,
+                            icon = Icons.AutoMirrored.Rounded.VolumeUp,
                             title = stringResource(id = R.string.audio),
                             subtitle = stringResource(id = R.string.audio_desc),
                             onClick = { onAction(SettingsAction.OpenSetting(Setting.AUDIO)) },
@@ -388,8 +376,8 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                 )
                 AnimatedVisibility(
                     visible = interfaceSectionExpanded,
-                    enter = fadeIn(tween(180)) + expandVertically(tween(240)),
-                    exit = fadeOut(tween(140)) + shrinkVertically(tween(180)),
+                    enter = fadeIn(tween(140)) + expandVertically(spring(dampingRatio = 0.82f, stiffness = 1200f)),
+                    exit = fadeOut(tween(110)) + shrinkVertically(spring(dampingRatio = 0.85f, stiffness = 1200f)),
                 ) {
                     YtxSettingsCard {
                         YtxSettingsRow(
@@ -418,8 +406,8 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                 )
                 AnimatedVisibility(
                     visible = systemSectionExpanded,
-                    enter = fadeIn(tween(180)) + expandVertically(tween(240)),
-                    exit = fadeOut(tween(140)) + shrinkVertically(tween(180)),
+                    enter = fadeIn(tween(140)) + expandVertically(spring(dampingRatio = 0.82f, stiffness = 1200f)),
+                    exit = fadeOut(tween(110)) + shrinkVertically(spring(dampingRatio = 0.85f, stiffness = 1200f)),
                 ) {
                     YtxSettingsCard {
                         YtxSettingsRow(
@@ -490,29 +478,20 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
             )
         }
 
-        // Glasmio + YTX Animated Floating Settings Modal Sheets
+        // Fast Solid Floating Modal Sheet for Equalizer & Dolby Studio
         AnimatedContent(
             targetState = activeFloatingPanel,
             transitionSpec = {
-                (scaleIn(spring(dampingRatio = 0.82f, stiffness = 420f), initialScale = 0.90f) + fadeIn(tween(180))) togetherWith
-                    (scaleOut(tween(130), targetScale = 0.92f) + fadeOut(tween(130)))
+                (scaleIn(spring(dampingRatio = 0.78f, stiffness = 1200f), initialScale = 0.92f) + fadeIn(tween(140))) togetherWith
+                    (scaleOut(tween(110), targetScale = 0.94f) + fadeOut(tween(110)))
             },
             label = "ytxFloatingPanel",
         ) { panel ->
             when (panel) {
-                YtxFloatingPanel.COLOURS_DISPLAY_ENGINE -> {
-                    YtxFloatingModal(
-                        title = "Colours",
-                        subtitle = "Reality display engine • Bravia & X-Reality",
-                        onDismiss = { activeFloatingPanel = null },
-                    ) {
-                        ColoursAndDisplayEngineContent(showPreviewBanner = true)
-                    }
-                }
                 YtxFloatingPanel.AUDIO_DOLBY_STUDIO -> {
                     YtxFloatingModal(
                         title = "Dolby Atmos & Equalizer",
-                        subtitle = "Media3 PCM DSP, Hardware DAP & Dialogue Pre-Gain",
+                        subtitle = "5-Band Studio EQ, Bass Boost & Dolby Atmos Profiles",
                         onDismiss = { activeFloatingPanel = null },
                     ) {
                         Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
@@ -534,6 +513,7 @@ private fun YtxSectionHeader(
     expanded: Boolean,
     onClick: (() -> Unit)?,
 ) {
+    val c = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -546,19 +526,19 @@ private fun YtxSectionHeader(
             text = title,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xB2EBEBF5),
+            color = c.onSurfaceVariant,
             letterSpacing = 0.6.sp,
         )
         if (onClick != null) {
             val rot by animateFloatAsState(
                 targetValue = if (expanded) 90f else 0f,
-                animationSpec = tween(180),
+                animationSpec = spring(dampingRatio = 0.75f, stiffness = 1200f),
                 label = "secHeaderRot",
             )
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
                 contentDescription = null,
-                tint = Color(0xB2EBEBF5),
+                tint = c.onSurfaceVariant,
                 modifier = Modifier
                     .size(16.dp)
                     .graphicsLayer { rotationZ = rot },
@@ -572,12 +552,13 @@ private fun YtxSettingsCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val c = MaterialTheme.colorScheme
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(26.dp))
-            .background(Color(0xFF1C1C1E))
-            .border(0.75.dp, Color(0x2BFFFFFF), RoundedCornerShape(26.dp)),
+            .background(c.surfaceContainer)
+            .border(0.75.dp, c.outlineVariant, RoundedCornerShape(26.dp)),
         content = content,
     )
 }
@@ -586,7 +567,7 @@ private fun YtxSettingsCard(
 private fun YtxDivider() {
     HorizontalDivider(
         modifier = Modifier.padding(horizontal = 16.dp),
-        color = Color(0x2BFFFFFF),
+        color = MaterialTheme.colorScheme.outlineVariant,
         thickness = 0.6.dp,
     )
 }
@@ -600,6 +581,7 @@ private fun YtxSettingsRow(
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
+    val c = MaterialTheme.colorScheme
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -611,14 +593,14 @@ private fun YtxSettingsRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF2C2C2E))
-                .border(0.6.dp, Color(0x2BFFFFFF), CircleShape),
+                .background(c.surfaceContainerHigh)
+                .border(0.6.dp, c.outlineVariant, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = c.primary,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -628,14 +610,14 @@ private fun YtxSettingsRow(
                 text = title,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 15.5.sp,
-                color = Color.White,
+                color = c.onSurface,
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 text = subtitle,
                 fontSize = 12.5.sp,
                 lineHeight = 16.sp,
-                color = Color(0xB2EBEBF5),
+                color = c.onSurfaceVariant,
             )
         }
         if (trailing != null) {
@@ -646,7 +628,7 @@ private fun YtxSettingsRow(
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
                 contentDescription = null,
-                tint = Color(0x4DEBEBF5),
+                tint = c.onSurfaceVariant.copy(alpha = 0.65f),
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -660,6 +642,7 @@ private fun YtxSwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
+    val c = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -676,13 +659,13 @@ private fun YtxSwitchRow(
                 text = title,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.5.sp,
-                color = Color.White,
+                color = c.onSurface,
             )
             Text(
                 text = subtitle,
                 fontSize = 12.sp,
                 lineHeight = 15.sp,
-                color = Color(0xB2EBEBF5),
+                color = c.onSurfaceVariant,
             )
         }
         GlasmioSwitch(

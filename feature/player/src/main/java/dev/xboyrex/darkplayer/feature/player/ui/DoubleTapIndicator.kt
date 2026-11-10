@@ -3,9 +3,7 @@ package dev.xboyrex.darkplayer.feature.player.ui
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.indication
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,14 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -41,19 +37,14 @@ import dev.xboyrex.darkplayer.core.model.DoubleTapGesture
 import dev.xboyrex.darkplayer.core.ui.R
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.state.TapGestureState
-import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun DoubleTapIndicator(modifier: Modifier = Modifier, tapGestureState: TapGestureState) {
     if (tapGestureState.seekMillis == 0L) return
-    val isForward = tapGestureState.seekMillis > 0
-    val seconds = abs(tapGestureState.seekMillis).milliseconds.inWholeSeconds
-    val shape = if (isForward) RightSideOvalShape() else LeftSideOvalShape()
-
     Box(
         modifier = modifier.fillMaxSize(),
-        contentAlignment = if (isForward) {
+        contentAlignment = if (tapGestureState.seekMillis > 0) {
             Alignment.CenterEnd
         } else {
             Alignment.CenterStart
@@ -65,47 +56,32 @@ fun DoubleTapIndicator(modifier: Modifier = Modifier, tapGestureState: TapGestur
                 .fillMaxWidth(
                     fraction = when (tapGestureState.doubleTapGesture) {
                         DoubleTapGesture.PLAY_PAUSE -> 0f
-                        DoubleTapGesture.FAST_FORWARD_AND_REWIND -> 0.30f
-                        DoubleTapGesture.BOTH -> 0.28f
+                        DoubleTapGesture.FAST_FORWARD_AND_REWIND -> 0.5f
+                        DoubleTapGesture.BOTH -> 0.35f
                         DoubleTapGesture.NONE -> 0f
                     },
                 )
-                .clip(shape = shape)
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = if (isForward) {
-                            listOf(
-                                Color(0xFF0A0E17).copy(alpha = 0.22f),
-                                Color(0xFF0A0E17).copy(alpha = 0.52f),
-                            )
-                        } else {
-                            listOf(
-                                Color(0xFF0A0E17).copy(alpha = 0.52f),
-                                Color(0xFF0A0E17).copy(alpha = 0.22f),
-                            )
-                        },
-                    ),
+                .clip(
+                    shape = if (tapGestureState.seekMillis > 0) {
+                        RightSideOvalShape()
+                    } else {
+                        LeftSideOvalShape()
+                    },
                 )
-                .border(
-                    width = 0.8.dp,
-                    color = Color.White.copy(alpha = 0.16f),
-                    shape = shape,
-                )
+                .background(Color.White.copy(alpha = 0.2f))
                 .indication(
                     tapGestureState.interactionSource,
-                    indication = ripple(color = Color.White),
+                    indication = ripple(),
                 ),
             contentAlignment = Alignment.Center,
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                DoubleTapSeekTriangles(isForward = isForward)
+                DoubleTapSeekTriangles(isForward = tapGestureState.seekMillis > 0)
                 Text(
-                    text = "${if (isForward) "+" else "-"}${seconds}s",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
+                    text = "${tapGestureState.seekMillis.milliseconds.inWholeSeconds} seconds",
+                    style = MaterialTheme.typography.labelMedium,
                     color = Color.White,
                 )
             }
@@ -115,11 +91,11 @@ fun DoubleTapIndicator(modifier: Modifier = Modifier, tapGestureState: TapGestur
 
 @Composable
 private fun DoubleTapSeekTriangles(isForward: Boolean, modifier: Modifier = Modifier) {
-    val animationDuration = 650L
+    val animationDuration = 750L
 
-    val alpha1 = remember { Animatable(initialValue = 0.2f) }
-    val alpha2 = remember { Animatable(initialValue = 0.2f) }
-    val alpha3 = remember { Animatable(initialValue = 0.2f) }
+    val alpha1 = remember { Animatable(initialValue = 0f) }
+    val alpha2 = remember { Animatable(initialValue = 0f) }
+    val alpha3 = remember { Animatable(initialValue = 0f) }
 
     LaunchedEffect(key1 = animationDuration) {
         while (true) {
@@ -136,15 +112,15 @@ private fun DoubleTapSeekTriangles(isForward: Boolean, modifier: Modifier = Modi
                 animationSpec = tween((animationDuration / 5).toInt()),
             )
             alpha1.animateTo(
-                targetValue = 0.2f,
+                targetValue = 0f,
                 animationSpec = tween((animationDuration / 5).toInt()),
             )
             alpha2.animateTo(
-                targetValue = 0.2f,
+                targetValue = 0f,
                 animationSpec = tween((animationDuration / 5).toInt()),
             )
             alpha3.animateTo(
-                targetValue = 0.2f,
+                targetValue = 0f,
                 animationSpec = tween((animationDuration / 5).toInt()),
             )
         }
@@ -177,15 +153,15 @@ private class RightSideOvalShape : Shape {
                 y = 0f,
             )
             lineTo(
-                x = size.width * 0.14f,
+                x = size.width * 0.1f,
                 y = 0f,
             )
             cubicTo(
-                x1 = size.width * 0.14f,
+                x1 = size.width * 0.1f,
                 y1 = 0f,
-                x2 = -size.width * 0.08f,
+                x2 = -size.width * 0.1f,
                 y2 = size.height / 2,
-                x3 = size.width * 0.14f,
+                x3 = size.width * 0.1f,
                 size.height,
             )
             close()
@@ -206,15 +182,15 @@ private class LeftSideOvalShape : Shape {
                 y = 0f,
             )
             lineTo(
-                x = size.width * 0.86f,
+                x = size.width * 0.9f,
                 y = 0f,
             )
             cubicTo(
-                x1 = size.width * 0.86f,
+                x1 = size.width * 0.9f,
                 y1 = 0f,
-                x2 = size.width * 1.08f,
+                x2 = size.width * 1.1f,
                 y2 = size.height / 2,
-                x3 = size.width * 0.86f,
+                x3 = size.width * 0.9f,
                 size.height,
             )
             lineTo(
@@ -233,7 +209,7 @@ private fun DoubleTapArrow(alpha: Float) {
         painter = painterResource(R.drawable.ic_play),
         contentDescription = null,
         modifier = Modifier
-            .size(16.dp)
+            .size(20.dp)
             .graphicsLayer { this.alpha = alpha },
         tint = Color.White,
     )

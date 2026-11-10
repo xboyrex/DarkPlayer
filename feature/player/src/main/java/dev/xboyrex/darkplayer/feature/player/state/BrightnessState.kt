@@ -17,7 +17,6 @@ import androidx.core.util.Consumer
 import dev.xboyrex.darkplayer.feature.player.PlayerActivity
 import dev.xboyrex.darkplayer.feature.player.extensions.brightnessPercentage
 import dev.xboyrex.darkplayer.feature.player.extensions.currentBrightness
-import kotlin.math.roundToInt
 
 @Composable
 fun rememberBrightnessState(): BrightnessState {
@@ -41,16 +40,14 @@ class BrightnessState(private val activity: PlayerActivity) {
     private var isInPictureInPictureMode = false
     private var brightnessBeforePictureInPicture =
         WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-    private var listenersActive = false
 
     fun updateBrightnessPercentage(percentage: Int) {
-        val clamped = percentage.coerceIn(
-            minimumValue = 0,
-            maximumValue = 100,
-        )
-        brightnessPercentage = clamped
         setBrightness(
-            brightness = clamped * maxBrightness / 100f,
+            brightness =
+                percentage.coerceIn(
+                    minimumValue = 0,
+                    maximumValue = 100,
+                ) * maxBrightness / 100,
         )
     }
 
@@ -62,12 +59,8 @@ class BrightnessState(private val activity: PlayerActivity) {
         if (isInPictureInPictureMode) {
             brightnessBeforePictureInPicture = playerBrightness
             currentBrightness = playerBrightness
-            brightnessPercentage = (playerBrightness / maxBrightness * 100f).roundToInt()
+            brightnessPercentage = (playerBrightness / maxBrightness * 100).toInt()
         } else {
-            if (listenersActive) {
-                currentBrightness = playerBrightness
-                brightnessPercentage = (playerBrightness / maxBrightness * 100f).roundToInt()
-            }
             setWindowBrightness(brightness = playerBrightness)
         }
     }
@@ -96,7 +89,6 @@ class BrightnessState(private val activity: PlayerActivity) {
 
     fun handleListeners(disposableEffectScope: DisposableEffectScope): DisposableEffectResult =
         with(receiver = disposableEffectScope) {
-            listenersActive = true
             val windowAttributesChangedListener: Consumer<WindowManager.LayoutParams?> = Consumer {
                 // System brightness in PiP must not replace the player's remembered brightness.
                 if (!isInPictureInPictureMode) {
@@ -114,7 +106,6 @@ class BrightnessState(private val activity: PlayerActivity) {
             updatePictureInPictureMode(activity.isInPictureInPictureMode)
 
             onDispose {
-                listenersActive = false
                 activity.removeOnWindowAttributesChangedListener(
                     listener = windowAttributesChangedListener,
                 )

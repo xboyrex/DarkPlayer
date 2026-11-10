@@ -7,13 +7,9 @@ import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
-import androidx.media3.extractor.DefaultExtractorsFactory
 import dev.xboyrex.darkplayer.feature.player.utils.apiHeaders
-
-private fun createSeekableExtractorsFactory(): DefaultExtractorsFactory =
-    DefaultExtractorsFactory()
-        .setConstantBitrateSeekingEnabled(true)
-        .setConstantBitrateSeekingAlwaysEnabled(true)
+import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.FfmpegSubtitleExtractorsFactory
+import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.withFfmpegSubtitles
 
 /** Creates independent sources so headers follow an item, including manifests, segments and subtitles. */
 @UnstableApi
@@ -22,20 +18,20 @@ internal class ApiMediaSourceFactory(
     private val dataSourceFactory: DataSource.Factory,
 ) : MediaSource.Factory by DefaultMediaSourceFactory(
     context,
-    createSeekableExtractorsFactory(),
 ).setDataSourceFactory(dataSourceFactory) {
-    override fun createMediaSource(mediaItem: MediaItem): MediaSource =
-        DefaultMediaSourceFactory(
-            context,
-            createSeekableExtractorsFactory(),
+    override fun createMediaSource(mediaItem: MediaItem): MediaSource {
+        val sources = RequestHeadersDataSourceFactory(
+            dataSourceFactory,
+            mediaItem.apiHeaders,
         )
-            .setDataSourceFactory(
-                RequestHeadersDataSourceFactory(
-                    dataSourceFactory,
-                    mediaItem.apiHeaders,
-                ),
-            )
+        return DefaultMediaSourceFactory(
+            context,
+            FfmpegSubtitleExtractorsFactory(),
+        )
+            .setDataSourceFactory(sources)
+            .withFfmpegSubtitles(sources)
             .createMediaSource(mediaItem)
+    }
 }
 
 @UnstableApi

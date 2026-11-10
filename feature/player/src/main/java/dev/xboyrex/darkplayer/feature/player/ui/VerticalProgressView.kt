@@ -1,11 +1,13 @@
 package dev.xboyrex.darkplayer.feature.player.ui
 
 import androidx.annotation.IntRange
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,11 +28,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -41,10 +41,14 @@ import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 private const val NORMAL_MAX_PERCENTAGE = 100
 
 /**
- * Authentic iPhone / iOS Vertical Volume & Brightness HUD Capsule.
- * Fills the entire capsule smoothly from bottom to top with crisp White (or warm Gold when boosted > 100%),
- * and uses dual-layer clipping (like GlasmioVolumeSlider) so the bottom icon and top percentage automatically
- * invert their contrast from White to Dark Charcoal as the fill crosses over them.
+ * Authentic 1:1 iPhone / iOS 18 / iOS 27 Vertical Volume & Brightness HUD Capsule.
+ *
+ * - Single sleek continuous capsule pill (`46dp` wide × `168dp` tall) with zero extra outer boxes.
+ * - Smooth spring-animated bottom-to-top white fill (`0%..100%`), plus warm iOS amber boost fill (`100%..200%`)
+ *   when NextPlayer's native LoudnessEnhancer volume boost is active.
+ * - Dual-layer contrast clipping (`clipRect`) on both the bottom icon and top percentage label so
+ *   the glyph and text automatically invert from crisp white (`#F2F2F7`) on the dark track to deep
+ *   charcoal (`#111114`) as the white fill rises over them.
  */
 @Composable
 fun VerticalProgressView(
@@ -53,93 +57,100 @@ fun VerticalProgressView(
     icon: Painter,
     @IntRange(
         from = 0,
-        to = 1000,
+        to = 200,
     ) value: Int,
     maxValue: Int = NORMAL_MAX_PERCENTAGE,
     boostColor: Color = Color(color = 0xFFFACC15),
 ) {
-    val normalizedValue = value.coerceIn(
-        minimumValue = 0,
-        maximumValue = maxValue,
-    )
-    val targetFillFraction = if (maxValue <= NORMAL_MAX_PERCENTAGE) {
-        normalizedValue.toFloat() / NORMAL_MAX_PERCENTAGE.toFloat()
-    } else if (normalizedValue <= NORMAL_MAX_PERCENTAGE) {
-        (normalizedValue.toFloat() / NORMAL_MAX_PERCENTAGE.toFloat()) * 0.50f
+    val safeMax = maxValue.coerceAtLeast(NORMAL_MAX_PERCENTAGE)
+    val clampedValue = value.coerceIn(0, safeMax)
+    val isBoosted = clampedValue > NORMAL_MAX_PERCENTAGE
+
+    // Normal fill rises from 0% to 100%; boost fill rises from 100% to 200%
+    val normalTargetFraction = (clampedValue.coerceAtMost(NORMAL_MAX_PERCENTAGE).toFloat() / NORMAL_MAX_PERCENTAGE.toFloat())
+        .coerceIn(0f, 1f)
+    val boostTargetFraction = if (isBoosted && safeMax > NORMAL_MAX_PERCENTAGE) {
+        ((clampedValue - NORMAL_MAX_PERCENTAGE).toFloat() / (safeMax - NORMAL_MAX_PERCENTAGE).toFloat()).coerceIn(0f, 1f)
     } else {
-        0.50f + ((normalizedValue - NORMAL_MAX_PERCENTAGE).toFloat() / (maxValue - NORMAL_MAX_PERCENTAGE).coerceAtLeast(1).toFloat()) * 0.50f
+        0f
     }
 
     val animatedFillFraction by animateFloatAsState(
-        targetValue = targetFillFraction.coerceIn(0f, 1f),
-        animationSpec = spring(dampingRatio = 0.88f, stiffness = 1200f),
-        label = "iosVerticalFill",
+        targetValue = normalTargetFraction,
+        animationSpec = spring(dampingRatio = 0.86f, stiffness = 1400f),
+        label = "iosHudFillFraction",
     )
-
-    val isBoostActive = maxValue > NORMAL_MAX_PERCENTAGE && normalizedValue > NORMAL_MAX_PERCENTAGE
-    val fillColor by animateColorAsState(
-        targetValue = if (isBoostActive) boostColor else Color.White,
-        animationSpec = tween(durationMillis = 120),
-        label = "iosFillColor",
+    val animatedBoostFraction by animateFloatAsState(
+        targetValue = boostTargetFraction,
+        animationSpec = spring(dampingRatio = 0.86f, stiffness = 1400f),
+        label = "iosHudBoostFraction",
     )
-
-    val pillScale by animateFloatAsState(
-        targetValue = if (isBoostActive) 1.04f else 1f,
-        animationSpec = spring(dampingRatio = 0.75f, stiffness = 900f),
-        label = "iosPillScale",
+    val pillWidth by animateDpAsState(
+        targetValue = if (isBoosted) width + 2.dp else width,
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = 1200f),
+        label = "iosHudWidth",
     )
 
     val capsuleShape = RoundedCornerShape(percent = 50)
-    val trackColor = Color(0xFF1C1C1E).copy(alpha = 0.92f)
-    val darkContrastColor = Color(0xFF111113)
+    val trackColor = Color(0xFF1C1C1E).copy(alpha = 0.88f)
+    val fillWhite = Color(0xFFFFFFFF)
+    val glyphOnDark = Color(0xFFF2F2F7)
+    val glyphOnLight = Color(0xFF111114)
 
     Box(
         modifier = modifier
-            .graphicsLayer {
-                scaleX = pillScale
-                scaleY = pillScale
-            }
-            .width(width = width)
+            .width(pillWidth)
             .height(168.dp)
             .shadow(
-                elevation = 18.dp,
+                elevation = 16.dp,
                 shape = capsuleShape,
-                ambientColor = Color.Black,
-                spotColor = Color.Black,
+                ambientColor = Color.Black.copy(alpha = 0.45f),
+                spotColor = Color.Black.copy(alpha = 0.55f),
             )
-            .clip(shape = capsuleShape)
+            .clip(capsuleShape)
+            .background(trackColor)
             .drawBehind {
-                // 1. iOS Solid Charcoal Capsule Track
-                drawRect(color = trackColor)
-                // 2. Full-Width Bottom-to-Top iOS Fill
                 val fillHeight = size.height * animatedFillFraction
-                val topY = (size.height - fillHeight).coerceIn(0f, size.height)
-                drawRect(
-                    color = fillColor,
-                    topLeft = Offset(0f, topY),
-                    size = Size(size.width, fillHeight),
-                )
-            },
+                if (fillHeight > 0.5f) {
+                    drawRect(
+                        color = fillWhite,
+                        topLeft = Offset(0f, size.height - fillHeight),
+                        size = Size(size.width, fillHeight),
+                    )
+                }
+                if (animatedBoostFraction > 0.005f) {
+                    val boostHeight = size.height * animatedBoostFraction
+                    drawRect(
+                        color = boostColor,
+                        topLeft = Offset(0f, size.height - boostHeight),
+                        size = Size(size.width, boostHeight),
+                    )
+                }
+            }
+            .border(
+                width = 0.75.dp,
+                color = if (isBoosted) boostColor.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.16f),
+                shape = capsuleShape,
+            ),
     ) {
-        // Layer 1 (Unfilled background contrast: White text & icon)
-        Box(modifier = Modifier.matchParentSize()) {
+        // Layer 1: Unfilled dark track layer (white icon at bottom + subtle percentage at top)
+        Box(modifier = Modifier.fillMaxSize()) {
             Text(
-                text = "$normalizedValue",
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontSize = 11.5.sp,
+                text = "$clampedValue",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(alpha = 0.88f),
-                    textAlign = TextAlign.Center,
+                    letterSpacing = (-0.2).sp,
                 ),
-                maxLines = 1,
+                color = glyphOnDark.copy(alpha = 0.82f),
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 12.dp),
+                    .padding(top = 13.dp),
             )
             Icon(
                 painter = icon,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.92f),
+                tint = glyphOnDark,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 14.dp)
@@ -147,16 +158,16 @@ fun VerticalProgressView(
             )
         }
 
-        // Layer 2 (Filled foreground contrast: Dark charcoal text & icon clipped to fill region)
+        // Layer 2: Clipped to the rising white/boost fill (dark charcoal icon + percentage)
         Box(
             modifier = Modifier
-                .matchParentSize()
+                .fillMaxSize()
                 .drawWithContent {
-                    val fillHeight = size.height * animatedFillFraction
-                    val topY = (size.height - fillHeight).coerceIn(0f, size.height)
+                    val activeFraction = maxOf(animatedFillFraction, animatedBoostFraction)
+                    val fillTop = size.height * (1f - activeFraction)
                     clipRect(
                         left = 0f,
-                        top = topY,
+                        top = fillTop,
                         right = size.width,
                         bottom = size.height,
                     ) {
@@ -165,22 +176,21 @@ fun VerticalProgressView(
                 },
         ) {
             Text(
-                text = "$normalizedValue",
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontSize = 11.5.sp,
+                text = "$clampedValue",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = darkContrastColor,
-                    textAlign = TextAlign.Center,
+                    letterSpacing = (-0.2).sp,
                 ),
-                maxLines = 1,
+                color = glyphOnLight,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 12.dp),
+                    .padding(top = 13.dp),
             )
             Icon(
                 painter = icon,
                 contentDescription = null,
-                tint = darkContrastColor,
+                tint = glyphOnLight,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 14.dp)
@@ -195,8 +205,19 @@ fun VerticalProgressView(
 private fun VerticalProgressPreview() {
     NextPlayerTheme {
         VerticalProgressView(
-            value = 65,
-            maxValue = 100,
+            value = 50,
+            icon = painterResource(R.drawable.ic_volume),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun VerticalProgressBoostPreview() {
+    NextPlayerTheme {
+        VerticalProgressView(
+            value = 150,
+            maxValue = 200,
             icon = painterResource(R.drawable.ic_volume),
         )
     }

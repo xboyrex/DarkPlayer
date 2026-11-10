@@ -1,10 +1,8 @@
 package dev.xboyrex.darkplayer.feature.player.ui.controls
 
 import androidx.annotation.OptIn
-import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -23,13 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -59,26 +55,18 @@ fun ControlsTopView(
         WindowInsets.displayCutout,
     ).asPaddingValues()
     val decoderDescription = stringResource(R.string.select_decoders)
-    val extraTopPadding = if (systemBarsPadding.calculateTopPadding() < 12.dp) 14.dp else 6.dp
+    // Add top spacing only when the system bars don't already provide it (e.g. on TV / landscape).
+    val extraTopPadding = if (systemBarsPadding.calculateTopPadding() == 0.dp) 16.dp else 0.dp
     Row(
         modifier = modifier
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.Black.copy(alpha = 0.68f),
-                        Color.Black.copy(alpha = 0.28f),
-                        Color.Transparent,
-                    ),
-                ),
-            )
             .padding(systemBarsPadding.copy(bottom = 0.dp))
             .padding(horizontal = 16.dp)
-            .padding(bottom = 18.dp)
+            .padding(bottom = 16.dp)
             .padding(top = extraTopPadding)
             .focusProperties { onEnter = { firstControlFocusRequester.requestFocus() } }
             .focusGroup(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         PlayerButton(onClick = onBackClick) {
             Icon(
@@ -89,7 +77,6 @@ fun ControlsTopView(
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium.copy(lineBreak = LineBreak.Heading),
-            fontWeight = FontWeight.SemiBold,
             color = Color.White,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -104,14 +91,11 @@ fun ControlsTopView(
                 modifier = Modifier
                     .semantics { contentDescription = decoderDescription }
                     .focusRequester(focusRequester = firstControlFocusRequester),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                 onClick = onDecoderClick,
             ) {
                 Text(
                     text = stringResource((videoDecoderMode ?: DecoderMode.HARDWARE).labelRes),
                     style = MaterialTheme.typography.labelLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                 )
             }

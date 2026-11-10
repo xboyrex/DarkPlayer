@@ -2,32 +2,29 @@ package dev.xboyrex.darkplayer.feature.player
 
 import android.graphics.Rect
 import androidx.annotation.OptIn
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.PlayerSurface
 import androidx.media3.ui.compose.SURFACE_TYPE_SURFACE_VIEW
-import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import androidx.media3.ui.compose.modifiers.resizeWithContentScale
 import androidx.media3.ui.compose.state.rememberPresentationState
-import dev.xboyrex.darkplayer.core.ui.display.RealityDisplayEngine
-import dev.xboyrex.darkplayer.core.ui.display.applyRealityDisplayEngine
 import dev.xboyrex.darkplayer.feature.player.extensions.toContentScale
+import dev.xboyrex.darkplayer.feature.player.state.CuesState
 import dev.xboyrex.darkplayer.feature.player.state.PictureInPictureState
+import dev.xboyrex.darkplayer.feature.player.state.SubtitlePositionState
 import dev.xboyrex.darkplayer.feature.player.state.VideoZoomAndContentScaleState
 import dev.xboyrex.darkplayer.feature.player.ui.ShutterView
 import dev.xboyrex.darkplayer.feature.player.ui.SubtitleConfiguration
@@ -41,54 +38,41 @@ fun PlayerContentFrame(
     pictureInPictureState: PictureInPictureState,
     videoZoomAndContentScaleState: VideoZoomAndContentScaleState,
     subtitleConfiguration: SubtitleConfiguration,
+    cuesState: CuesState,
+    subtitlePositionState: SubtitlePositionState,
     videoVisible: Boolean = true,
     displayAspectRatio: Float? = null,
 ) {
-    val context = LocalContext.current
-    LaunchedEffect(context) {
-        RealityDisplayEngine.init(context)
-    }
-
     val presentationState = rememberPresentationState(player = player)
-    val mediaId = player.currentMediaItem?.mediaId
-    var stableVideoSizeDp by remember(mediaId) { mutableStateOf<Size?>(null) }
-    var hasRenderedFirstFrame by remember(mediaId) { mutableStateOf(false) }
-
-    val currentVideoSizeDp = presentationState.videoSizeDp
-    if (currentVideoSizeDp != null && currentVideoSizeDp.width > 0f && currentVideoSizeDp.height > 0f) {
-        stableVideoSizeDp = currentVideoSizeDp
-    }
-    LaunchedEffect(presentationState.coverSurface) {
-        if (!presentationState.coverSurface) {
-            hasRenderedFirstFrame = true
+    val videoModifier = Modifier
+        .resizeWithContentScale(
+            contentScale = videoZoomAndContentScaleState.videoContentScale
+                .toContentScale(),
+            sourceSizeDp = presentationState.videoSizeDp?.let { size ->
+                size.copy(
+                    width = with(LocalDensity.current) {
+                        (
+                            displayAspectRatio?.let {
+                                size.height * it
+                            } ?: size.width
+                            ).toDp().value
+                    },
+                    height = with(LocalDensity.current) { size.height.toDp().value },
+                )
+            },
+        )
+        .graphicsLayer {
+            scaleX = videoZoomAndContentScaleState.zoom
+            scaleY = videoZoomAndContentScaleState.zoom
+            translationX = videoZoomAndContentScaleState.offset.x
+            translationY = videoZoomAndContentScaleState.offset.y
         }
-    }
-
-    val effectiveSizeDp = currentVideoSizeDp?.takeIf { it.width > 0f && it.height > 0f } ?: stableVideoSizeDp
-    val useDisplayShader = RealityDisplayEngine.isProcessingActive
-
     Box(modifier.fillMaxSize()) {
         if (videoVisible) {
             PlayerSurface(
                 player = player,
-                surfaceType = if (useDisplayShader) SURFACE_TYPE_TEXTURE_VIEW else SURFACE_TYPE_SURFACE_VIEW,
-                modifier = Modifier
-                    .resizeWithContentScale(
-                        contentScale = videoZoomAndContentScaleState.videoContentScale
-                            .toContentScale(),
-                        sourceSizeDp = effectiveSizeDp?.let { size ->
-                            size.copy(
-                                width = with(LocalDensity.current) {
-                                    (
-                                        displayAspectRatio?.let {
-                                            size.height * it
-                                        } ?: size.width
-                                        ).toDp().value
-                                },
-                                height = with(LocalDensity.current) { size.height.toDp().value },
-                            )
-                        },
-                    )
+                surfaceType = SURFACE_TYPE_SURFACE_VIEW,
+                modifier = videoModifier
                     .onGloballyPositioned {
                         val bounds = it.boundsInWindow()
                         val rect = Rect(
@@ -98,24 +82,31 @@ fun PlayerContentFrame(
                             bounds.bottom.toInt(),
                         )
                         pictureInPictureState.setVideoViewRect(rect)
-                    }
-                    .graphicsLayer {
-                        scaleX = videoZoomAndContentScaleState.zoom
-                        scaleY = videoZoomAndContentScaleState.zoom
-                        translationX = videoZoomAndContentScaleState.offset.x
-                        translationY = videoZoomAndContentScaleState.offset.y
-                    }
-                    .applyRealityDisplayEngine(),
+                    },
             )
         }
 
+        AnimatedVisibility(
+            visible =
+                subtitleConfiguration.controlsVisible,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f)),
+            )
+        }
         SubtitleView(
-            player = player,
+            bitmapModifier = videoModifier,
+            cuesState = cuesState,
+            positionState = subtitlePositionState,
             isInPictureInPictureMode = pictureInPictureState.isInPictureInPictureMode,
             configuration = subtitleConfiguration,
         )
 
-        if (videoVisible && presentationState.coverSurface && !hasRenderedFirstFrame) {
+        if (videoVisible && presentationState.coverSurface) {
             ShutterView()
         }
     }

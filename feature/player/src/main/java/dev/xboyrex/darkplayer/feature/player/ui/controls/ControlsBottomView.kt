@@ -1,7 +1,6 @@
 package dev.xboyrex.darkplayer.feature.player.ui.controls
 
 import androidx.annotation.OptIn
-import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -20,11 +19,6 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.NavigateNext
-import androidx.compose.material.icons.automirrored.rounded.VolumeOff
-import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import androidx.compose.material.icons.rounded.ColorLens
-import androidx.compose.material.icons.rounded.DarkMode
-import dev.xboyrex.darkplayer.core.ui.display.RealityDisplayEngine
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,25 +26,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -60,7 +48,6 @@ import androidx.media3.ui.compose.state.rememberProgressStateWithTickInterval
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.model.VideoContentScale
 import dev.xboyrex.darkplayer.core.ui.R
-import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
 import dev.xboyrex.darkplayer.core.ui.extensions.copy
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.buttons.LoopButton
@@ -75,6 +62,7 @@ import dev.xboyrex.darkplayer.feature.player.state.rememberChaptersState
 import dev.xboyrex.darkplayer.feature.player.ui.preview.rememberPreviewPlayer
 import dev.xboyrex.darkplayer.feature.player.ui.titleOrDefault
 import dev.xboyrex.darkplayer.feature.player.utils.VideoFrameCapture
+import kotlinx.coroutines.launch
 
 private const val MILLISECONDS_PER_SECOND = 1_000L
 
@@ -97,9 +85,7 @@ fun ControlsBottomView(
     onPictureInPictureClick: () -> Unit,
     onPlaybackSpeedClick: () -> Unit,
     onPlayInBackgroundClick: () -> Unit,
-    onSleepTimerClick: () -> Unit = {},
-    onVolumeBoosterClick: () -> Unit = {},
-    onDisplayEngineClick: () -> Unit = {},
+    onEqualizerClick: () -> Unit = {},
     onSeek: (Long) -> Unit,
     onSeekEnd: () -> Unit,
 ) {
@@ -107,30 +93,19 @@ fun ControlsBottomView(
         WindowInsets.displayCutout,
     ).asPaddingValues()
     val context = LocalContext.current
-    val captureScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
     val isTv = remember { context.isTelevision }
     val timeButtonFocusRequester = remember { FocusRequester() }
-    var isMuted by remember(player) { mutableStateOf((player?.volume ?: 1f) == 0f) }
-
     Column(
         modifier = modifier
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        Color.Black.copy(alpha = 0.42f),
-                        Color.Black.copy(alpha = 0.78f),
-                    ),
-                ),
-            )
             .padding(systemBarsPadding.copy(top = 0.dp))
             .padding(horizontal = 16.dp)
-            .padding(top = 20.dp)
+            .padding(top = 16.dp)
             .padding(
                 bottom =
-                    16.dp.takeIf { systemBarsPadding.calculateBottomPadding() == 0.dp } ?: 6.dp,
+                    16.dp.takeIf { systemBarsPadding.calculateBottomPadding() == 0.dp } ?: 0.dp,
             ),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(
             modifier = Modifier
@@ -144,8 +119,8 @@ fun ControlsBottomView(
                 onClick = onToggleTimeDisplay,
                 containerColor = PlayerButtonBlackAlpha,
                 contentPadding = PaddingValues(
-                    horizontal = 10.dp,
-                    vertical = 3.dp,
+                    horizontal = 8.dp,
+                    vertical = 1.dp,
                 ),
             ) {
                 val timeTextPositionMs by remember(progressState) {
@@ -171,8 +146,6 @@ fun ControlsBottomView(
                         append(getStringForTime(progressState.durationMs))
                     },
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White,
                 )
             }
 
@@ -181,9 +154,9 @@ fun ControlsBottomView(
                     onClick = onChaptersClick,
                     containerColor = PlayerButtonBlackAlpha,
                     contentPadding = PaddingValues(
-                        vertical = 3.dp,
-                        horizontal = 10.dp,
-                    ).copy(end = 4.dp),
+                        vertical = 1.dp,
+                        horizontal = 8.dp,
+                    ).copy(end = 2.dp),
                 ) {
                     Row(
                         modifier = Modifier,
@@ -200,14 +173,12 @@ fun ControlsBottomView(
                                 fill = false,
                             ),
                             style = MaterialTheme.typography.labelLarge,
-                            color = Color.White,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
                             contentDescription = null,
-                            tint = Color.White,
                             modifier = Modifier.size(16.dp),
                         )
                     }
@@ -217,7 +188,7 @@ fun ControlsBottomView(
             Spacer(modifier = Modifier.weight(weight = 1f))
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 PlaybackSpeedButton(
@@ -250,7 +221,7 @@ fun ControlsBottomView(
             PlayerButton(onClick = onLockControlsClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_lock_open),
-                    contentDescription = "Lock Controls",
+                    contentDescription = null,
                 )
             }
             PlayerButton(
@@ -259,92 +230,46 @@ fun ControlsBottomView(
             ) {
                 Icon(
                     painter = painterResource(videoContentScale.drawableRes()),
-                    contentDescription = "Aspect Ratio",
+                    contentDescription = null,
                 )
             }
             if (isPipSupported) {
                 PlayerButton(onClick = onPictureInPictureClick) {
                     Icon(
                         painter = painterResource(R.drawable.ic_pip),
-                        contentDescription = "Picture in Picture",
+                        contentDescription = null,
                     )
                 }
             }
-            PlayerButton(
-                isActive = HardwareDolbyAndEqualizerEngine.equalizerEnabled ||
-                    HardwareDolbyAndEqualizerEngine.dolbyEnabled,
-                onClick = onVolumeBoosterClick,
-            ) {
+            PlayerButton(onClick = onPlayInBackgroundClick) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_headset),
+                    contentDescription = null,
+                )
+            }
+            LoopButton(player = player)
+            ShuffleButton(player = player)
+            PlayerButton(onClick = onEqualizerClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_equalizer),
                     contentDescription = "Equalizer & Dolby Atmos",
                 )
             }
             PlayerButton(
-                isActive = HardwareDolbyAndEqualizerEngine.nightModeEnabled,
-                onClick = { HardwareDolbyAndEqualizerEngine.toggleNightMode() },
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.DarkMode,
-                    contentDescription = "Night Mode",
-                )
-            }
-            PlayerButton(
-                isActive = isMuted,
                 onClick = {
-                    player?.let { p ->
-                        val nextMuted = !isMuted
-                        p.volume = if (nextMuted) 0f else 1f
-                        isMuted = nextMuted
+                    scope.launch {
+                        VideoFrameCapture.captureCurrentFrame(
+                            context = context,
+                            player = player,
+                        )
                     }
                 },
             ) {
                 Icon(
-                    imageVector = if (isMuted) {
-                        Icons.AutoMirrored.Rounded.VolumeOff
-                    } else {
-                        Icons.AutoMirrored.Rounded.VolumeUp
-                    },
-                    contentDescription = "Mute",
-                )
-            }
-            PlayerButton(
-                isActive = RealityDisplayEngine.isProcessingActive,
-                onClick = onDisplayEngineClick,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.ColorLens,
-                    contentDescription = "Reality Display Engine",
-                )
-            }
-            PlayerButton(onClick = onPlayInBackgroundClick) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_headset),
-                    contentDescription = "Background Play",
-                )
-            }
-            PlayerButton(
-                onClick = {
-                    VideoFrameCapture.captureCurrentFrame(
-                        context = context,
-                        player = player,
-                        scope = captureScope,
-                    )
-                },
-            ) {
-                Icon(
                     painter = painterResource(R.drawable.ic_screenshot),
-                    contentDescription = "Screenshot",
+                    contentDescription = "Capture Screenshot",
                 )
             }
-            PlayerButton(onClick = onSleepTimerClick) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_timer),
-                    contentDescription = "Sleep Timer",
-                )
-            }
-            LoopButton(player = player)
-            ShuffleButton(player = player)
         }
     }
 }

@@ -48,6 +48,7 @@ data class ThemePaletteChoice(
     val hex: String,
 )
 
+const val SEED_PURE_WHITE = "#FFFFFF"
 const val SEED_SOLAR_GOLD = "#FACC15"
 const val SEED_CRIMSON = "#FF0033"
 const val SEED_CREAM_ROSE = "#833761"
@@ -61,10 +62,11 @@ const val SEED_PUMPKIN = "#B0714A"
 const val SEED_MOONSTONE = "#8A8F98"
 const val SEED_ELECTRIC_BLUE = "#0284C7"
 
-// Top 10 Curated Studio Color Combinations (Solar Gold default)
+// Curated Studio Color Combinations: Yellow, Red, Pure White, and more
 val DARK_PLAYER_PALETTES = listOf(
-    ThemePaletteChoice("Solar Gold", SEED_SOLAR_GOLD),
-    ThemePaletteChoice("Crimson", SEED_CRIMSON),
+    ThemePaletteChoice("Solar Yellow", SEED_SOLAR_GOLD),
+    ThemePaletteChoice("Crimson Red", SEED_CRIMSON),
+    ThemePaletteChoice("Pure White", SEED_PURE_WHITE),
     ThemePaletteChoice("Cream Rose", SEED_CREAM_ROSE),
     ThemePaletteChoice("Erica", SEED_AURORA),
     ThemePaletteChoice("Lilac Air", SEED_LILAC_AIR),
@@ -122,6 +124,38 @@ private fun hsl(h: Float, s: Float, l: Float): Color {
         else -> Triple(c, 0f, x)
     }
     return Color((r + m).coerceIn(0f, 1f), (g + m).coerceIn(0f, 1f), (b + m).coerceIn(0f, 1f))
+}
+
+private fun pureWhiteScheme(dark: Boolean): ColorScheme = if (!dark) {
+    lightColorScheme(
+        primary = Color(0xFF111114), onPrimary = Color.White,
+        primaryContainer = Color(0xFFE5E5EA), onPrimaryContainer = Color(0xFF111114),
+        secondary = Color(0xFF3A3A3C), onSecondary = Color.White,
+        secondaryContainer = Color(0xFFE5E5EA), onSecondaryContainer = Color(0xFF111114),
+        tertiary = Color(0xFF007AFF), tertiaryContainer = Color(0xFFE5F1FF), onTertiaryContainer = Color(0xFF003A75),
+        background = Color(0xFFFFFFFF), onBackground = Color(0xFF090D16),
+        surface = Color(0xFFFFFFFF), onSurface = Color(0xFF090D16),
+        surfaceVariant = Color(0xFFF2F2F7), onSurfaceVariant = Color(0xFF3C3C43),
+        surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF9F9FB),
+        surfaceContainer = Color(0xFFF2F2F7), surfaceContainerHigh = Color(0xFFE5E5EA),
+        surfaceContainerHighest = Color(0xFFD1D1D6),
+        outline = Color(0xFF8E8E93), outlineVariant = Color(0xFFE5E5EA),
+    )
+} else {
+    darkColorScheme(
+        primary = Color(0xFFFFFFFF), onPrimary = Color(0xFF090D16),
+        primaryContainer = Color(0xFF2C2C2E), onPrimaryContainer = Color(0xFFFFFFFF),
+        secondary = Color(0xFFE5E5EA), onSecondary = Color(0xFF090D16),
+        secondaryContainer = Color(0xFF1C1C1E), onSecondaryContainer = Color(0xFFFFFFFF),
+        tertiary = Color(0xFF38BDF8), tertiaryContainer = Color(0xFF1C1C1E), onTertiaryContainer = Color(0xFFFFFFFF),
+        background = Color(0xFF000000), onBackground = Color(0xFFFFFFFF),
+        surface = Color(0xFF000000), onSurface = Color(0xFFFFFFFF),
+        surfaceVariant = Color(0xFF1C1C1E), onSurfaceVariant = Color(0xB2EBEBF5),
+        surfaceContainerLowest = Color(0xFF000000), surfaceContainerLow = Color(0xFF121214),
+        surfaceContainer = Color(0xFF1C1C1E), surfaceContainerHigh = Color(0xFF2C2C2E),
+        surfaceContainerHighest = Color(0xFF3A3A3C),
+        outline = Color(0xFF636366), outlineVariant = Color(0x2BFFFFFF),
+    )
 }
 
 private fun solarGoldScheme(dark: Boolean): ColorScheme = if (!dark) {
@@ -237,6 +271,9 @@ fun schemeForSeed(context: Context?, seedHex: String?, dark: Boolean): ColorSche
         return if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     }
     val hex = seedHex ?: SEED_SOLAR_GOLD
+    if (hex.equals(SEED_PURE_WHITE, ignoreCase = true)) {
+        return pureWhiteScheme(dark)
+    }
     if (hex.equals(SEED_SOLAR_GOLD, ignoreCase = true)) {
         return solarGoldScheme(dark)
     }

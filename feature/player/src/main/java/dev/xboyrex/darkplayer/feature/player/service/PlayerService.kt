@@ -27,7 +27,6 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlaybackException
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.CommandButton
@@ -44,9 +43,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dev.xboyrex.darkplayer.core.common.Logger
 import dev.xboyrex.darkplayer.core.common.di.DiQualifiers
-import dev.xboyrex.darkplayer.core.common.extensions.deleteFiles
 import dev.xboyrex.darkplayer.core.common.extensions.getFilenameFromUri
-import dev.xboyrex.darkplayer.core.common.extensions.subtitleCacheDir
 import dev.xboyrex.darkplayer.core.common.extensions.getLocalSubtitles
 import dev.xboyrex.darkplayer.core.common.extensions.getPath
 import dev.xboyrex.darkplayer.core.data.repository.MediaRepository
@@ -438,14 +435,11 @@ class PlayerService : MediaSessionService() {
             }
             val currentMediaItem = player.currentMediaItem ?: return
             val duration = player.duration.validDurationOrNull()
-            val targetDuration = duration ?: 0L
-            // Only update media metadata duration when it actually changes so seeking never triggers replaceMediaItem jitter
-            if (currentMediaItem.mediaMetadata.durationMs != targetDuration) {
-                player.replaceMediaItem(
-                    player.currentMediaItemIndex,
-                    currentMediaItem.copy(durationMs = targetDuration),
-                )
-            }
+            // Update the media metadata duration so that it will be used later in position discontinuity handling
+            player.replaceMediaItem(
+                player.currentMediaItemIndex,
+                currentMediaItem.copy(durationMs = duration ?: 0),
+            )
 
             serviceScope.launch {
                 mediaRepository.updateMediumLastPlayedTime(
@@ -493,8 +487,8 @@ class PlayerService : MediaSessionService() {
 
         override fun onAudioSessionIdChanged(audioSessionId: Int) {
             super.onAudioSessionIdChanged(audioSessionId)
+            if (!playerPreferences.enableVolumeBoost) return
             if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
-            runCatching { HardwareDolbyAndEqualizerEngine.attachSession(audioSessionId) }
             try {
                 loudnessEnhancer?.release()
                 loudnessEnhancer = LoudnessEnhancer(audioSessionId)
@@ -509,7 +503,6 @@ class PlayerService : MediaSessionService() {
     }
 
     private fun setEnhancerTargetGain(gain: Int) {
-        runCatching { HardwareDolbyAndEqualizerEngine.setVolumeBoostMb(gain) }
         val enhancer = loudnessEnhancer ?: return
 
         try {
@@ -943,17 +936,12 @@ class PlayerService : MediaSessionService() {
         decoderManager = DecoderManager()
         val renderersFactory = NextRenderersFactory(
             context = applicationContext,
-        )
-            .setDecoderManager(decoderManager = decoderManager)
-            .setEnableDecoderFallback(true)
+        ).setDecoderManager(decoderManager = decoderManager)
 
         trackSelector = DefaultTrackSelector(applicationContext).apply {
             setParameters(
                 buildUponParameters()
-                    .setTunnelingEnabled(false)
-                    .setExceedVideoConstraintsIfNecessary(true)
-                    .setExceedAudioConstraintsIfNecessary(true)
-                    .setExceedRendererCapabilitiesIfNecessary(true)
+                    .setTunnelingEnabled(playerPreferences.enableTunneledPlayback)
                     .setPreferredAudioLanguage(playerPreferences.preferredAudioLanguage)
                     .setPreferredTextLanguage(playerPreferences.preferredSubtitleLanguage),
             )
@@ -980,7 +968,6 @@ class PlayerService : MediaSessionService() {
             .setHandleAudioBecomingNoisy(playerPreferences.pauseOnHeadsetDisconnect)
             .build()
             .also {
-                it.setSeekParameters(SeekParameters.CLOSEST_SYNC)
                 it.setPlaybackSpeed(playerPreferences.defaultPlaybackSpeed)
                 it.addListener(playbackStateListener)
                 it.pauseAtEndOfMediaItems = !playerPreferences.autoplay
@@ -993,12 +980,6 @@ class PlayerService : MediaSessionService() {
 
         decoderManager.attach(player = player)
         player.addAnalyticsListener(decoderAnalyticsListener)
-        runCatching {
-            HardwareDolbyAndEqualizerEngine.init(applicationContext)
-            if (player.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
-                playbackStateListener.onAudioSessionIdChanged(player.audioSessionId)
-            }
-        }
 
         try {
             mediaSession = MediaSession.Builder(
@@ -1084,7 +1065,6 @@ class PlayerService : MediaSessionService() {
             release()
             mediaSession = null
         }
-        subtitleCacheDir.deleteFiles()
         // Queue release before a new service can open another connection.
         applicationScope.launch(start = CoroutineStart.UNDISPATCHED) { dataSourceFactory.release() }
         serviceScope.cancel()

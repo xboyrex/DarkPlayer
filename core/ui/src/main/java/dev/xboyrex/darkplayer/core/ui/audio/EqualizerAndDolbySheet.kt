@@ -22,8 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Equalizer
-import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.DropdownMenu
@@ -31,8 +29,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +50,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.xboyrex.darkplayer.core.ui.glass.GlasmioSegmentedControl
+import dev.xboyrex.darkplayer.core.ui.glass.GlasmioSlider
 import dev.xboyrex.darkplayer.core.ui.glass.GlasmioSwitch
 import kotlin.math.roundToInt
 
@@ -79,53 +77,17 @@ fun EqualizerAndDolbyStudioContent(
             .padding(bottom = 22.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        // Minimal Solid Segmented Tab Switcher: Equalizer | Dolby Atmos
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xFF1C1C1E))
-                .border(0.8.dp, Color(0x2BFFFFFF), RoundedCornerShape(16.dp))
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            listOf(
+        // Glasmio Segmented Control: Equalizer | Dolby Atmos
+        GlasmioSegmentedControl(
+            items = listOf(
                 0 to "Equalizer",
                 1 to "Dolby Atmos",
-            ).forEach { (tabIdx, label) ->
-                val isSelected = selectedTab == tabIdx
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (isSelected) Color(0xFF2C2C2E)
-                            else Color.Transparent,
-                        )
-                        .clickable { selectedTab = tabIdx }
-                        .padding(vertical = 9.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Icon(
-                            imageVector = if (tabIdx == 0) Icons.Rounded.Equalizer else Icons.Rounded.GraphicEq,
-                            contentDescription = null,
-                            tint = if (isSelected) accentGold else Color.White.copy(alpha = 0.68f),
-                            modifier = Modifier.size(17.dp),
-                        )
-                        Text(
-                            text = label,
-                            fontSize = 13.5.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.68f),
-                        )
-                    }
-                }
-            }
-        }
+            ),
+            selected = selectedTab,
+            onSelected = { selectedTab = it },
+            modifier = Modifier.fillMaxWidth(),
+            height = 40.dp,
+        )
 
         if (selectedTab == 0) {
             EqualizerPanelContent(accentBlue = accentBlue, accentGold = accentGold)
@@ -315,7 +277,7 @@ private fun EqualizerPanelContent(
         }
     }
 
-    // 5. Bass Boost & Virtualizer Bars
+    // 5. Bass Boost & Virtualizer Bars (using GlasmioSlider)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -491,16 +453,12 @@ private fun HorizontalBarEffectSlider(
             color = Color.White.copy(alpha = 0.90f),
             modifier = Modifier.width(86.dp),
         )
-        Slider(
+        GlasmioSlider(
             value = percentage.toFloat(),
             onValueChange = { onPercentageChange(it.roundToInt()) },
             valueRange = 0f..100f,
+            accentColor = accentColor,
             modifier = Modifier.weight(1f),
-            colors = SliderDefaults.colors(
-                thumbColor = accentColor,
-                activeTrackColor = accentColor,
-                inactiveTrackColor = Color.White.copy(alpha = 0.20f),
-            ),
         )
         Text(
             text = "$percentage%",
@@ -637,47 +595,20 @@ private fun DolbyAtmosPanelContent(
         }
     }
 
-    // 3. Intelligent Equalizer
+    // 3. Intelligent Equalizer (GlasmioSegmentedControl)
     Text(
         text = "INTELLIGENT EQUALIZER",
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.Bold,
         color = Color(0xB2EBEBF5),
     )
-    Row(
+    GlasmioSegmentedControl(
+        items = DolbyIeqPreset.entries.map { it to it.title },
+        selected = currentIeq,
+        onSelected = { HardwareDolbyAndEqualizerEngine.setDolbyIeqPreset(it) },
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        DolbyIeqPreset.entries.forEach { ieq ->
-            val selected = currentIeq == ieq
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        if (selected) accentGold
-                        else Color(0xFF1C1C1E),
-                    )
-                    .border(
-                        width = 0.8.dp,
-                        color = if (selected) accentGold else Color(0x2BFFFFFF),
-                        shape = RoundedCornerShape(14.dp),
-                    )
-                    .clickable {
-                        HardwareDolbyAndEqualizerEngine.setDolbyIeqPreset(ieq)
-                    }
-                    .padding(vertical = 9.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = ieq.title,
-                    fontSize = 12.sp,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (selected) Color(0xFF090D16) else Color.White.copy(alpha = 0.85f),
-                )
-            }
-        }
-    }
+        height = 38.dp,
+    )
 
     // 4. Dialogue Enhancer & Bass/Mid/Treble Tuning Card
     Column(
@@ -716,7 +647,7 @@ private fun DolbyAtmosPanelContent(
             )
         }
         if (HardwareDolbyAndEqualizerEngine.dialogueEnhancerEnabled) {
-            Slider(
+            GlasmioSlider(
                 value = HardwareDolbyAndEqualizerEngine.dialogueEnhancerAmount.toFloat(),
                 onValueChange = {
                     HardwareDolbyAndEqualizerEngine.setDialogueEnhancer(
@@ -725,11 +656,7 @@ private fun DolbyAtmosPanelContent(
                     )
                 },
                 valueRange = 1f..12f,
-                colors = SliderDefaults.colors(
-                    thumbColor = accentGold,
-                    activeTrackColor = accentGold,
-                    inactiveTrackColor = Color.White.copy(alpha = 0.18f),
-                ),
+                accentColor = accentGold,
             )
         }
 

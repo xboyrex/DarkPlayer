@@ -84,7 +84,7 @@ class SeekGestureState(
         if (!enableSeekGesture) return
         if (player.currentPosition < 0) return
         if (player.duration <= 0) return
-        if (!player.isCurrentMediaItemSeekable && player.duration <= 0) return
+        if (!player.isCurrentMediaItemSeekable) return
 
         isSeeking = true
         seekStartX = offset.x
@@ -95,22 +95,24 @@ class SeekGestureState(
 
     @OptIn(UnstableApi::class)
     fun onDrag(change: PointerInputChange, dragAmount: Float) {
-        val startPosition = seekStartPosition ?: return
+        if (seekStartPosition == null) return
         val duration = player.duration
         if (duration <= 0 || player.currentPosition < 0) {
             reset()
             return
         }
-        if (!player.isCurrentMediaItemSeekable && player.duration <= 0) return
+        if (!player.isCurrentMediaItemSeekable) return
         if (player.currentPosition <= 0L && dragAmount < 0) return
         if (player.currentPosition >= duration && dragAmount > 0) return
+        if (change.isConsumed) return
 
-        val deltaMs = ((change.position.x - seekStartX) * (sensitivity * 100f)).toLong()
-        val position = (startPosition + deltaMs).coerceIn(
+        val newPosition =
+            seekStartPosition!! + ((change.position.x - seekStartX) * (sensitivity * 100)).toInt()
+        val position = newPosition.coerceIn(
             minimumValue = 0L,
             maximumValue = duration,
         )
-        seekAmount = position - startPosition
+        seekAmount = position - seekStartPosition!!
         player.seekTo(position)
     }
 

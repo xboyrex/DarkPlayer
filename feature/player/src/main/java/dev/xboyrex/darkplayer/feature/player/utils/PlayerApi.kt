@@ -12,7 +12,7 @@ import dev.xboyrex.darkplayer.feature.player.extensions.setExtras
 import dev.xboyrex.darkplayer.feature.player.model.Subtitle
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 
-/** The VIEW intent contract shared by MX Player Free, Pro, and Dark Player. */
+/** The VIEW intent contract shared by MX Player Free, Pro, and Next Player. */
 class PlayerApi(private val intent: Intent) {
     private val extras = intent.extras
     val isApiAccess: Boolean get() = extras?.keySet()?.any { it in API_KEYS } == true

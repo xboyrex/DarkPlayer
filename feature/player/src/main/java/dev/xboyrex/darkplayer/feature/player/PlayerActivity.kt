@@ -7,6 +7,7 @@ import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -19,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.core.util.Consumer
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -33,8 +35,9 @@ import dev.xboyrex.darkplayer.core.common.extensions.getInitialDirectoryUri
 import dev.xboyrex.darkplayer.core.common.extensions.getMediaContentUri
 import dev.xboyrex.darkplayer.core.common.service.registerForSuspendActivityResult
 import dev.xboyrex.darkplayer.core.data.repository.PlaylistRepository
+import dev.xboyrex.darkplayer.core.data.repository.PreferencesRepository
 import dev.xboyrex.darkplayer.core.ui.R as coreUiR
-import dev.xboyrex.darkplayer.core.ui.theme.DarkPlayerTheme
+import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.extensions.OpenDocumentAtInitialUri
 import dev.xboyrex.darkplayer.feature.player.extensions.uriToSubtitleConfiguration
 import dev.xboyrex.darkplayer.feature.player.service.CustomCommands
@@ -49,7 +52,6 @@ import dev.xboyrex.darkplayer.feature.player.service.startBackgroundPlayback
 import dev.xboyrex.darkplayer.feature.player.service.stopPlayerSession
 import dev.xboyrex.darkplayer.feature.player.service.tryDecoderFallback
 import dev.xboyrex.darkplayer.feature.player.state.rememberMediaController
-import dev.xboyrex.darkplayer.feature.player.utils.DisplaySyncEngine
 import dev.xboyrex.darkplayer.feature.player.utils.PlayerApi
 import dev.xboyrex.darkplayer.feature.player.utils.PlaylistPlaybackContract
 import dev.xboyrex.darkplayer.feature.player.utils.toMediaQueue
@@ -81,6 +83,7 @@ internal fun shouldResumeExistingPlayback(
 class PlayerActivity : ComponentActivity() {
 
     private val playlistRepository: PlaylistRepository by inject()
+    private val preferencesRepository: PreferencesRepository by inject()
 
     private val viewModel: PlayerViewModel by viewModel { parametersOf(playerOutput()) }
     val playerPreferences get() = viewModel.state.value.playerPreferences
@@ -104,7 +107,7 @@ class PlayerActivity : ComponentActivity() {
     private var mediaController by mutableStateOf<MediaController?>(null)
     private var playerApi by mutableStateOf(PlayerApi(Intent()))
     private var playbackRequestJob: Job? = null
-
+    private var pendingGrantItems: List<MediaItem> = emptyList()
     private val playbackStateListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             intent.data = mediaItem?.localConfiguration?.uri
@@ -130,7 +133,25 @@ class PlayerActivity : ComponentActivity() {
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
-            if (playbackState == Player.STATE_READY) hasPlaybackStarted = true
+            if (playbackState == Player.STATE_READY) {
+                hasPlaybackStarted = true
+                if (pendingGrantItems.isNotEmpty()) {
+                    runCatching {
+                        retainPlaybackUriPermissions(
+                            intent,
+                            pendingGrantItems,
+                        )
+                    }
+                        .onSuccess { pendingGrantItems = emptyList() }
+                        .onFailure {
+                            Log.w(
+                                "PlayerActivity",
+                                "Unable to retain playback URI permissions",
+                                it,
+                            )
+                        }
+                }
+            }
             if (playbackState == Player.STATE_ENDED) {
                 isPlaybackFinished = mediaController?.playbackState == Player.STATE_ENDED
                 finishAndStopPlayerSession()
@@ -155,7 +176,7 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val request = PlayerApi(intent)
-        if (request.launchInBackground) setTheme(R.style.DarkPlayer_Background)
+        if (request.launchInBackground) setTheme(R.style.NextPlayer_Background)
         super.onCreate(savedInstanceState)
         activityCreated = true
         playerApi = request
@@ -188,7 +209,6 @@ class PlayerActivity : ComponentActivity() {
         )
 
         viewModel.output = playerOutput()
-        DisplaySyncEngine.enableHighRefreshWindow(this)
         playerApi = PlayerApi(intent)
         if (playerApi.launchInBackground) {
             connectBackgroundController()
@@ -217,7 +237,12 @@ class PlayerActivity : ComponentActivity() {
             }
 
             if (!playerApi.launchInBackground) {
-                DarkPlayerTheme(darkTheme = true) {
+                val preferences by preferencesRepository.applicationPreferences
+                    .collectAsStateWithLifecycle()
+                NextPlayerTheme(
+                    darkTheme = true,
+                    dynamicColor = preferences.useDynamicColors,
+                ) {
                     MediaPlayerScreen(
                         viewModel = viewModel,
                         player = player,
@@ -488,6 +513,8 @@ class PlayerActivity : ComponentActivity() {
     ) {
         val controller = mediaController ?: return
         if (!request.launchInBackground) {
+            // Wait until the service has accepted the queue before handing it the grants.
+            pendingGrantItems = items
             controller.setMediaItems(
                 items,
                 index,

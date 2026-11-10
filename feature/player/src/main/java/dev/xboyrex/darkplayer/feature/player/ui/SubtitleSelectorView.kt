@@ -1,10 +1,6 @@
 package dev.xboyrex.darkplayer.feature.player.ui
 
-import android.content.Intent
-import android.net.Uri
 import androidx.annotation.OptIn
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -12,19 +8,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.FolderOpen
-import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,16 +30,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -71,7 +59,6 @@ fun BoxScope.SubtitleSelectorView(
     onEvent: (SubtitleOptionsEvent) -> Unit = {},
     onDismiss: () -> Unit,
 ) {
-    val context = LocalContext.current
     val subtitleTracksState = rememberTracksState(
         player = player,
         C.TRACK_TYPE_TEXT,
@@ -89,139 +76,49 @@ fun BoxScope.SubtitleSelectorView(
         Column(
             modifier = Modifier
                 .verticalScroll(state = rememberScrollState())
-                .padding(bottom = 16.dp)
-                .padding(horizontal = 14.dp)
+                .padding(bottom = 24.dp)
+                .padding(horizontal = 24.dp)
                 .selectableGroup(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White.copy(alpha = 0.05f))
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
-            ) {
-                subtitleTracksState.tracks.forEachIndexed { index, track ->
-                    RadioButtonRow(
-                        selected = track.isSelected,
-                        text = track.mediaTrackGroup.getName(
-                            C.TRACK_TYPE_TEXT,
-                            index = index,
-                        ),
-                        onClick = {
-                            subtitleTracksState.switchTrack(index = index)
-                            onDismiss()
-                        },
-                    )
-                }
+            subtitleTracksState.tracks.forEachIndexed { index, track ->
                 RadioButtonRow(
-                    selected = subtitleTracksState.tracks.none { it.isSelected },
-                    text = stringResource(R.string.disable),
+                    selected = track.isSelected,
+                    text = track.mediaTrackGroup.getName(
+                        C.TRACK_TYPE_TEXT,
+                        index = index,
+                    ),
                     onClick = {
-                        subtitleTracksState.switchTrack(index = -1)
+                        subtitleTracksState.switchTrack(index = index)
                         onDismiss()
                     },
                 )
             }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White.copy(alpha = 0.05f)),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            onSelectSubtitleClick()
-                            onDismiss()
-                        }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = stringResource(R.string.open_subtitle),
-                        fontSize = 13.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White,
-                    )
-                    Icon(
-                        imageVector = Icons.Rounded.FolderOpen,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.72f),
-                        modifier = Modifier.size(17.dp),
-                    )
-                }
-
-                HorizontalDivider(color = Color.White.copy(alpha = 0.07f))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            val rawTitle = player.mediaMetadata.displayTitle?.toString()
-                                ?: player.currentMediaItem?.mediaMetadata?.title?.toString()
-                                ?: ""
-                            val cleanQuery = rawTitle
-                                .substringBeforeLast(".")
-                                .replace(Regex("[._\\-]+"), " ")
-                                .trim()
-                            val searchUrl = "https://www.opensubtitles.org/en/search2/moviename-" +
-                                Uri.encode(cleanQuery.ifBlank { "movie" })
-                            runCatching {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl)).apply {
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    },
-                                )
-                            }
-                            onDismiss()
-                        }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column {
-                        Text(
-                            text = "Online subtitles",
-                            fontSize = 13.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White,
-                        )
-                        Text(
-                            text = "Search matching subtitles online",
-                            fontSize = 11.5.sp,
-                            color = Color.White.copy(alpha = 0.62f),
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Rounded.Language,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.75f),
-                        modifier = Modifier.size(17.dp),
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White.copy(alpha = 0.05f))
-                    .padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                DelayInput(
-                    value = subtitleOptionsState.delayMilliseconds,
-                    onValueChange = { subtitleOptionsState.setDelay(delayMillis = it) },
-                )
-                SpeedInput(
-                    value = subtitleOptionsState.speedMultiplier,
-                    onValueChange = { subtitleOptionsState.setSpeed(speed = it) },
-                )
-            }
+            RadioButtonRow(
+                selected = subtitleTracksState.tracks.none { it.isSelected },
+                text = stringResource(R.string.disable),
+                onClick = {
+                    subtitleTracksState.switchTrack(index = -1)
+                    onDismiss()
+                },
+            )
+            Spacer(modifier = Modifier.size(16.dp))
+            FilledTonalButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    onSelectSubtitleClick()
+                    onDismiss()
+                },
+            ) { Text(text = stringResource(R.string.open_subtitle)) }
+            Spacer(modifier = Modifier.size(16.dp))
+            DelayInput(
+                value = subtitleOptionsState.delayMilliseconds,
+                onValueChange = { subtitleOptionsState.setDelay(delayMillis = it) },
+            )
+            Spacer(modifier = Modifier.size(16.dp))
+            SpeedInput(
+                value = subtitleOptionsState.speedMultiplier,
+                onValueChange = { subtitleOptionsState.setSpeed(speed = it) },
+            )
         }
     }
 }
@@ -241,7 +138,7 @@ private fun DelayInput(value: Long, onValueChange: (Long) -> Unit) {
     NumberChooserInput(
         title = stringResource(R.string.delay),
         value = valueString,
-        suffix = { Text(text = "sec", fontSize = 12.sp) },
+        suffix = { Text(text = "sec") },
         onValueChange = { newValue ->
             if (newValue.isBlank()) {
                 valueString = ""
@@ -289,7 +186,7 @@ private fun SpeedInput(value: Float, onValueChange: (Float) -> Unit) {
     NumberChooserInput(
         title = stringResource(R.string.speed),
         value = valueString,
-        suffix = { Text(text = "x", fontSize = 12.sp) },
+        suffix = { Text(text = "x") },
         onValueChange = { newValue ->
             if (newValue.isBlank()) {
                 valueString = ""
@@ -334,22 +231,19 @@ private fun NumberChooserInput(
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         FilledTonalIconButton(
             onClick = {},
-            modifier = Modifier
-                .size(34.dp)
-                .repeatingClickable(onClick = onDecrement),
+            modifier = Modifier.repeatingClickable(onClick = onDecrement),
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_remove),
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
             )
         }
         NextOutlinedTextField(
-            label = { Text(text = title, fontSize = 12.sp) },
+            label = { Text(text = title) },
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.weight(weight = 1f),
@@ -361,14 +255,11 @@ private fun NumberChooserInput(
         )
         FilledTonalIconButton(
             onClick = {},
-            modifier = Modifier
-                .size(34.dp)
-                .repeatingClickable(onClick = onIncrement),
+            modifier = Modifier.repeatingClickable(onClick = onIncrement),
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_add),
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
             )
         }
     }

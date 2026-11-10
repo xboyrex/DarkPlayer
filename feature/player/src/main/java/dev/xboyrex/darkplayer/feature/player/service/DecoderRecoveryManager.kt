@@ -5,7 +5,7 @@ import dev.xboyrex.darkplayer.feature.player.model.DecoderRecoveryStatus
 import dev.xboyrex.darkplayer.feature.player.model.DecoderTrackType
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
 
-/** Keeps DarkPlayer's decoder fallback policy separate from nextlib's decoder switching. */
+/** Keeps NextPlayer's decoder fallback policy separate from nextlib's decoder switching. */
 internal class DecoderRecoveryManager {
 
     private val videoRecovery = TrackRecovery()

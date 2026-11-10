@@ -22,7 +22,6 @@ fun ShuffleButton(modifier: Modifier = Modifier, player: Player?) {
     PlayerButton(
         modifier = modifier,
         enabled = state.isEnabled,
-        isActive = state.shuffleOn,
         onClick = {
             state.onClick()
             controlsVisibilityState?.showControls()

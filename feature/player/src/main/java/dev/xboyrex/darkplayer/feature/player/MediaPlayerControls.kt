@@ -2,10 +2,6 @@ package dev.xboyrex.darkplayer.feature.player
 
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,7 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -31,14 +28,12 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.state.rememberProgressStateWithTickInterval
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
-import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
 import dev.xboyrex.darkplayer.core.ui.components.requestFocusUntilLanded
 import dev.xboyrex.darkplayer.core.ui.components.thenIf
 import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
 import dev.xboyrex.darkplayer.feature.player.state.SeekGestureState
 import dev.xboyrex.darkplayer.feature.player.state.TapGestureState
 import dev.xboyrex.darkplayer.feature.player.state.VideoZoomAndContentScaleState
-import dev.xboyrex.darkplayer.feature.player.state.VolumeState
 import dev.xboyrex.darkplayer.feature.player.state.rememberChaptersState
 import dev.xboyrex.darkplayer.feature.player.state.rememberMediaPresentationState
 import dev.xboyrex.darkplayer.feature.player.state.rememberMetadataState
@@ -60,11 +55,10 @@ internal fun MediaPlayerControls(
     tapGestureState: TapGestureState,
     seekGestureState: SeekGestureState,
     videoZoomAndContentScaleState: VideoZoomAndContentScaleState,
-    volumeState: VolumeState? = null,
-    dpadUpDown: Int? = null,
     isPipSupported: Boolean,
     onPictureInPictureClick: () -> Unit,
     modifier: Modifier = Modifier,
+    dpadUpDown: Int? = null,
 ) {
     val playerPreferences = state.playerPreferences
     val metadataState = rememberMetadataState(player = player)
@@ -83,16 +77,6 @@ internal fun MediaPlayerControls(
     var overlayView by remember { mutableStateOf<OverlayView?>(value = null) }
     LaunchedEffect(metadataState.mediaId) {
         if (overlayView == OverlayView.CHAPTERS) overlayView = null
-        HardwareDolbyAndEqualizerEngine.clearAbRepeat()
-    }
-
-    // Enforce A - B Repeat seamlessly during playback
-    val abStart = HardwareDolbyAndEqualizerEngine.abRepeatStartMs
-    val abEnd = HardwareDolbyAndEqualizerEngine.abRepeatEndMs
-    LaunchedEffect(progressState.currentPositionMs, abStart, abEnd) {
-        if (abStart != null && abEnd != null && progressState.currentPositionMs >= abEnd) {
-            player.seekTo(abStart)
-        }
     }
 
     fun showOverlay(overlay: OverlayView) {
@@ -101,24 +85,21 @@ internal fun MediaPlayerControls(
     }
 
     val context = LocalContext.current
-    LaunchedEffect(context) {
-        HardwareDolbyAndEqualizerEngine.init(context)
-    }
-
     val isTv = remember { context.isTelevision }
+    val handleDpadKeys = isTv || dpadUpDown != null
     val rootFocusRequester = remember { FocusRequester() }
     val middleControlsFocusRequester = remember { FocusRequester() }
     val unlockFocusRequester = remember { FocusRequester() }
     var isMiddleControlsFocused by remember { mutableStateOf(value = false) }
     var isUnlockFocused by remember { mutableStateOf(value = false) }
-    if (isTv) {
+    if (handleDpadKeys) {
         LaunchedEffect(
             controlsVisibilityState.controlsVisible,
             controlsVisibilityState.controlsLocked,
             key3 = overlayView,
         ) {
             if (overlayView != null) return@LaunchedEffect
-            if (!controlsVisibilityState.controlsVisible) {
+            if (!isTv || !controlsVisibilityState.controlsVisible) {
                 runCatching { rootFocusRequester.requestFocus() }
                 return@LaunchedEffect
             }
@@ -133,16 +114,20 @@ internal fun MediaPlayerControls(
     CompositionLocalProvider(
         LocalControlsVisibilityState provides controlsVisibilityState,
         LocalUseMaterialYouControls provides playerPreferences.useMaterialYouControls,
-        LocalHidePlayerButtonsBackground provides playerPreferences.hidePlayerButtonsBackground,
     ) {
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .thenIf(condition = isTv) {
+                .thenIf(condition = handleDpadKeys) {
                     focusRequester(focusRequester = rootFocusRequester)
                         .focusable()
                         .onPreviewKeyEvent { keyEvent ->
-                            if (overlayView != null) {
+                            if (overlayView != null ||
+                                (
+                                    !isTv && keyEvent.key != Key.DirectionUp &&
+                                        keyEvent.key != Key.DirectionDown
+                                    )
+                            ) {
                                 false
                             } else {
                                 keyInputState.onKeyEvent(keyEvent = keyEvent)
@@ -150,38 +135,11 @@ internal fun MediaPlayerControls(
                         }
                 },
         ) {
-            // Eye-comfort Night Mode overlay when enabled from quick actions
-            if (HardwareDolbyAndEqualizerEngine.nightModeEnabled) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(
-                            Color(0xFF140C00).copy(
-                                alpha = HardwareDolbyAndEqualizerEngine.nightModeAlpha,
-                            ),
-                        ),
-                )
-            }
-
-            AnimatedVisibility(
-                visible =
-                    controlsVisibilityState.controlsVisible &&
-                        !controlsVisibilityState.controlsLocked,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.28f)),
-                )
-            }
             if (mediaPresentationState.isBuffering) {
                 CircularProgressIndicator(
                     Modifier
                         .align(Alignment.Center)
-                        .size(56.dp),
-                    color = Color.White,
+                        .size(72.dp),
                 )
             }
             PlayerGestureIndicators(tapGestureState = tapGestureState)
@@ -228,11 +186,12 @@ internal fun MediaPlayerControls(
                 overlayView = overlayView,
                 chapters = chaptersState.chapters,
                 currentChapterIndex = chaptersState.currentChapterIndex,
-                volumeState = volumeState,
                 onChapterSelected = { chapter ->
-                    player.seekTo(chapter.startTimeMs)
-                    overlayView = null
-                    controlsVisibilityState.showControls()
+                    if (player.isCurrentMediaItemSeekable) {
+                        player.seekTo(chapter.startTimeMs)
+                        overlayView = null
+                        controlsVisibilityState.showControls()
+                    }
                 },
                 videoDecoderMode = state.decoderServiceState.videoMode,
                 audioDecoderMode = state.decoderServiceState.audioMode,

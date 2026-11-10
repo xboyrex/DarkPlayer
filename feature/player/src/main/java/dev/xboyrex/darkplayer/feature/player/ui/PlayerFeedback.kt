@@ -3,8 +3,6 @@ package dev.xboyrex.darkplayer.feature.player.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -27,12 +25,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -47,21 +41,12 @@ import dev.xboyrex.darkplayer.feature.player.state.VerticalGesture
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 
-/**
- * Normal plain text indicator for time seek (+00:10 [01:25]), crop/aspect ratio ("Best fit", "Crop", "Stretch", "100%"),
- * and pinch zoom percentage, with zero box or liquid glass wrapper.
- */
 @Composable
 internal fun InfoView(
     modifier: Modifier = Modifier,
     info: String,
     textStyle: TextStyle = MaterialTheme.typography.headlineMedium.copy(
         fontWeight = FontWeight.Bold,
-        shadow = Shadow(
-            color = Color.Black.copy(alpha = 0.88f),
-            offset = Offset(0f, 2f),
-            blurRadius = 10f,
-        ),
     ),
 ) {
     Column(
@@ -92,7 +77,7 @@ internal fun BoxScope.DpadSeekIndicator(visible: Boolean, offsetMs: Long, positi
     ) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = Color.Black.copy(alpha = 0.65f),
+            color = Color.Black.copy(alpha = 0.6f),
         ) {
             Row(
                 modifier = Modifier.padding(
@@ -134,7 +119,6 @@ internal fun BoxScope.DpadSeekIndicator(visible: Boolean, offsetMs: Long, positi
 internal fun BoxScope.PlayerGestureIndicators(tapGestureState: TapGestureState) {
     DoubleTapIndicator(tapGestureState = tapGestureState)
 
-    // 2x Hold Speed Liquid Glass Capsule Pill
     AnimatedVisibility(
         modifier = Modifier
             .padding(top = 24.dp)
@@ -143,51 +127,19 @@ internal fun BoxScope.PlayerGestureIndicators(tapGestureState: TapGestureState) 
         enter = fadeIn(),
         exit = fadeOut(),
     ) {
-        Box(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.24f),
-                            Color(0xFF0A0E17).copy(alpha = 0.68f),
-                        ),
-                    ),
-                )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.48f),
-                            Color.White.copy(alpha = 0.14f),
-                        ),
-                    ),
-                    shape = CircleShape,
-                )
-                .padding(
-                    horizontal = 18.dp,
+        Surface(shape = CircleShape) {
+            Row(
+                modifier = Modifier.padding(
+                    horizontal = 16.dp,
                     vertical = 8.dp,
                 ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Icon(
-                    painter = painterResource(coreUiR.drawable.ic_fast),
-                    contentDescription = null,
-                    tint = Color(0xFFFACC15),
-                    modifier = Modifier.size(16.dp),
-                )
                 Text(
                     text = stringResource(
                         coreUiR.string.fast_playback_speed,
                         tapGestureState.longPressSpeed,
                     ),
                     style = MaterialTheme.typography.labelLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
                 )
             }
         }

@@ -54,6 +54,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -295,7 +296,7 @@ fun LiquidBottomTabs(
             Modifier
                 .layout { measurable, constraints ->
                     val w = currentSurfaceWidthPx.roundToInt().coerceIn(1, constraints.maxWidth)
-                    val h = constraints.constrainHeight(64.dp.roundToPx())
+                    val h = 64.dp.roundToPx().coerceIn(constraints.minHeight, constraints.maxHeight)
                     val placeable = measurable.measure(Constraints.fixed(w, h))
                     layout(w, h) { placeable.placeRelative(0, 0) }
                 }

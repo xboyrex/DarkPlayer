@@ -9,9 +9,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
@@ -25,9 +30,11 @@ import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
 import dev.xboyrex.darkplayer.feature.player.state.PlayerOrientationEffect
 import dev.xboyrex.darkplayer.feature.player.state.rememberBrightnessState
 import dev.xboyrex.darkplayer.feature.player.state.rememberControlsVisibilityState
+import dev.xboyrex.darkplayer.feature.player.state.rememberCuesState
 import dev.xboyrex.darkplayer.feature.player.state.rememberErrorState
 import dev.xboyrex.darkplayer.feature.player.state.rememberPictureInPictureState
 import dev.xboyrex.darkplayer.feature.player.state.rememberSeekGestureState
+import dev.xboyrex.darkplayer.feature.player.state.rememberSubtitlePositionState
 import dev.xboyrex.darkplayer.feature.player.state.rememberTapGestureState
 import dev.xboyrex.darkplayer.feature.player.state.rememberVideoZoomAndContentScaleState
 import dev.xboyrex.darkplayer.feature.player.state.rememberVolumeAndBrightnessGestureState
@@ -41,8 +48,7 @@ import dev.xboyrex.darkplayer.feature.player.utils.PlayerApi
 import kotlin.time.Duration.Companion.seconds
 
 val LocalControlsVisibilityState = compositionLocalOf<ControlsVisibilityState?> { null }
-val LocalUseMaterialYouControls = compositionLocalOf { true }
-val LocalHidePlayerButtonsBackground = compositionLocalOf { false }
+val LocalUseMaterialYouControls = compositionLocalOf { false }
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -72,7 +78,6 @@ internal fun MediaPlayerContent(
         rememberVolumeState(
             player = player,
             showVolumePanelIfHeadsetIsOn = playerPreferences.showSystemVolumePanel,
-            enableVolumeBoost = playerPreferences.enableVolumeBoost,
         )
     } else {
         null
@@ -134,6 +139,23 @@ internal fun MediaPlayerContent(
         )
     }
     val errorState = rememberErrorState(player = player)
+    val cuesState = rememberCuesState(player = player)
+    val subtitlePositionState = rememberSubtitlePositionState(
+        savedOffsetY = playerPreferences.subtitleOffsetY,
+        onPositionSaved = { onAction(PlayerAction.UpdateSubtitleOffset(it)) },
+    )
+    val hapticFeedback = LocalHapticFeedback.current
+    var wasDraggingSubtitle by remember { mutableStateOf(false) }
+    LaunchedEffect(subtitlePositionState.isDragging) {
+        if (subtitlePositionState.isDragging) {
+            wasDraggingSubtitle = true
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+            controlsVisibilityState.hideControls()
+        } else if (wasDraggingSubtitle) {
+            wasDraggingSubtitle = false
+            controlsVisibilityState.showControls()
+        }
+    }
 
     LaunchedEffect(pictureInPictureState?.isInPictureInPictureMode) {
         if (pictureInPictureState?.isInPictureInPictureMode == true) {
@@ -164,6 +186,8 @@ internal fun MediaPlayerContent(
                 videoZoomAndContentScaleState = videoZoomAndContentScaleState,
                 videoVisible = api?.videoVisible ?: true,
                 displayAspectRatio = api?.displayAspectRatio,
+                cuesState = cuesState,
+                subtitlePositionState = subtitlePositionState,
                 subtitleConfiguration = SubtitleConfiguration(
                     useSystemCaptionStyle = playerPreferences.useSystemCaptionStyle,
                     showBackground = playerPreferences.subtitleBackground,
@@ -171,6 +195,9 @@ internal fun MediaPlayerContent(
                     textSize = playerPreferences.subtitleTextSize,
                     textBold = playerPreferences.subtitleTextBold,
                     applyEmbeddedStyles = playerPreferences.applyEmbeddedStyles,
+                    useMaterialYouControls = playerPreferences.useMaterialYouControls,
+                    controlsVisible = controlsVisibilityState.controlsVisible &&
+                        !controlsVisibilityState.controlsLocked,
                 ),
             )
             if (volumeAndBrightnessGestureState != null) {
@@ -181,6 +208,9 @@ internal fun MediaPlayerContent(
                     seekGestureState = seekGestureState,
                     videoZoomAndContentScaleState = videoZoomAndContentScaleState,
                     volumeAndBrightnessGestureState = volumeAndBrightnessGestureState,
+                    subtitlePositionState = subtitlePositionState,
+                    hasSubtitles = cuesState.currentCues?.cues?.isNotEmpty() == true,
+                    canRepositionSubtitles = cuesState.canReposition,
                 )
             }
         }
@@ -192,7 +222,6 @@ internal fun MediaPlayerContent(
             tapGestureState = tapGestureState,
             seekGestureState = seekGestureState,
             videoZoomAndContentScaleState = videoZoomAndContentScaleState,
-            volumeState = volumeState,
             dpadUpDown = api?.dpadUpDown,
             isPipSupported = pictureInPictureState?.isPipSupported == true,
             onPictureInPictureClick = {
