@@ -97,6 +97,7 @@ fun PlayerControls(
                     onSeekEnd = seekGestureState::onSeekEnd,
                     onPlaybackSpeedClick = { onShowOverlay(OverlayView.PLAYBACK_SPEED) },
                     onPlayInBackgroundClick = onPlayInBackgroundClick,
+                    onSleepTimerClick = { onShowOverlay(OverlayView.SLEEP_TIMER) },
                     onEqualizerClick = { onShowOverlay(OverlayView.EQUALIZER_AND_DOLBY) },
                     onLockControlsClick = {
                         controlsVisibilityState.showControls()

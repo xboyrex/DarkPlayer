@@ -132,7 +132,7 @@ private fun MaterialYouSlider(
     isFocused: Boolean = false,
     chapters: List<Chapter> = emptyList(),
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val primaryColor = Color.White
     val interactionSource = remember { MutableInteractionSource() }
     val trackHeight = 8.dp
     val thumbWidth = 4.dp
@@ -154,7 +154,7 @@ private fun MaterialYouSlider(
         interactionSource = interactionSource,
         modifier = modifier.size(24.dp),
         track = { sliderState ->
-            val disabledAlpha = 0.4f
+            val disabledAlpha = 0.28f
 
             Canvas(
                 modifier = Modifier

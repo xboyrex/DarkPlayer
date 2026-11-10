@@ -1,6 +1,7 @@
 package dev.xboyrex.darkplayer.feature.player.ui
 
 import androidx.annotation.OptIn
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -148,12 +149,18 @@ fun BoxScope.PlaybackSpeedSelectorView(
                     7.0f,
                     8.0f,
                 ).forEach { speed ->
+                    val isSelectedSpeed = kotlin.math.abs(playbackParametersState.speed - speed) < 0.02f
                     Box(
                         modifier = Modifier
                             .clip(shape = CircleShape)
+                            .background(
+                                if (isSelectedSpeed) androidx.compose.ui.graphics.Color.White.copy(alpha = 0.22f)
+                                else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.06f),
+                            )
                             .border(
                                 width = 1.dp,
-                                color = LocalContentColor.current,
+                                color = if (isSelectedSpeed) androidx.compose.ui.graphics.Color.White.copy(alpha = 0.45f)
+                                else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.12f),
                                 shape = CircleShape,
                             )
                             .clickable { playbackParametersState.setPlaybackSpeed(speed = speed) }
@@ -167,7 +174,8 @@ fun BoxScope.PlaybackSpeedSelectorView(
                         Text(
                             text = "${speed}x",
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = androidx.compose.ui.graphics.Color.White,
                         )
                     }
                 }

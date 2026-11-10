@@ -89,7 +89,11 @@ fun PlayerGestures(
                         onDragCancel = subtitlePositionState::onDragCancel,
                     )
                 }
-                .pointerInput(pictureInPictureState.isInPictureInPictureMode) {
+                .pointerInput(
+                    tapGestureState,
+                    controlsVisibilityState.controlsLocked,
+                    pictureInPictureState.isInPictureInPictureMode,
+                ) {
                     if (pictureInPictureState.isInPictureInPictureMode) return@pointerInput
 
                     detectTapGestures(
@@ -110,7 +114,6 @@ fun PlayerGestures(
                         },
                         onLongPress = {
                             if (controlsVisibilityState.controlsLocked) return@detectTapGestures
-                            if (isOnSubtitle(it)) return@detectTapGestures
                             tapGestureState.handleLongPress(offset = it)
                         },
                     )
@@ -142,6 +145,7 @@ fun PlayerGestures(
                     )
                 }
                 .pointerInput(
+                    volumeAndBrightnessGestureState,
                     gestureInsets,
                     density,
                     layoutDirection,

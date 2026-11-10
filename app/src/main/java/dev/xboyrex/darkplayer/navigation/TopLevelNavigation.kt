@@ -343,6 +343,7 @@ fun NextNavigationBar(
                     onExpandCompact = onExpandCompact,
                     modifier = Modifier
                         .weight(1f)
+                        .height(64.dp)
                         .shadow(
                             elevation = 20.dp,
                             shape = RoundedCornerShape(999.dp),

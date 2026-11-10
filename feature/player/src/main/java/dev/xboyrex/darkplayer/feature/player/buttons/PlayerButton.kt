@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -45,7 +46,13 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
-val PlayerButtonBlackAlpha = Color(0xFF1C1C1E).copy(alpha = 0.86f)
+val PlayerButtonBlackAlpha = Color(0xFF0A0E17).copy(alpha = 0.62f)
+private val PlayerGlassBorderBrush = Brush.verticalGradient(
+    colors = listOf(
+        Color.White.copy(alpha = 0.24f),
+        Color.White.copy(alpha = 0.07f),
+    ),
+)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable

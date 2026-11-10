@@ -158,12 +158,10 @@ private fun ReorderableCollectionItemScope.PlaylistItemView(
         contentPadding = PaddingValues(8.dp),
         interactionSource = interactionSource,
         colors = ListItemDefaults.segmentedColors(
-            contentColor = if (isCurrentItem) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                ListItemDefaults.segmentedColors().contentColor
-            },
-            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+            containerColor = Color.White.copy(alpha = 0.06f),
+            contentColor = Color.White,
+            selectedContainerColor = Color.White.copy(alpha = 0.16f),
+            selectedContentColor = Color.White,
         ),
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
@@ -177,9 +175,9 @@ private fun ReorderableCollectionItemScope.PlaylistItemView(
                     painter = painterResource(R.drawable.ic_drag_handle),
                     contentDescription = stringResource(R.string.reorder),
                     tint = if (isCurrentItem) {
-                        MaterialTheme.colorScheme.primary
+                        Color.White
                     } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                        Color.White.copy(alpha = 0.55f)
                     },
                 )
 
@@ -203,6 +201,8 @@ private fun ReorderableCollectionItemScope.PlaylistItemView(
                 ),
                 maxLines = 2,
                 style = MaterialTheme.typography.titleSmall.copy(lineBreak = LineBreak.Heading),
+                fontWeight = if (isCurrentItem) FontWeight.Bold else FontWeight.Medium,
+                color = Color.White,
                 overflow = TextOverflow.Ellipsis,
             )
         },

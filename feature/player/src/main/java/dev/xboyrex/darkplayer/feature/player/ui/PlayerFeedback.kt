@@ -1,8 +1,13 @@
 package dev.xboyrex.darkplayer.feature.player.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -25,14 +30,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.xboyrex.darkplayer.core.ui.R as coreUiR
 import dev.xboyrex.darkplayer.core.ui.extensions.copy
 import dev.xboyrex.darkplayer.feature.player.extensions.formatted
@@ -41,12 +50,21 @@ import dev.xboyrex.darkplayer.feature.player.state.VerticalGesture
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 
+/**
+ * Normal plain text indicator for time seek (+00:10 [01:25]), crop/aspect ratio ("Best fit", "Crop", "Stretch", "100%"),
+ * and pinch zoom percentage, with crisp drop shadow for legibility over any frame.
+ */
 @Composable
 internal fun InfoView(
     modifier: Modifier = Modifier,
     info: String,
     textStyle: TextStyle = MaterialTheme.typography.headlineMedium.copy(
         fontWeight = FontWeight.Bold,
+        shadow = Shadow(
+            color = Color.Black.copy(alpha = 0.88f),
+            offset = Offset(0f, 2f),
+            blurRadius = 10f,
+        ),
     ),
 ) {
     Column(
@@ -77,7 +95,7 @@ internal fun BoxScope.DpadSeekIndicator(visible: Boolean, offsetMs: Long, positi
     ) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = Color.Black.copy(alpha = 0.6f),
+            color = Color.Black.copy(alpha = 0.65f),
         ) {
             Row(
                 modifier = Modifier.padding(
@@ -119,29 +137,48 @@ internal fun BoxScope.DpadSeekIndicator(visible: Boolean, offsetMs: Long, positi
 internal fun BoxScope.PlayerGestureIndicators(tapGestureState: TapGestureState) {
     DoubleTapIndicator(tapGestureState = tapGestureState)
 
+    // 2x Hold Speed Capsule Pill
     AnimatedVisibility(
         modifier = Modifier
-            .padding(top = 24.dp)
+            .padding(top = 28.dp)
             .align(Alignment.TopCenter),
         visible = tapGestureState.isLongPressGestureInAction,
-        enter = fadeIn(),
-        exit = fadeOut(),
+        enter = fadeIn(spring(stiffness = 1400f)) + scaleIn(spring(dampingRatio = 0.75f, stiffness = 1400f), initialScale = 0.85f),
+        exit = fadeOut(spring(stiffness = 1400f)) + scaleOut(spring(stiffness = 1400f), targetScale = 0.85f),
     ) {
-        Surface(shape = CircleShape) {
-            Row(
-                modifier = Modifier.padding(
-                    horizontal = 16.dp,
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(Color(0xFF141416).copy(alpha = 0.90f))
+                .border(
+                    width = 1.dp,
+                    color = Color(0xFFFACC15).copy(alpha = 0.55f),
+                    shape = CircleShape,
+                )
+                .padding(
+                    horizontal = 18.dp,
                     vertical = 8.dp,
                 ),
-            ) {
-                Text(
-                    text = stringResource(
-                        coreUiR.string.fast_playback_speed,
-                        tapGestureState.longPressSpeed,
-                    ),
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            }
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                painter = painterResource(coreUiR.drawable.ic_fast),
+                contentDescription = null,
+                tint = Color(0xFFFACC15),
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = stringResource(
+                    coreUiR.string.fast_playback_speed,
+                    tapGestureState.longPressSpeed,
+                ),
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                ),
+                color = Color.White,
+            )
         }
     }
 }
@@ -169,8 +206,8 @@ internal fun BoxScope.PlayerVerticalGestureIndicators(
         AnimatedVisibility(
             modifier = Modifier.align(Alignment.CenterStart),
             visible = activeGesture == VerticalGesture.VOLUME,
-            enter = fadeIn(),
-            exit = fadeOut(),
+            enter = fadeIn(spring(stiffness = 1400f)),
+            exit = fadeOut(spring(stiffness = 1000f)),
         ) {
             VerticalProgressView(
                 value = volumePercentage,
@@ -182,8 +219,8 @@ internal fun BoxScope.PlayerVerticalGestureIndicators(
         AnimatedVisibility(
             modifier = Modifier.align(Alignment.CenterEnd),
             visible = activeGesture == VerticalGesture.BRIGHTNESS,
-            enter = fadeIn(),
-            exit = fadeOut(),
+            enter = fadeIn(spring(stiffness = 1400f)),
+            exit = fadeOut(spring(stiffness = 1000f)),
         ) {
             VerticalProgressView(
                 value = brightnessPercentage,

@@ -31,13 +31,19 @@ fun rememberTapGestureState(
     longPressSpeed: Float,
 ): TapGestureState {
     val coroutineScope = rememberCoroutineScope()
-    val tapGestureState = remember {
+    val tapGestureState = remember(
+        player,
+        doubleTapGesture,
+        seekIncrementMillis,
+        useLongPressGesture,
+        longPressSpeed,
+    ) {
         TapGestureState(
             player = player,
             doubleTapGesture = doubleTapGesture,
             seekIncrementMillis = seekIncrementMillis,
-            useLongPressGesture = useLongPressGesture,
-            longPressSpeed = longPressSpeed,
+            useLongPressGesture = true,
+            longPressSpeed = longPressSpeed.takeIf { it > 0.5f } ?: 2.0f,
             coroutineScope = coroutineScope,
         )
     }

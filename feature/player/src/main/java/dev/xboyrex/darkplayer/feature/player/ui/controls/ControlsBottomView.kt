@@ -1,6 +1,7 @@
 package dev.xboyrex.darkplayer.feature.player.ui.controls
 
 import androidx.annotation.OptIn
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -33,9 +34,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -84,6 +88,7 @@ fun ControlsBottomView(
     onPictureInPictureClick: () -> Unit,
     onPlaybackSpeedClick: () -> Unit,
     onPlayInBackgroundClick: () -> Unit,
+    onSleepTimerClick: () -> Unit = {},
     onEqualizerClick: () -> Unit = {},
     onSeek: (Long) -> Unit,
     onSeekEnd: () -> Unit,
@@ -97,12 +102,21 @@ fun ControlsBottomView(
     val timeButtonFocusRequester = remember { FocusRequester() }
     Column(
         modifier = modifier
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.Black.copy(alpha = 0.35f),
+                        Color.Black.copy(alpha = 0.72f),
+                    ),
+                ),
+            )
             .padding(systemBarsPadding.copy(top = 0.dp))
             .padding(horizontal = 16.dp)
             .padding(top = 16.dp)
             .padding(
                 bottom =
-                    16.dp.takeIf { systemBarsPadding.calculateBottomPadding() == 0.dp } ?: 0.dp,
+                    16.dp.takeIf { systemBarsPadding.calculateBottomPadding() == 0.dp } ?: 6.dp,
             ),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -118,8 +132,8 @@ fun ControlsBottomView(
                 onClick = onToggleTimeDisplay,
                 containerColor = PlayerButtonBlackAlpha,
                 contentPadding = PaddingValues(
-                    horizontal = 8.dp,
-                    vertical = 1.dp,
+                    horizontal = 10.dp,
+                    vertical = 3.dp,
                 ),
             ) {
                 val timeTextPositionMs by remember(progressState) {
@@ -145,6 +159,8 @@ fun ControlsBottomView(
                         append(getStringForTime(progressState.durationMs))
                     },
                     style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
                 )
             }
 
@@ -153,9 +169,9 @@ fun ControlsBottomView(
                     onClick = onChaptersClick,
                     containerColor = PlayerButtonBlackAlpha,
                     contentPadding = PaddingValues(
-                        vertical = 1.dp,
-                        horizontal = 8.dp,
-                    ).copy(end = 2.dp),
+                        vertical = 3.dp,
+                        horizontal = 10.dp,
+                    ).copy(end = 4.dp),
                 ) {
                     Row(
                         modifier = Modifier,
@@ -172,12 +188,14 @@ fun ControlsBottomView(
                                 fill = false,
                             ),
                             style = MaterialTheme.typography.labelLarge,
+                            color = Color.White,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
                             contentDescription = null,
+                            tint = Color.White,
                             modifier = Modifier.size(16.dp),
                         )
                     }
@@ -187,7 +205,7 @@ fun ControlsBottomView(
             Spacer(modifier = Modifier.weight(weight = 1f))
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 PlaybackSpeedButton(
@@ -246,14 +264,6 @@ fun ControlsBottomView(
                     contentDescription = null,
                 )
             }
-            LoopButton(player = player)
-            ShuffleButton(player = player)
-            PlayerButton(onClick = onEqualizerClick) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_equalizer),
-                    contentDescription = "Equalizer & Dolby Atmos",
-                )
-            }
             PlayerButton(
                 onClick = {
                     VideoFrameCapture.captureCurrentFrame(
@@ -265,9 +275,23 @@ fun ControlsBottomView(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_screenshot),
-                    contentDescription = "Capture Screenshot",
+                    contentDescription = "Screenshot",
                 )
             }
+            PlayerButton(onClick = onSleepTimerClick) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_timer),
+                    contentDescription = "Sleep timer",
+                )
+            }
+            PlayerButton(onClick = onEqualizerClick) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_equalizer),
+                    contentDescription = "Equalizer & Dolby Atmos",
+                )
+            }
+            LoopButton(player = player)
+            ShuffleButton(player = player)
         }
     }
 }

@@ -90,6 +90,12 @@ fun BoxScope.OverlayShowView(
         onChapterSelected = onChapterSelected,
     )
 
+    SleepTimerSelectorView(
+        show = overlayView == OverlayView.SLEEP_TIMER,
+        player = player,
+        onDismiss = onDismiss,
+    )
+
     OverlayView(
         show = overlayView == OverlayView.EQUALIZER_AND_DOLBY,
         title = "Equalizer & Dolby Atmos",
@@ -109,5 +115,6 @@ enum class OverlayView {
     VIDEO_CONTENT_SCALE,
     PLAYLIST,
     CHAPTERS,
+    SLEEP_TIMER,
     EQUALIZER_AND_DOLBY,
 }

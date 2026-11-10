@@ -6,14 +6,15 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,6 +33,7 @@ fun PlaybackSpeedButton(player: Player?, onClick: () -> Unit, modifier: Modifier
         modifier = modifier.semantics { contentDescription = description },
         enabled = state.isEnabled,
         onClick = onClick,
+        onLongClick = { player?.setPlaybackSpeed(1.0f) },
         containerColor = PlayerButtonBlackAlpha,
         contentPadding = PaddingValues(4.dp),
     ) {
@@ -42,7 +44,8 @@ fun PlaybackSpeedButton(player: Player?, onClick: () -> Unit, modifier: Modifier
             BasicText(
                 text = state.playbackSpeed.round(decimalPlaces = 2).toString(),
                 style = MaterialTheme.typography.labelLarge.copy(
-                    color = LocalContentColor.current,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
                 ),
                 maxLines = 1,

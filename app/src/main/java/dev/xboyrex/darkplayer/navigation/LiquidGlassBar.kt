@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
@@ -41,20 +42,19 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,6 +62,9 @@ import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.fastRoundToInt
 import androidx.compose.ui.util.lerp
 import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
@@ -75,12 +78,8 @@ import dev.xboyrex.darkplayer.core.ui.components.tvFocusRing
 import dev.xboyrex.darkplayer.core.ui.glass.DampedDragAnimation
 import dev.xboyrex.darkplayer.core.ui.glass.GlassQuality
 import dev.xboyrex.darkplayer.core.ui.glass.InteractiveHighlight
-import dev.xboyrex.darkplayer.core.ui.glass.NativeControlLensStyle
-import dev.xboyrex.darkplayer.core.ui.glass.nativeControlLensGeometry
 import dev.xboyrex.darkplayer.core.ui.glass.navHaptic
-import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
@@ -125,12 +124,10 @@ fun RowScope.LiquidBottomTab(
 }
 
 /**
- * YTX Liquid Glass Bottom Navigation Bar with Glasmio Scroll-to-Collapse / Expand Menu Morph
- * and DampedDragAnimation tab click/drag physics.
+ * Authentic YTX Liquid Glass Bottom Navigation Bar (`GlassNavBar.kt`) with smooth
+ * Glasmio scroll-to-collapse / expand menu morph and DampedDragAnimation tab drag physics.
  *
- * When [compactProgress] animates from 0f (expanded) to 1f (scrolled down), all tabs collapse
- * smoothly into a single 64dp circular Liquid Glass menu pill showing [compactIcon].
- * Scrolling up or tapping the compact pill expands all tabs back out smoothly.
+ * Strictly bounded to 64.dp height so the refractive lens capsule never stretches vertically.
  */
 @Composable
 fun LiquidBottomTabs(
@@ -148,27 +145,31 @@ fun LiquidBottomTabs(
     val bgLum = MaterialTheme.colorScheme.background.luminance()
     val isLightTheme = !isDarkSurface && !isSystemInDarkTheme() && bgLum >= 0.5f
     val isAmoled = bgLum < 0.005f
+    val accentColor = MaterialTheme.colorScheme.primary
     val glassSupported = GlassQuality.effectsSupported
     val solidContainer = if (isAmoled) Color(0xFF141416) else MaterialTheme.colorScheme.surfaceContainer
     val containerColor = when {
         !glassSupported -> solidContainer
         isAmoled -> Color(0xFF000000).copy(0.45f)
-        isLightTheme -> Color(0xFFFAFAFA).copy(0.4f)
-        else -> Color(0xFF121212).copy(0.4f)
+        isLightTheme -> Color(0xFFFAFAFA).copy(0.42f)
+        else -> Color(0xFF121212).copy(0.40f)
     }
     val clampedCompact = compactProgress.coerceIn(0f, 1f)
     val isCompactMode = clampedCompact > 0.55f
+    val tabsBackdrop = rememberLayerBackdrop()
 
     BoxWithConstraints(
-        modifier,
+        modifier = modifier.height(64f.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         val density = LocalDensity.current
         val fullWidthPx = constraints.maxWidth.toFloat().coerceAtLeast(1f)
         val compactSizePx = with(density) { 64.dp.toPx() }
-        val currentSurfaceWidthPx = lerp(fullWidthPx, compactSizePx, clampedCompact)
+        val currentSurfaceWidthDp = with(density) {
+            lerp(fullWidthPx, compactSizePx, clampedCompact).toDp()
+        }
         val tabWidth = with(density) {
-            (fullWidthPx - 8f.dp.toPx()) / tabsCount
+            (fullWidthPx - 8f.dp.toPx()).coerceAtLeast(1f) / tabsCount
         }
 
         val offsetAnimation = remember { Animatable(0f) }
@@ -267,39 +268,11 @@ fun LiquidBottomTabs(
             )
         }
 
-        // Glasmio platter puff on press
-        val platterPuff = remember { Animatable(0f, 0.001f) }
-        val flexLongDimension = currentSurfaceWidthPx / density.density
-        val flexSpringProgress = ((flexLongDimension - 44f) / 116f).coerceIn(0f, 1f)
-        val puffPressSpring = remember(flexSpringProgress) {
-            val response = 0.24 + (0.28 - 0.24) * flexSpringProgress
-            spring<Float>(0.625f, (4.0 * PI * PI / (response * response)).toFloat(), 0.001f)
-        }
-        val puffReleaseSpring = remember(flexSpringProgress) {
-            val response = 0.34 + (0.30 - 0.34) * flexSpringProgress
-            spring<Float>(
-                lerp(0.42f, 0.62f, flexSpringProgress),
-                (4.0 * PI * PI / (response * response)).toFloat(),
-                0.001f,
-            )
-        }
-        LaunchedEffect(dampedDragAnimation.pressProgress > 0.05f, puffPressSpring, puffReleaseSpring) {
-            val pressed = dampedDragAnimation.pressProgress > 0.05f
-            platterPuff.animateTo(
-                if (pressed) 1f else 0f,
-                if (pressed) puffPressSpring else puffReleaseSpring,
-            )
-        }
-
-        // 1. YTX + Glasmio Morphing Bottom Navigation Bar Background Capsule
-        Box(
+        // 1. Main YTX Liquid Glass Capsule Bar (morphs width smoothly from 100% to 64dp on scroll-down)
+        Row(
             Modifier
-                .layout { measurable, constraints ->
-                    val w = currentSurfaceWidthPx.roundToInt().coerceIn(1, constraints.maxWidth)
-                    val h = 64.dp.roundToPx().coerceIn(constraints.minHeight, constraints.maxHeight)
-                    val placeable = measurable.measure(Constraints.fixed(w, h))
-                    layout(w, h) { placeable.placeRelative(0, 0) }
-                }
+                .width(currentSurfaceWidthDp)
+                .height(64f.dp)
                 .graphicsLayer {
                     translationX = panelOffset * (1f - clampedCompact)
                 }
@@ -325,38 +298,93 @@ fun LiquidBottomTabs(
                         Modifier
                             .clip(Capsule())
                             .background(containerColor)
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant,
-                                Capsule(),
-                            )
+                            .border(1.dp, Color.White.copy(alpha = 0.14f), Capsule())
                     },
                 )
                 .then(interactiveHighlight.modifier)
-                .height(64f.dp),
-        )
+                .padding(4f.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (clampedCompact < 0.95f) {
+                val rowAlpha = (1f - clampedCompact * 1.25f).coerceIn(0f, 1f)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight()
+                        .alpha(rowAlpha),
+                    verticalAlignment = Alignment.CenterVertically,
+                    content = content,
+                )
+            }
+        }
 
-        // 2. Moving active tab indicator pill (fades smoothly as bar collapses into single menu circle)
-        if (clampedCompact < 0.98f) {
-            val indicatorAlpha = (1f - clampedCompact * 1.15f).coerceIn(0f, 1f)
+        // 2. Hidden Refracted Accent Layer for YTX Active Lens
+        if (glassSupported && clampedCompact < 0.95f) {
+            CompositionLocalProvider(
+                LocalLiquidBottomTabScale provides {
+                    lerp(1f, 1.2f, dampedDragAnimation.pressProgress)
+                },
+            ) {
+                Row(
+                    Modifier
+                        .clearAndSetSemantics {}
+                        .alpha(0f)
+                        .layerBackdrop(tabsBackdrop)
+                        .graphicsLayer {
+                            translationX = panelOffset * (1f - clampedCompact)
+                        }
+                        .drawBackdrop(
+                            backdrop = backdrop,
+                            shape = { Capsule() },
+                            effects = {
+                                val progress = dampedDragAnimation.pressProgress
+                                vibrancy()
+                                blur(8f.dp.toPx())
+                                lens(
+                                    24f.dp.toPx() * progress,
+                                    24f.dp.toPx() * progress,
+                                )
+                            },
+                            highlight = {
+                                val progress = dampedDragAnimation.pressProgress
+                                Highlight.Default.copy(alpha = progress)
+                            },
+                            onDrawSurface = { drawRect(containerColor) },
+                        )
+                        .then(interactiveHighlight.modifier)
+                        .height(56f.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 4f.dp)
+                        .graphicsLayer(colorFilter = ColorFilter.tint(accentColor)),
+                    verticalAlignment = Alignment.CenterVertically,
+                    content = content,
+                )
+            }
+        }
+
+        // 3. YTX Moving Active Tab Indicator Lens Pill (strictly 56.dp height x 1/tabsCount width)
+        if (clampedCompact < 0.95f) {
+            val indicatorAlpha = (1f - clampedCompact * 1.2f).coerceIn(0f, 1f)
             Box(
                 Modifier
                     .padding(horizontal = 4f.dp)
+                    .height(56f.dp)
+                    .fillMaxWidth(1f / tabsCount)
                     .graphicsLayer {
                         val expandedX = if (isLtr) dampedDragAnimation.value * tabWidth + panelOffset
                         else size.width - (dampedDragAnimation.value + 1f) * tabWidth + panelOffset
                         translationX = lerp(expandedX, 0f, clampedCompact)
                         alpha = indicatorAlpha
                     }
+                    .then(if (!isCompactMode) interactiveHighlight.gestureModifier else Modifier)
+                    .then(if (!isCompactMode) dampedDragAnimation.modifier else Modifier)
                     .then(
                         if (glassSupported) {
                             Modifier.drawBackdrop(
-                                backdrop = backdrop,
+                                backdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop),
                                 shape = { Capsule() },
                                 effects = {
                                     val progress = dampedDragAnimation.pressProgress
-                                    vibrancy()
-                                    if (progress < 0.999f) blur(8f.dp.toPx() * (1f - progress))
                                     lens(
                                         10f.dp.toPx() * progress,
                                         14f.dp.toPx() * progress,
@@ -388,7 +416,7 @@ fun LiquidBottomTabs(
                                 onDrawSurface = {
                                     val progress = dampedDragAnimation.pressProgress
                                     drawRect(
-                                        if (isLightTheme) Color.Black.copy(0.12f)
+                                        if (isLightTheme) Color.Black.copy(0.10f)
                                         else Color.White.copy(0.12f),
                                         alpha = (1f - progress) * indicatorAlpha,
                                     )
@@ -398,47 +426,17 @@ fun LiquidBottomTabs(
                         } else {
                             Modifier
                                 .clip(Capsule())
-                                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                .background(accentColor.copy(alpha = 0.20f))
+                                .border(1.dp, accentColor.copy(alpha = 0.45f), Capsule())
                         },
-                    )
-                    .nativeControlLensGeometry(
-                        NativeControlLensStyle.TabBarIndicator,
-                        horizontalProgress = { if (glassSupported) dampedDragAnimation.pressProgress * (1f - clampedCompact) else 0f },
-                    )
-                    .height(56f.dp)
-                    .fillMaxWidth(1f / tabsCount),
+                    ),
             )
         }
 
-        // 3. Expanded 4-Tab Row (fades & scales smoothly during scroll-collapse)
-        if (clampedCompact < 0.95f) {
-            val rowAlpha = (1f - clampedCompact * 1.25f).coerceIn(0f, 1f)
-            CompositionLocalProvider(
-                LocalLiquidBottomTabScale provides {
-                    lerp(1f, 1.15f, dampedDragAnimation.pressProgress)
-                },
-            ) {
-                Row(
-                    Modifier
-                        .graphicsLayer {
-                            translationX = panelOffset * (1f - clampedCompact)
-                            alpha = rowAlpha
-                        }
-                        .then(if (!isCompactMode) interactiveHighlight.gestureModifier else Modifier)
-                        .then(if (!isCompactMode) dampedDragAnimation.modifier else Modifier)
-                        .height(64f.dp)
-                        .fillMaxWidth()
-                        .padding(4f.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    content = content,
-                )
-            }
-        }
-
-        // 4. Collapsed Single-Menu Liquid Glass Pill (appears when scrolling down; tap expands all tabs)
+        // 4. Collapsed Single-Menu Pill Icon (when scrolled down; tap expands all tabs)
         if (clampedCompact > 0.05f && compactIcon != null) {
             val compactAlpha = ((clampedCompact - 0.15f) / 0.85f).coerceIn(0f, 1f)
-            val contentColor = if (isLightTheme) Color.Black else Color.White
+            val contentColor = if (isLightTheme) Color.Black else accentColor
             Box(
                 modifier = Modifier
                     .size(64.dp)
@@ -515,7 +513,12 @@ fun RowScope.LiquidNavTab(
     onClick: () -> Unit,
 ) {
     val isLightTheme = !isDarkSurface && !isSystemInDarkTheme() && MaterialTheme.colorScheme.background.luminance() >= 0.5f
-    val contentColor = if (isLightTheme) Color.Black else Color.White
+    val accentColor = MaterialTheme.colorScheme.primary
+    val contentColor = when {
+        selected -> accentColor
+        isLightTheme -> Color(0xFF0F172A)
+        else -> Color.White.copy(alpha = 0.85f)
+    }
 
     LiquidBottomTab(onClick = onClick) {
         Box(
