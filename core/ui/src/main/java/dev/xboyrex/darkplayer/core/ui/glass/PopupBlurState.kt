@@ -1,14 +1,11 @@
 package dev.xboyrex.darkplayer.core.ui.glass
 
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -42,20 +39,12 @@ fun RegisterPopupBlur(active: Boolean = true) {
     }
 }
 
+/**
+ * Keeps parent containers crisp so child overlays (such as UpdateOverlayDialog inside
+ * SettingsScreen or AboutPreferencesScreen) are never blurred by a parent RenderEffect.
+ */
 @Composable
 fun Modifier.popupBackgroundBlur(
-    extraBlur: Boolean = false,
-    radius: Dp = 8.dp,
-): Modifier {
-    val shouldBlur = PopupBlurState.isBlurred || extraBlur
-    val animatedRadius by animateDpAsState(
-        targetValue = if (shouldBlur) radius else 0.dp,
-        animationSpec = tween(durationMillis = 180),
-        label = "popupBlurRadius",
-    )
-    return if (animatedRadius > 0.1.dp) {
-        this.blur(radius = animatedRadius)
-    } else {
-        this
-    }
-}
+    @Suppress("UNUSED_PARAMETER") extraBlur: Boolean = false,
+    @Suppress("UNUSED_PARAMETER") radius: Dp = 0.dp,
+): Modifier = this

@@ -28,10 +28,6 @@ import kotlin.math.tanh
  *    + 75Hz Low-Shelf Sub-Bass Enhancer + Dolby IEQ target curve.
  * 4. Dolby Atmos Mid-Side (Hafler Matrix) Spatial Virtualizer & Stereo Widener.
  * 5. Master Preamp / Audio Booster (100%..400%) + Stereo Mode Routing + Soft-Knee tanh Limiter.
- *
- * Because this runs directly on decoded PCM frames inside Media3's AudioSink, it is 100% guaranteed
- * to work on ALL videos and codecs (Hardware MediaCodec, Android Software C2, and FFmpeg) even when
- * vendor AudioEffect HALs reject or ignore secondary audio sessions.
  */
 @OptIn(UnstableApi::class)
 class NovaDspAudioProcessor : AudioProcessor {
@@ -42,13 +38,11 @@ class NovaDspAudioProcessor : AudioProcessor {
     private var outputBuffer: ByteBuffer = AudioProcessor.EMPTY_BUFFER
     private var inputEnded: Boolean = false
 
-    // Biquad filter state per channel (up to 8 channels x 6 cascaded biquads: 5 EQ bands + 1 Bass Shelf)
     private val maxChannels = 8
     private val numFilters = 6
     private val z1 = Array(maxChannels) { FloatArray(numFilters) }
     private val z2 = Array(maxChannels) { FloatArray(numFilters) }
 
-    // Biquad coefficients [b0, b1, b2, a1, a2] per filter
     private val b0 = FloatArray(numFilters) { 1f }
     private val b1 = FloatArray(numFilters)
     private val b2 = FloatArray(numFilters)
@@ -57,8 +51,6 @@ class NovaDspAudioProcessor : AudioProcessor {
 
     private var lastSampleRate = 0
     private var lastConfigHash = 0
-
-    // Dynamic Range Normalizer (-14 LUFS target) envelope state
     private var rmsEnvelope = 0.08f
 
     override fun configure(inputAudioFormat: AudioFormat): AudioFormat {
@@ -116,7 +108,6 @@ class NovaDspAudioProcessor : AudioProcessor {
 
         val sr = sampleRate.toFloat().coerceAtLeast(8000f)
 
-        // IEQ & Dolby Mid/Treble offsets in dB
         val ieqOffsets = when (ieq) {
             DolbyIeqPreset.OFF -> floatArrayOf(0f, 0f, 0f, 0f, 0f)
             DolbyIeqPreset.DETAILED -> floatArrayOf(1.5f, 0.5f, 1.8f, 3.2f, 4.0f)
@@ -145,7 +136,6 @@ class NovaDspAudioProcessor : AudioProcessor {
             }
         }
 
-        // Filter 5: 75 Hz Low-Shelf Sub-Bass Enhancer
         val combinedBassPct = maxOf(bassBoostPct, dolbyBass)
         val bassShelfDb = (combinedBassPct / 100f) * 9.5f
         if (bassShelfDb < 0.1f) {
@@ -219,7 +209,6 @@ class NovaDspAudioProcessor : AudioProcessor {
             buffer.clear()
         }
 
-        // Read live DSP parameters from HardwareDolbyAndEqualizerEngine
         val lowSoundFix = HardwareDolbyAndEqualizerEngine.lowSoundNormalizeEnabled
         val nightMode = HardwareDolbyAndEqualizerEngine.nightModeEnabled
         val volLeveler = HardwareDolbyAndEqualizerEngine.volumeLevelerEnabled
@@ -228,22 +217,18 @@ class NovaDspAudioProcessor : AudioProcessor {
         val dialogueEnabled = HardwareDolbyAndEqualizerEngine.dialogueEnhancerEnabled
         val dialogueAmount = HardwareDolbyAndEqualizerEngine.dialogueEnhancerAmount
         val boostMb = HardwareDolbyAndEqualizerEngine.volumeBoostGainMb
-        val preampDb = HardwareDolbyAndEqualizerEngine.preampDb
         val stereoMode = HardwareDolbyAndEqualizerEngine.stereoMode
 
-        // Compute linear preamp & boost multiplier
         val boostDb = (boostMb / 100f).coerceIn(0f, 24f)
         val baselineLowSoundDb = if (lowSoundFix || nightMode) 3.8f else 0f
-        val totalPreampLinear = 10.0.pow((preampDb + boostDb + baselineLowSoundDb) / 20.0).toFloat()
+        val totalPreampLinear = 10.0.pow((boostDb + baselineLowSoundDb) / 20.0).toFloat()
 
-        // 5.1 / 7.1 Center-channel vocal boost multiplier
         val centerChannelBoost = if (lowSoundFix || (dolbyEnabled && dialogueEnabled) || nightMode) {
             1.45f + (dialogueAmount / 12f) * 0.55f
         } else {
             1.0f
         }
 
-        // Stereo Hafler / Dolby Widening factor (0.0 .. 0.65)
         val surroundPct = maxOf(
             if (eqEnabled) HardwareDolbyAndEqualizerEngine.virtualizerPercent else 0,
             if (dolbyEnabled && (HardwareDolbyAndEqualizerEngine.headphoneVirtualizer || HardwareDolbyAndEqualizerEngine.speakerVirtualizer)) {
@@ -315,7 +300,6 @@ class NovaDspAudioProcessor : AudioProcessor {
             }
         }
 
-        // Copy any trailing partial bytes safely
         while (inputBuffer.hasRemaining()) {
             buffer.put(inputBuffer.get())
         }
@@ -329,7 +313,6 @@ class NovaDspAudioProcessor : AudioProcessor {
         val coeff = if (frameRms > rmsEnvelope) 0.015f else 0.0008f
         rmsEnvelope += coeff * (frameRms - rmsEnvelope)
         val clampedRms = rmsEnvelope.coerceIn(0.012f, 0.95f)
-        // Target RMS ~ 0.18 (-15 dBFS / -14 LUFS dialogue target)
         return if (frameRms > 0.002f) {
             (0.18f / clampedRms).coerceIn(0.85f, 2.65f)
         } else {
@@ -345,22 +328,18 @@ class NovaDspAudioProcessor : AudioProcessor {
         stereoWidthFactor: Float,
         stereoMode: StereoModeType,
     ) {
-        // 1. In 5.1 (6ch) or 7.1 (8ch) audio, channel 2 is Front Center (dialogue)
         if (channels >= 6 && centerChannelBoost > 1.01f) {
             val center = frameSamples[2] * centerChannelBoost
             frameSamples[2] = center
-            // Mix vocal clarity into Front Left (0) and Front Right (1) so stereo downmixes never lose dialogue
             frameSamples[0] = frameSamples[0] * 0.88f + center * 0.28f
             frameSamples[1] = frameSamples[1] * 0.88f + center * 0.28f
         }
 
-        // 2. Apply Preamp + 5-Band Biquad EQ + 75Hz Sub-Bass Shelf per channel
         for (ch in 0 until channels) {
             val boosted = frameSamples[ch] * preampGain
             frameSamples[ch] = processBiquads(ch, boosted)
         }
 
-        // 3. Apply Dolby Atmos / Stereo Virtualizer (Mid-Side spatial widening) & Stereo Mode routing
         if (channels >= 2) {
             var left = frameSamples[0]
             var right = frameSamples[1]
@@ -393,7 +372,6 @@ class NovaDspAudioProcessor : AudioProcessor {
             }
         }
 
-        // 4. Soft-knee tanh brickwall limiter so audio never clips or crackles even at 400% boost
         for (ch in 0 until channels) {
             val s = frameSamples[ch]
             frameSamples[ch] = if (abs(s) > 0.85f) {

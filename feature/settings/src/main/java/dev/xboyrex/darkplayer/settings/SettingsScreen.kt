@@ -1,10 +1,8 @@
 package dev.xboyrex.darkplayer.settings
 
-import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -72,7 +70,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -148,13 +145,6 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
         activeFloatingPanel = null
     }
 
-    val isOverlayOpen = activeFloatingPanel != null || updateState.isPopupActive
-    val blurRadius by animateDpAsState(
-        targetValue = if (isOverlayOpen && Build.VERSION.SDK_INT >= 31) 18.dp else 0.dp,
-        animationSpec = tween(220),
-        label = "ytxSettingsBlur",
-    )
-
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
     val enterAlpha by animateFloatAsState(
@@ -169,9 +159,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
             .background(Color.Black),
     ) {
         Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(if (blurRadius > 0.dp) Modifier.blur(blurRadius) else Modifier),
+            modifier = Modifier.fillMaxSize(),
             containerColor = Color.Black,
             topBar = {
                 Row(
@@ -305,7 +293,7 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                     }
                 }
 
-                // ── 2. Display Engine & Audio Studio (Opens Glasmio Floating Blur Panels) ──
+                // ── 2. Display Engine & Audio Studio (Opens Glasmio Floating Panels) ──
                 YtxSectionHeader(
                     title = "DISPLAY ENGINE & AUDIO STUDIO",
                     expanded = true,
@@ -490,11 +478,11 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
             }
         }
 
-        if (isOverlayOpen) {
+        if (activeFloatingPanel != null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.48f)),
+                    .background(Color.Black.copy(alpha = 0.65f)),
             )
         }
 
@@ -724,7 +712,7 @@ private fun YtxFloatingModal(
                 .fillMaxWidth()
                 .heightIn(max = 680.dp)
                 .clip(RoundedCornerShape(38.dp))
-                .background(Color(0xFF141416).copy(alpha = 0.96f))
+                .background(Color(0xFF141416))
                 .border(0.8.dp, Color(0x2BFFFFFF), RoundedCornerShape(38.dp))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },

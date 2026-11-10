@@ -941,21 +941,9 @@ class PlayerService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         decoderManager = DecoderManager()
-        val renderersFactory = object : NextRenderersFactory(
+        val renderersFactory = NextRenderersFactory(
             context = applicationContext,
-        ) {
-            override fun buildAudioSink(
-                context: android.content.Context,
-                enableFloatOutput: Boolean,
-                enableAudioTrackPlaybackParams: Boolean,
-            ): androidx.media3.exoplayer.audio.AudioSink {
-                return androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(enableFloatOutput)
-                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                    .setAudioProcessors(arrayOf(NovaDspAudioProcessor()))
-                    .build()
-            }
-        }
+        )
             .setDecoderManager(decoderManager = decoderManager)
             .setEnableDecoderFallback(true)
 
