@@ -47,7 +47,10 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -350,6 +353,30 @@ private fun NavigationLayout(
     var displayedFabState by remember { mutableStateOf<TopLevelFabState?>(value = null) }
     LaunchedEffect(key1 = selectedFabState) { selectedFabState?.let { displayedFabState = it } }
 
+    var isNavCompact by remember { mutableStateOf(false) }
+    LaunchedEffect(state.selectedIndex) {
+        isNavCompact = false
+    }
+
+    val navScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                if (source == NestedScrollSource.UserInput) {
+                    if (consumed.y < -10f) {
+                        isNavCompact = true
+                    } else if (consumed.y > 10f || (available.y > 6f && consumed.y >= 0f)) {
+                        isNavCompact = false
+                    }
+                }
+                return Offset.Zero
+            }
+        }
+    }
+
     val navBottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val floatingBarPadding = if (showNavigation && showBottomBar && !showNavRail) {
         navBottomInset + 84.dp
@@ -358,7 +385,9 @@ private fun NavigationLayout(
     }
 
     Box(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .nestedScroll(navScrollConnection),
     ) {
         Box(
             modifier = Modifier
@@ -389,8 +418,8 @@ private fun NavigationLayout(
 
         AnimatedVisibility(
             visible = showNavigation && showBottomBar,
-            enter = slideInVertically(tween(260, easing = Motion.Emphasized)) { it } + fadeIn(tween(160)),
-            exit = slideOutVertically(tween(200, easing = Motion.Emphasized)) { it } + fadeOut(tween(140)),
+            enter = slideInVertically(tween(220, easing = Motion.Emphasized)) { it } + fadeIn(tween(140)),
+            exit = slideOutVertically(tween(180, easing = Motion.Emphasized)) { it } + fadeOut(tween(120)),
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
             NextNavigationBar(
@@ -399,6 +428,8 @@ private fun NavigationLayout(
                 contentFocusRequester = contentFocusRequester,
                 fabFocusRequester = fabFocusRequester,
                 showFabOnly = showNavRail,
+                isCompact = isNavCompact,
+                onExpandCompact = { isNavCompact = false },
                 backdrop = pageBackdrop,
             )
         }

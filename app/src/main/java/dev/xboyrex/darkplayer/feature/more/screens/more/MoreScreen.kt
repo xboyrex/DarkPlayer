@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,9 +20,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,11 +38,14 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
 import dev.xboyrex.darkplayer.core.media.services.MediaOperationsService
@@ -61,6 +65,7 @@ import dev.xboyrex.darkplayer.core.ui.components.tvFocusRing
 import dev.xboyrex.darkplayer.core.ui.components.tvListFocus
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
 import dev.xboyrex.darkplayer.core.ui.extensions.copy
+import dev.xboyrex.darkplayer.core.ui.glass.pressable
 import dev.xboyrex.darkplayer.feature.more.components.HistoryEmptyState
 import dev.xboyrex.darkplayer.feature.videopicker.composables.VideoGridItem
 
@@ -121,18 +126,12 @@ internal fun MoreScreenContent(state: MoreUiState, onAction: (MoreAction) -> Uni
                 fontWeight = FontWeight.Bold,
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = MaterialTheme.colorScheme.background,
     ) { scaffoldPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(scaffoldPadding.copy(bottom = 0.dp))
-                .clip(
-                    shape = RoundedCornerShape(
-                        topStart = 24.dp,
-                        topEnd = 24.dp,
-                    ),
-                )
                 .background(MaterialTheme.colorScheme.background),
         ) {
             Column(
@@ -140,35 +139,31 @@ internal fun MoreScreenContent(state: MoreUiState, onAction: (MoreAction) -> Uni
                     .fillMaxSize()
                     .verticalScroll(state = rememberScrollState())
                     .tvListFocus()
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = 14.dp)
                     .padding(
                         top = 8.dp,
                         bottom =
                             scaffoldPadding.calculateBottomPadding() +
                                 LocalNavigationBottomPadding.current + 96.dp,
                     ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     maxItemsInEachRow = 2,
                 ) {
-                    FilledTonalButton(
-                        modifier = Modifier.weight(weight = 1f).tvFocusRing(),
+                    SolidMoreActionCard(
+                        modifier = Modifier.weight(weight = 1f),
+                        icon = NextIcons.Lock,
+                        title = stringResource(R.string.vault),
                         onClick = { onAction(MoreAction.OpenVault) },
-                    ) {
-                        Icon(
-                            imageVector = NextIcons.Lock,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(text = stringResource(R.string.vault))
-                    }
-                    FilledTonalButton(
-                        modifier = Modifier.weight(weight = 1f).tvFocusRing(),
+                    )
+                    SolidMoreActionCard(
+                        modifier = Modifier.weight(weight = 1f),
+                        icon = NextIcons.FileOpen,
+                        title = stringResource(R.string.pick_file),
                         onClick = {
                             runCatching {
                                 openDocumentLauncher.launch(arrayOf("video/*", "audio/*", "application/x-matroska", "application/ogg"))
@@ -176,29 +171,20 @@ internal fun MoreScreenContent(state: MoreUiState, onAction: (MoreAction) -> Uni
                                 fallbackGetContentLauncher.launch("video/*")
                             }
                         },
-                    ) {
-                        Icon(
-                            imageVector = NextIcons.FileOpen,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text(text = stringResource(R.string.pick_file))
-                    }
+                    )
                     if (MediaOperationsService.supportsTrash()) {
-                        FilledTonalButton(
-                            modifier = Modifier.weight(weight = 1f).tvFocusRing(),
+                        SolidMoreActionCard(
+                            modifier = Modifier.weight(weight = 1f),
+                            icon = NextIcons.Delete,
+                            title = stringResource(R.string.trash),
                             onClick = { onAction(MoreAction.OpenTrash) },
-                        ) {
-                            Icon(
-                                imageVector = NextIcons.Delete,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text(text = stringResource(R.string.trash))
-                        }
-                        Spacer(modifier = Modifier.weight(weight = 1f))
+                        )
+                        SolidMoreActionCard(
+                            modifier = Modifier.weight(weight = 1f),
+                            icon = NextIcons.Settings,
+                            title = stringResource(R.string.settings),
+                            onClick = { onAction(MoreAction.OpenSettings) },
+                        )
                     }
                 }
                 HistorySection(
@@ -209,6 +195,49 @@ internal fun MoreScreenContent(state: MoreUiState, onAction: (MoreAction) -> Uni
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SolidMoreActionCard(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val cardShape = RoundedCornerShape(22.dp)
+    Row(
+        modifier = modifier
+            .tvFocusRing(shape = cardShape)
+            .clip(cardShape)
+            .background(Color(0xFF1C1C1E))
+            .border(0.75.dp, Color(0x2BFFFFFF), cardShape)
+            .pressable(pressedScale = 0.94f, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF2C2C2E)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(19.dp),
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = title,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+            maxLines = 1,
+        )
     }
 }
 
@@ -233,7 +262,8 @@ private fun HistorySection(
             Text(
                 text = stringResource(R.string.history),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 8.dp).weight(weight = 1f),
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 4.dp).weight(weight = 1f),
             )
             IconButton(
                 onClick = onMoreClick,

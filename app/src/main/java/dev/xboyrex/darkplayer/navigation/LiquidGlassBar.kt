@@ -37,14 +37,14 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -53,6 +53,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,6 +79,7 @@ import dev.xboyrex.darkplayer.core.ui.glass.nativeControlLensGeometry
 import dev.xboyrex.darkplayer.core.ui.glass.navHaptic
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
@@ -121,6 +123,14 @@ fun RowScope.LiquidBottomTab(
     )
 }
 
+/**
+ * YTX Liquid Glass Bottom Navigation Bar with Glasmio Scroll-to-Collapse / Expand Menu Morph
+ * and DampedDragAnimation tab click/drag physics.
+ *
+ * When [compactProgress] animates from 0f (expanded) to 1f (scrolled down), all tabs collapse
+ * smoothly into a single 64dp circular Liquid Glass menu pill showing [compactIcon].
+ * Scrolling up or tapping the compact pill expands all tabs back out smoothly.
+ */
 @Composable
 fun LiquidBottomTabs(
     selectedTabIndex: () -> Int,
@@ -129,19 +139,24 @@ fun LiquidBottomTabs(
     tabsCount: Int,
     modifier: Modifier = Modifier,
     isDarkSurface: Boolean = false,
+    compactProgress: Float = 0f,
+    compactIcon: ImageVector? = null,
+    onExpandCompact: () -> Unit = {},
     content: @Composable RowScope.() -> Unit,
 ) {
     val bgLum = MaterialTheme.colorScheme.background.luminance()
     val isLightTheme = !isDarkSurface && !isSystemInDarkTheme() && bgLum >= 0.5f
     val isAmoled = bgLum < 0.005f
     val glassSupported = GlassQuality.effectsSupported
-    // Glasmio default container colors (#1C1C1E @ 0.54f in dark, #F8F8FA @ 0.64f in light)
-    val solidContainer = if (isAmoled) Color(0xFF1C1C1E) else MaterialTheme.colorScheme.surfaceContainer
+    val solidContainer = if (isAmoled) Color(0xFF141416) else MaterialTheme.colorScheme.surfaceContainer
     val containerColor = when {
         !glassSupported -> solidContainer
-        isLightTheme -> Color(0xFFF8F8FA).copy(alpha = 0.64f)
-        else -> Color(0xFF1C1C1E).copy(alpha = 0.56f)
+        isAmoled -> Color(0xFF000000).copy(0.45f)
+        isLightTheme -> Color(0xFFFAFAFA).copy(0.4f)
+        else -> Color(0xFF121212).copy(0.4f)
     }
+    val clampedCompact = compactProgress.coerceIn(0f, 1f)
+    val isCompactMode = clampedCompact > 0.55f
 
     BoxWithConstraints(
         modifier,
@@ -149,6 +164,8 @@ fun LiquidBottomTabs(
     ) {
         val density = LocalDensity.current
         val fullWidthPx = constraints.maxWidth.toFloat().coerceAtLeast(1f)
+        val compactSizePx = with(density) { 64.dp.toPx() }
+        val currentSurfaceWidthPx = lerp(fullWidthPx, compactSizePx, clampedCompact)
         val tabWidth = with(density) {
             (fullWidthPx - 8f.dp.toPx()) / tabsCount
         }
@@ -181,6 +198,12 @@ fun LiquidBottomTabs(
                     view.navHaptic(18L, 170)
                 },
                 onDragStopped = {
+                    if (clampedCompact >= 0.65f) {
+                        view.navHaptic(16L, 150)
+                        onExpandCompact()
+                        animateToValue(selectedTabIndex().toFloat())
+                        return@DampedDragAnimation
+                    }
                     val targetIndex = targetValue.fastRoundToInt().fastCoerceIn(0, tabsCount - 1)
                     view.navHaptic(20L, 190)
                     currentIndex = targetIndex
@@ -193,6 +216,7 @@ fun LiquidBottomTabs(
                     }
                 },
                 onDrag = { _, dragAmount ->
+                    if (clampedCompact >= 0.65f) return@DampedDragAnimation
                     if (tabWidth > 0f) {
                         val before = targetValue.fastRoundToInt()
                         updateValue(
@@ -232,30 +256,28 @@ fun LiquidBottomTabs(
             InteractiveHighlight(
                 animationScope = animationScope,
                 position = { size, _ ->
+                    val expandedCenter = if (isLtr) (dampedDragAnimation.value + 0.5f) * tabWidth + panelOffset
+                    else size.width - (dampedDragAnimation.value + 0.5f) * tabWidth + panelOffset
                     Offset(
-                        if (isLtr) (dampedDragAnimation.value + 0.5f) * tabWidth + panelOffset
-                        else size.width - (dampedDragAnimation.value + 0.5f) * tabWidth + panelOffset,
-                        size.height / 2f,
+                        x = lerp(expandedCenter, compactSizePx / 2f, clampedCompact),
+                        y = size.height / 2f,
                     )
                 },
             )
         }
 
-        // Glasmio GlassBottomBar platter puff physics (from Glasmio GlassBottomBar.kt)
+        // Glasmio platter puff on press
         val platterPuff = remember { Animatable(0f, 0.001f) }
-        val flexLongDimension = fullWidthPx / density.density
-        val flexShortDimension = 64f
-        val flexSizeProgress = ((flexShortDimension - 44f) / 116f).coerceIn(0f, 1f)
+        val flexLongDimension = currentSurfaceWidthPx / density.density
         val flexSpringProgress = ((flexLongDimension - 44f) / 116f).coerceIn(0f, 1f)
-        val puffLiftPoints = 16f - 12f * flexSizeProgress
         val puffPressSpring = remember(flexSpringProgress) {
-            val response = 0.262 + (0.314 - 0.262) * flexSpringProgress
+            val response = 0.24 + (0.28 - 0.24) * flexSpringProgress
             spring<Float>(0.625f, (4.0 * PI * PI / (response * response)).toFloat(), 0.001f)
         }
         val puffReleaseSpring = remember(flexSpringProgress) {
-            val response = 0.4 + (0.36 - 0.4) * flexSpringProgress
+            val response = 0.34 + (0.30 - 0.34) * flexSpringProgress
             spring<Float>(
-                lerp(0.375f, 0.6f, flexSpringProgress),
+                lerp(0.42f, 0.62f, flexSpringProgress),
                 (4.0 * PI * PI / (response * response)).toFloat(),
                 0.001f,
             )
@@ -267,19 +289,18 @@ fun LiquidBottomTabs(
                 if (pressed) puffPressSpring else puffReleaseSpring,
             )
         }
-        val panelPressScale by remember(platterPuff, puffLiftPoints, flexLongDimension) {
-            derivedStateOf {
-                1f + puffLiftPoints * platterPuff.value / flexLongDimension.coerceAtLeast(1f)
-            }
-        }
 
-        // 1. Glasmio Bottom Navigation Bar Background Platter Capsule
+        // 1. YTX + Glasmio Morphing Bottom Navigation Bar Background Capsule
         Box(
             Modifier
+                .layout { measurable, constraints ->
+                    val w = currentSurfaceWidthPx.roundToInt().coerceIn(1, constraints.maxWidth)
+                    val h = constraints.constrainHeight(64.dp.roundToPx())
+                    val placeable = measurable.measure(Constraints.fixed(w, h))
+                    layout(w, h) { placeable.placeRelative(0, 0) }
+                }
                 .graphicsLayer {
-                    translationX = panelOffset
-                    scaleX = panelPressScale
-                    scaleY = panelPressScale
+                    translationX = panelOffset * (1f - clampedCompact)
                 }
                 .then(
                     if (glassSupported) {
@@ -288,141 +309,170 @@ fun LiquidBottomTabs(
                             shape = { Capsule() },
                             effects = {
                                 vibrancy()
-                                blur(12f.dp.toPx())
-                                lens(24f.dp.toPx(), 26f.dp.toPx(), chromaticAberration = true)
+                                blur(8f.dp.toPx())
+                                lens(24f.dp.toPx(), 24f.dp.toPx())
                             },
-                            highlight = { Highlight.Default },
-                            shadow = { Shadow.Default.copy(alpha = 0.35f) },
-                            innerShadow = { InnerShadow(radius = 10.dp, alpha = 0.50f) },
-                            onDrawSurface = {
-                                drawRect(containerColor)
-                                drawRect(
-                                    Brush.verticalGradient(
-                                        0f to Color.White.copy(alpha = if (isLightTheme) 0.26f else 0.14f),
-                                        0.5f to Color.White.copy(alpha = 0.04f),
-                                        1f to Color.Black.copy(alpha = 0.08f),
-                                    ),
-                                )
+                            layerBlock = {
+                                val progress = dampedDragAnimation.pressProgress
+                                val scale = lerp(1f, 1f + 16f.dp.toPx() / size.width.coerceAtLeast(1f), progress)
+                                scaleX = scale
+                                scaleY = scale
                             },
-                        ).border(
-                            width = 0.75.dp,
-                            brush = Brush.verticalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = if (isLightTheme) 0.64f else 0.32f),
-                                    Color.White.copy(alpha = if (isLightTheme) 0.22f else 0.10f),
-                                ),
-                            ),
-                            shape = Capsule(),
+                            onDrawSurface = { drawRect(containerColor) },
                         )
                     } else {
                         Modifier
                             .clip(Capsule())
                             .background(containerColor)
                             .border(
-                                0.75.dp,
-                                Color(0x2BFFFFFF),
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant,
                                 Capsule(),
                             )
                     },
                 )
                 .then(interactiveHighlight.modifier)
-                .height(64f.dp)
-                .fillMaxWidth(),
+                .height(64f.dp),
         )
 
-        // 2. Glasmio Moving Active Tab Indicator Lens Pill (with NativeControlLensStyle.TabBarIndicator + velocity deformation)
-        Box(
-            Modifier
-                .padding(horizontal = 4f.dp)
-                .graphicsLayer {
-                    translationX =
-                        if (isLtr) dampedDragAnimation.value * tabWidth + panelOffset
-                        else size.width - (dampedDragAnimation.value + 1f) * tabWidth + panelOffset
-                    val velocity = dampedDragAnimation.velocity / 10f
-                    scaleX = panelPressScale / (1f - (velocity * 0.75f).fastCoerceIn(-0.2f, 0.2f))
-                    scaleY = panelPressScale * (1f - (velocity * 0.25f).fastCoerceIn(-0.2f, 0.2f))
-                }
-                .height(54f.dp)
-                .fillMaxWidth(1f / tabsCount)
-                .nativeControlLensGeometry(
-                    NativeControlLensStyle.TabBarIndicator,
-                    horizontalProgress = { if (glassSupported) dampedDragAnimation.pressProgress else 0f },
-                )
-                .then(
-                    if (glassSupported) {
-                        Modifier.drawBackdrop(
-                            backdrop = backdrop,
-                            shape = { Capsule() },
-                            effects = {
-                                val progress = dampedDragAnimation.pressProgress
-                                vibrancy()
-                                if (progress < 0.999f) blur(8f.dp.toPx() * (1f - progress))
-                                lens(
-                                    (12f + 12f * progress).dp.toPx(),
-                                    (16f + 12f * progress).dp.toPx(),
-                                    chromaticAberration = true,
-                                )
-                            },
-                            highlight = {
-                                val progress = dampedDragAnimation.pressProgress
-                                Highlight.Default.copy(alpha = (0.45f + 0.55f * progress).coerceIn(0f, 1f))
-                            },
-                            shadow = {
-                                val progress = dampedDragAnimation.pressProgress
-                                Shadow(alpha = 0.25f + 0.75f * progress)
-                            },
-                            innerShadow = {
-                                val progress = dampedDragAnimation.pressProgress
-                                InnerShadow(
-                                    radius = 8f.dp * (0.4f + 0.6f * progress),
-                                    alpha = 0.35f + 0.65f * progress,
-                                )
-                            },
-                            onDrawSurface = {
-                                val progress = dampedDragAnimation.pressProgress
-                                drawRect(
-                                    if (isLightTheme) Color.Black.copy(0.10f)
-                                    else Color.White.copy(0.14f),
-                                    alpha = 1f - 0.55f * progress,
-                                )
-                                drawRect(Color.White.copy(alpha = 0.08f * progress))
-                            },
-                        )
-                    } else {
-                        Modifier
-                            .clip(Capsule())
-                            .background(Color.White.copy(alpha = 0.14f))
-                            .drawBehind {
-                                drawRect(
-                                    Brush.verticalGradient(
-                                        0f to Color.White.copy(alpha = 0.16f),
-                                        1f to Color.Transparent,
-                                    ),
-                                )
-                            }
-                    },
-                ),
-        )
-
-        // 3. Glasmio Tab Icons & Labels (1.16f selected content magnification on press)
-        CompositionLocalProvider(
-            LocalLiquidBottomTabScale provides {
-                lerp(1f, 1.16f, dampedDragAnimation.pressProgress) * panelPressScale
-            },
-        ) {
-            Row(
+        // 2. Moving active tab indicator pill (fades smoothly as bar collapses into single menu circle)
+        if (clampedCompact < 0.98f) {
+            val indicatorAlpha = (1f - clampedCompact * 1.15f).coerceIn(0f, 1f)
+            Box(
                 Modifier
+                    .padding(horizontal = 4f.dp)
                     .graphicsLayer {
-                        translationX = panelOffset
+                        val expandedX = if (isLtr) dampedDragAnimation.value * tabWidth + panelOffset
+                        else size.width - (dampedDragAnimation.value + 1f) * tabWidth + panelOffset
+                        translationX = lerp(expandedX, 0f, clampedCompact)
+                        alpha = indicatorAlpha
                     }
-                    .then(interactiveHighlight.gestureModifier)
-                    .then(dampedDragAnimation.modifier)
-                    .height(64f.dp)
-                    .fillMaxWidth()
-                    .padding(4f.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                content = content,
+                    .then(
+                        if (glassSupported) {
+                            Modifier.drawBackdrop(
+                                backdrop = backdrop,
+                                shape = { Capsule() },
+                                effects = {
+                                    val progress = dampedDragAnimation.pressProgress
+                                    vibrancy()
+                                    if (progress < 0.999f) blur(8f.dp.toPx() * (1f - progress))
+                                    lens(
+                                        10f.dp.toPx() * progress,
+                                        14f.dp.toPx() * progress,
+                                        chromaticAberration = true,
+                                    )
+                                },
+                                highlight = {
+                                    val progress = dampedDragAnimation.pressProgress
+                                    Highlight.Default.copy(alpha = progress * indicatorAlpha)
+                                },
+                                shadow = {
+                                    val progress = dampedDragAnimation.pressProgress
+                                    Shadow(alpha = progress * indicatorAlpha)
+                                },
+                                innerShadow = {
+                                    val progress = dampedDragAnimation.pressProgress
+                                    InnerShadow(
+                                        radius = 8f.dp * progress,
+                                        alpha = progress * indicatorAlpha,
+                                    )
+                                },
+                                layerBlock = {
+                                    scaleX = dampedDragAnimation.scaleX
+                                    scaleY = dampedDragAnimation.scaleY
+                                    val velocity = dampedDragAnimation.velocity / 10f
+                                    scaleX /= 1f - (velocity * 0.75f).fastCoerceIn(-0.2f, 0.2f)
+                                    scaleY *= 1f - (velocity * 0.25f).fastCoerceIn(-0.2f, 0.2f)
+                                },
+                                onDrawSurface = {
+                                    val progress = dampedDragAnimation.pressProgress
+                                    drawRect(
+                                        if (isLightTheme) Color.Black.copy(0.12f)
+                                        else Color.White.copy(0.12f),
+                                        alpha = (1f - progress) * indicatorAlpha,
+                                    )
+                                    drawRect(Color.Black.copy(alpha = 0.03f * progress * indicatorAlpha))
+                                },
+                            )
+                        } else {
+                            Modifier
+                                .clip(Capsule())
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                        },
+                    )
+                    .nativeControlLensGeometry(
+                        NativeControlLensStyle.TabBarIndicator,
+                        horizontalProgress = { if (glassSupported) dampedDragAnimation.pressProgress * (1f - clampedCompact) else 0f },
+                    )
+                    .height(56f.dp)
+                    .fillMaxWidth(1f / tabsCount),
             )
+        }
+
+        // 3. Expanded 4-Tab Row (fades & scales smoothly during scroll-collapse)
+        if (clampedCompact < 0.95f) {
+            val rowAlpha = (1f - clampedCompact * 1.25f).coerceIn(0f, 1f)
+            CompositionLocalProvider(
+                LocalLiquidBottomTabScale provides {
+                    lerp(1f, 1.15f, dampedDragAnimation.pressProgress)
+                },
+            ) {
+                Row(
+                    Modifier
+                        .graphicsLayer {
+                            translationX = panelOffset * (1f - clampedCompact)
+                            alpha = rowAlpha
+                        }
+                        .then(if (!isCompactMode) interactiveHighlight.gestureModifier else Modifier)
+                        .then(if (!isCompactMode) dampedDragAnimation.modifier else Modifier)
+                        .height(64f.dp)
+                        .fillMaxWidth()
+                        .padding(4f.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    content = content,
+                )
+            }
+        }
+
+        // 4. Collapsed Single-Menu Liquid Glass Pill (appears when scrolling down; tap expands all tabs)
+        if (clampedCompact > 0.05f && compactIcon != null) {
+            val compactAlpha = ((clampedCompact - 0.15f) / 0.85f).coerceIn(0f, 1f)
+            val contentColor = if (isLightTheme) Color.Black else Color.White
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .alpha(compactAlpha)
+                    .clip(Capsule())
+                    .then(
+                        if (isCompactMode) {
+                            Modifier.clickable(
+                                interactionSource = null,
+                                indication = null,
+                                role = Role.Button,
+                                onClick = {
+                                    view.navHaptic(14L, 150)
+                                    onExpandCompact()
+                                },
+                            )
+                        } else {
+                            Modifier
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = compactIcon,
+                    contentDescription = "Expand Navigation Menu",
+                    tint = contentColor,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .graphicsLayer {
+                            val s = lerp(0.75f, 1f, compactAlpha)
+                            scaleX = s
+                            scaleY = s
+                        },
+                )
+            }
         }
     }
 }
@@ -435,6 +485,9 @@ fun LiquidBottomBar(
     modifier: Modifier = Modifier,
     tabsCount: Int = TopLevelDestination.entries.size,
     isDarkSurface: Boolean = false,
+    compactProgress: Float = 0f,
+    compactIcon: ImageVector? = null,
+    onExpandCompact: () -> Unit = {},
     content: @Composable RowScope.() -> Unit,
 ) {
     LiquidBottomTabs(
@@ -444,6 +497,9 @@ fun LiquidBottomBar(
         tabsCount = tabsCount,
         modifier = modifier,
         isDarkSurface = isDarkSurface,
+        compactProgress = compactProgress,
+        compactIcon = compactIcon,
+        onExpandCompact = onExpandCompact,
         content = content,
     )
 }
@@ -458,9 +514,7 @@ fun RowScope.LiquidNavTab(
     onClick: () -> Unit,
 ) {
     val isLightTheme = !isDarkSurface && !isSystemInDarkTheme() && MaterialTheme.colorScheme.background.luminance() >= 0.5f
-    val accentColor = MaterialTheme.colorScheme.primary
-    val unselectedColor = if (isLightTheme) Color.Black.copy(alpha = 0.78f) else Color.White.copy(alpha = 0.85f)
-    val contentColor = if (selected) accentColor else unselectedColor
+    val contentColor = if (isLightTheme) Color.Black else Color.White
 
     LiquidBottomTab(onClick = onClick) {
         Box(
@@ -479,18 +533,17 @@ fun RowScope.LiquidNavTab(
             text = label,
             modifier = Modifier.fillMaxWidth(),
             style = TextStyle(
-                color = if (selected) (if (isLightTheme) Color.Black else Color.White) else unselectedColor,
-                fontSize = 10.5.sp,
-                lineHeight = 12.sp,
+                color = contentColor,
+                fontSize = 11.sp,
                 letterSpacing = 0.sp,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                 textAlign = TextAlign.Center,
             ),
             maxLines = 1,
             softWrap = false,
             autoSize = TextAutoSize.StepBased(
                 minFontSize = 8.sp,
-                maxFontSize = 10.5.sp,
+                maxFontSize = 11.sp,
                 stepSize = 0.5.sp,
             ),
         )

@@ -88,7 +88,6 @@ import dev.xboyrex.darkplayer.core.ui.components.restorableFocusGroup
 import dev.xboyrex.darkplayer.core.ui.components.restorableFocusItem
 import dev.xboyrex.darkplayer.core.ui.display.ColoursAndDisplayEngineContent
 import dev.xboyrex.darkplayer.core.ui.display.RealityDisplayEngine
-import dev.xboyrex.darkplayer.core.ui.glass.GlasmioIconButton
 import dev.xboyrex.darkplayer.core.ui.glass.GlasmioSwitch
 import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
 import dev.xboyrex.darkplayer.core.ui.glass.Motion
@@ -168,9 +167,14 @@ private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
                         .padding(top = statusTopInset + 8.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    GlasmioIconButton(
-                        onClick = { onAction(SettingsAction.NavigateUp) },
-                        size = 44.dp,
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF1C1C1E))
+                            .border(0.75.dp, Color(0x2BFFFFFF), CircleShape)
+                            .pressable(pressedScale = 0.90f) { onAction(SettingsAction.NavigateUp) },
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
@@ -739,9 +743,13 @@ private fun YtxFloatingModal(
                         color = Color(0xB2EBEBF5),
                     )
                 }
-                GlasmioIconButton(
-                    onClick = onDismiss,
-                    size = 36.dp,
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF2C2C2E))
+                        .pressable(pressedScale = 0.90f, onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,

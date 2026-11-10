@@ -4,6 +4,8 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -262,18 +264,18 @@ internal fun TopLevelNavState.navigationTransition(
         slideInHorizontally(
             initialOffsetX = { if (isPop) -(it * 0.28f).toInt() else it },
             animationSpec = tween(
-                durationMillis = 280,
+                durationMillis = 240,
                 easing = Motion.Emphasized,
             ),
-        ) + fadeIn(tween(120))
+        ) + fadeIn(tween(110))
         ) togetherWith (
         slideOutHorizontally(
             targetOffsetX = { if (isPop) it else -(it * 0.28f).toInt() },
             animationSpec = tween(
-                durationMillis = 240,
+                durationMillis = 200,
                 easing = Motion.Emphasized,
             ),
-        ) + fadeOut(tween(180))
+        ) + fadeOut(tween(150))
         )
 }
 
@@ -284,12 +286,20 @@ fun NextNavigationBar(
     contentFocusRequester: FocusRequester,
     fabFocusRequester: FocusRequester,
     showFabOnly: Boolean = false,
+    isCompact: Boolean = false,
+    onExpandCompact: () -> Unit = {},
     backdrop: Backdrop = rememberLayerBackdrop(),
 ) {
     val isTv = LocalContext.current.isTelevision
     val bgColor = MaterialTheme.colorScheme.background
     val primaryColor = MaterialTheme.colorScheme.primary
     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
+
+    val compactProgress by animateFloatAsState(
+        targetValue = if (isCompact && !isTv) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.78f, stiffness = 480f),
+        label = "navBarCompactProgress",
+    )
 
     Box(
         modifier = Modifier
@@ -310,7 +320,7 @@ fun NextNavigationBar(
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
             .padding(top = 36.dp, bottom = 12.dp)
             .padding(horizontal = 16.dp)
-            .thenIf(condition = !showFabOnly) { pointerInput(key1 = Unit) {} },
+            .thenIf(condition = !showFabOnly && compactProgress < 0.5f) { pointerInput(key1 = Unit) {} },
         contentAlignment = Alignment.BottomCenter,
     ) {
         Row(
@@ -320,6 +330,7 @@ fun NextNavigationBar(
         ) {
             if (!showFabOnly) {
                 val destinations = state.destinations
+                val selectedDest = destinations.getOrElse(state.selectedIndex) { TopLevelDestination.MEDIA }
                 LiquidBottomTabs(
                     selectedTabIndex = { state.selectedIndex },
                     onTabSelected = { index ->
@@ -327,6 +338,9 @@ fun NextNavigationBar(
                     },
                     backdrop = backdrop,
                     tabsCount = destinations.size,
+                    compactProgress = compactProgress,
+                    compactIcon = selectedDest.selectedIcon,
+                    onExpandCompact = onExpandCompact,
                     modifier = Modifier
                         .weight(1f)
                         .shadow(
@@ -352,7 +366,7 @@ fun NextNavigationBar(
             }
 
             fabState?.let { fab ->
-                // Solid Circle FAB next to the Liquid Glass / Solid Navigation Bar
+                // Solid Circle FAB next to the Liquid Glass Navigation Bar
                 Box(
                     modifier = Modifier
                         .size(58.dp)
@@ -387,26 +401,26 @@ fun NextNavigationBar(
                         transitionSpec = {
                             fadeIn(
                                 animationSpec = tween(
-                                    durationMillis = 250,
+                                    durationMillis = 220,
                                     easing = FastOutSlowInEasing,
                                 ),
                             ) +
                                 scaleIn(
                                     animationSpec = tween(
-                                        durationMillis = 250,
+                                        durationMillis = 220,
                                         easing = FastOutSlowInEasing,
                                     ),
                                     initialScale = 0.25f,
                                 ) togetherWith
                                 fadeOut(
                                     animationSpec = tween(
-                                        durationMillis = 250,
+                                        durationMillis = 220,
                                         easing = FastOutSlowInEasing,
                                     ),
                                 ) +
                                 scaleOut(
                                     animationSpec = tween(
-                                        durationMillis = 250,
+                                        durationMillis = 220,
                                         easing = FastOutSlowInEasing,
                                     ),
                                     targetScale = 0.25f,
