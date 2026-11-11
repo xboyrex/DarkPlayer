@@ -35,6 +35,27 @@ jobs:
           validate-wrappers: true
           cache-cleanup: on-success
 
+      - name: Verify Navigation3 Dependency Graph
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REPORT="$RUNNER_TEMP/darkplayer-navigation3-dependencies.txt"
+
+          ./gradlew :app:dependencies \
+            --configuration debugRuntimeClasspath \
+            --console=plain > "$REPORT"
+
+          if grep -Fq 'miuix-navigation3-ui-android' "$REPORT"; then
+            echo "::error::Duplicate Miuix Navigation3 UI dependency detected."
+            grep -n -C 3 'miuix-navigation3-ui-android' "$REPORT"
+            exit 1
+          fi
+
+          grep -E 'androidx.navigation3:navigation3-(runtime|ui)' "$REPORT"
+
+          echo "Navigation3 dependency graph verified."
+
       - name: Validate Android Image Resources
         shell: bash
         run: |
