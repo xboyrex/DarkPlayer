@@ -113,6 +113,54 @@ jobs:
           print("Android image resource uniqueness: PASSED")
           PY
 
+      - name: Validate Splash Color Resources
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+          import xml.etree.ElementTree as ET
+
+          splash = Path("app/src/main/res/drawable/ic_splash.xml")
+          colors = Path("app/src/main/res/values/ic_launcher_background.xml")
+
+          try:
+              splash_root = ET.parse(splash).getroot()
+              colors_root = ET.parse(colors).getroot()
+          except ET.ParseError as exc:
+              print("XML parsing failed:", exc)
+              sys.exit(1)
+
+          defined = {
+              item.attrib["name"]: (item.text or "").strip()
+              for item in colors_root
+              if item.tag == "color" and "name" in item.attrib
+          }
+
+          required = {
+              "ic_launcher_background_tint": "#171B1C",
+              "ic_launcher_foreground_tint": "#FFFFFF",
+          }
+
+          for name, expected in required.items():
+              actual = defined.get(name)
+              if actual != expected:
+                  print(f"Missing or incorrect color: {name}: {actual}")
+                  sys.exit(1)
+
+          for name in required:
+              if f"@color/{name}" not in splash.attrib.values() and not any(
+                  f"@color/{name}" in value
+                  for element in splash_root.iter()
+                  for value in element.attrib.values()
+              ):
+                  print(f"Splash drawable does not reference {name}")
+                  sys.exit(1)
+
+          print("Splash color resources: PASSED")
+          PY
       - name: Prepare Debug Signing Key
         shell: bash
         run: |
