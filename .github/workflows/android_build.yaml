@@ -2,33 +2,124 @@ name: Android Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    name: Build apk and run tests
+    name: Build APK and Run Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v7
 
-      - name: Set Up JDK 17
+      - name: Setup JDK 17
         uses: actions/setup-java@v5
         with:
-          java-version: 17
+          java-version: '17'
           distribution: temurin
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
           validate-wrappers: true
-          gradle-home-cache-cleanup: true
+          cache-cleanup: on-success
 
-      - name: Build Project with gradle
+      - name: Validate Android Image Resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from collections import defaultdict
+          from pathlib import Path
+          import sys
+
+          root = Path(".")
+          image_ext = {
+              ".png", ".webp", ".jpg", ".jpeg",
+              ".gif", ".bmp", ".avif"
+          }
+          groups = defaultdict(list)
+
+          for res in root.rglob("res"):
+              if not res.is_dir():
+                  continue
+
+              if any(part in {".git", ".gradle", "build"}
+                     for part in res.parts):
+                  continue
+
+              for resource_dir in res.iterdir():
+                  if not resource_dir.is_dir():
+                      continue
+
+                  if resource_dir.name.startswith("values"):
+                      continue
+
+                  for file in resource_dir.iterdir():
+                      if not file.is_file():
+                          continue
+
+                      if file.suffix.lower() not in image_ext:
+                          continue
+
+                      # Android treats extensions as one resource key.
+                      name = file.name.split(".", 1)[0].lower()
+                      groups[(resource_dir, name)].append(file)
+
+          errors = [
+              files for files in groups.values()
+              if len(files) > 1
+          ]
+
+          if errors:
+              print("DUPLICATE ANDROID RESOURCES:")
+              for files in errors:
+                  for file in files:
+                      print(" -", file)
+              sys.exit(1)
+
+          print("Android image resource uniqueness: PASSED")
+          PY
+
+      - name: Prepare Debug Signing Key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p app
+
+          if [[ ! -f app/debug.keystore ]]; then
+            keytool -genkeypair -v \
+              -keystore app/debug.keystore \
+              -storetype JKS \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US" \
+              -noprompt
+          fi
+
+          keytool -list \
+            -keystore app/debug.keystore \
+            -storepass android \
+            -alias androiddebugkey
+
+          echo "Temporary CI debug signing key ready."
+
+      - name: Build Project
         run: ./gradlew assembleDebug
 
       - name: Run Local Tests
@@ -37,36 +128,19 @@ jobs:
       - name: Lint Checks
         run: ./gradlew ktlintCheck
 
-        # Upload all build artifacts in separate steps. This can be shortened once https://github.com/actions/upload-artifact/pull/354 is merged.
-      - name: Upload artifact nextplayer-universal-debug.apk
+      - name: Upload Debug APKs
         uses: actions/upload-artifact@v7
         with:
-          name: nextplayer-universal-debug.apk
-          path: ./app/build/outputs/apk/debug/app-universal-debug.apk
-      - name: Upload artifact nextplayer-arm64-v8a-debug.apk
-        uses: actions/upload-artifact@v7
-        with:
-          name: nextplayer-arm64-v8a-debug.apk
-          path: ./app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
-      - name: Upload artifact nextplayer-armeabi-v7a-debug.apk
-        uses: actions/upload-artifact@v7
-        with:
-          name: nextplayer-armeabi-v7a-debug.apk
-          path: ./app/build/outputs/apk/debug/app-armeabi-v7a-debug.apk
-      - name: Upload artifact nextplayer-x86_64-debug.apk
-        uses: actions/upload-artifact@v7
-        with:
-          name: nextplayer-x86_64-debug.apk
-          path: ./app/build/outputs/apk/debug/app-x86_64-debug.apk
-      - name: Upload artifact nextplayer-x86-debug.apk
-        uses: actions/upload-artifact@v7
-        with:
-          name: nextplayer-x86-debug.apk
-          path: ./app/build/outputs/apk/debug/app-x86-debug.apk
+          name: nextplayer-debug-apks-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
 
-      - name: Upload build reports
+      - name: Upload Build Reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: build-reports
           path: app/build/reports
+          if-no-files-found: ignore
+          retention-days: 14
