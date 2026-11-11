@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.darkplayer.core.datastore"
+    namespace = "dev.anilbeesetti.nextplayer.core.datastore"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {

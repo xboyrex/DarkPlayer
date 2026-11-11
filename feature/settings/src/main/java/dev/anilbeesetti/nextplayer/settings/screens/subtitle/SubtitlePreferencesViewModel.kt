@@ -1,0 +1,216 @@
+package dev.anilbeesetti.nextplayer.settings.screens.subtitle
+
+import androidx.compose.runtime.Stable
+import androidx.lifecycle.viewModelScope
+import dev.anilbeesetti.nextplayer.core.data.repository.PreferencesRepository
+import dev.anilbeesetti.nextplayer.core.model.Font
+import dev.anilbeesetti.nextplayer.core.model.PlayerPreferences
+import dev.anilbeesetti.nextplayer.core.model.SubtitleAlignment
+import dev.anilbeesetti.nextplayer.core.ui.base.MviViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.KoinViewModel
+
+@KoinViewModel
+class SubtitlePreferencesViewModel(
+    private val preferencesRepository: PreferencesRepository,
+    @InjectedParam internal var output: Output,
+) : MviViewModel<SubtitlePreferencesUiState, SubtitlePreferencesUiEvent>() {
+
+    data class Output(val navigateUp: () -> Unit)
+
+    private val stateInternal = MutableStateFlow(
+        value = SubtitlePreferencesUiState(
+            preferences = preferencesRepository.playerPreferences.value,
+        ),
+    )
+    override val state: StateFlow<SubtitlePreferencesUiState> = stateInternal.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            preferencesRepository.playerPreferences.collect { preferences ->
+                stateInternal.update { currentState ->
+                    currentState.copy(preferences = preferences)
+                }
+            }
+        }
+    }
+
+    override fun onAction(action: SubtitlePreferencesUiEvent) {
+        when (action) {
+            is SubtitlePreferencesUiEvent.NavigateUp -> output.navigateUp()
+
+            is SubtitlePreferencesUiEvent.ShowDialog -> showDialog(action.value)
+
+            is SubtitlePreferencesUiEvent.UpdateSubtitleLanguage -> updateSubtitleLanguage(
+                action.value,
+            )
+
+            is SubtitlePreferencesUiEvent.UpdateSubtitleFont -> updateSubtitleFont(action.value)
+
+            is SubtitlePreferencesUiEvent.ToggleSubtitleTextBold -> toggleSubtitleTextBold()
+
+            is SubtitlePreferencesUiEvent.UpdateSubtitleFontSize -> updateSubtitleFontSize(
+                action.value,
+            )
+
+            is SubtitlePreferencesUiEvent.ToggleSubtitleBackground -> toggleSubtitleBackground()
+
+            is SubtitlePreferencesUiEvent.ToggleApplyEmbeddedStyles -> toggleApplyEmbeddedStyles()
+
+            is SubtitlePreferencesUiEvent.UpdateSubtitleEncoding -> updateSubtitleEncoding(
+                action.value,
+            )
+
+            is SubtitlePreferencesUiEvent.ToggleUseSystemCaptionStyle ->
+                toggleUseSystemCaptionStyle()
+
+            is SubtitlePreferencesUiEvent.ResetSubtitlePosition -> resetSubtitlePosition()
+
+            is SubtitlePreferencesUiEvent.UpdateSubtitleAlignment -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences {
+                        it.copy(subtitleAlignment = action.alignment)
+                    }
+                }
+            }
+
+            is SubtitlePreferencesUiEvent.UpdateSubtitleScale -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences {
+                        it.copy(subtitleScale = action.scale.coerceIn(0.5f, 2.0f))
+                    }
+                }
+            }
+
+            is SubtitlePreferencesUiEvent.ToggleSubtitleBorder -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences {
+                        it.copy(subtitleBorderEnabled = !it.subtitleBorderEnabled)
+                    }
+                }
+            }
+
+            is SubtitlePreferencesUiEvent.ToggleSubtitleShadow -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences {
+                        it.copy(subtitleShadowEnabled = !it.subtitleShadowEnabled)
+                    }
+                }
+            }
+
+            is SubtitlePreferencesUiEvent.ToggleSubtitleFadeOut -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences {
+                        it.copy(subtitleFadeOut = !it.subtitleFadeOut)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showDialog(value: SubtitlePreferenceDialog?) {
+        stateInternal.update { it.copy(showDialog = value) }
+    }
+
+    private fun updateSubtitleLanguage(value: String) {
+        viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences {
+                it.copy(preferredSubtitleLanguage = value)
+            }
+        }
+    }
+
+    private fun updateSubtitleFont(value: Font) {
+        viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences { it.copy(subtitleFont = value) }
+        }
+    }
+
+    private fun toggleSubtitleTextBold() {
+        viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences {
+                it.copy(subtitleTextBold = !it.subtitleTextBold)
+            }
+        }
+    }
+
+    private fun updateSubtitleFontSize(value: Int) {
+        viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences { it.copy(subtitleTextSize = value) }
+        }
+    }
+
+    private fun toggleSubtitleBackground() {
+        viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences {
+                it.copy(subtitleBackground = !it.subtitleBackground)
+            }
+        }
+    }
+
+    private fun toggleApplyEmbeddedStyles() {
+        viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences {
+                it.copy(applyEmbeddedStyles = !it.applyEmbeddedStyles)
+            }
+        }
+    }
+
+    private fun updateSubtitleEncoding(value: String) {
+        viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences { it.copy(subtitleTextEncoding = value) }
+        }
+    }
+
+    private fun resetSubtitlePosition() {
+        viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences { it.copy(subtitleOffsetY = 0f) }
+        }
+    }
+
+    private fun toggleUseSystemCaptionStyle() {
+        viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences {
+                it.copy(useSystemCaptionStyle = !it.useSystemCaptionStyle)
+            }
+        }
+    }
+}
+
+@Stable
+data class SubtitlePreferencesUiState(
+    val showDialog: SubtitlePreferenceDialog? = null,
+    val preferences: PlayerPreferences = PlayerPreferences(),
+)
+
+sealed interface SubtitlePreferenceDialog {
+    data object SubtitleLanguageDialog : SubtitlePreferenceDialog
+    data object SubtitleFontDialog : SubtitlePreferenceDialog
+    data object SubtitleEncodingDialog : SubtitlePreferenceDialog
+    data object SubtitleAlignmentDialog : SubtitlePreferenceDialog
+}
+
+sealed interface SubtitlePreferencesUiEvent {
+    data object NavigateUp : SubtitlePreferencesUiEvent
+
+    data class ShowDialog(val value: SubtitlePreferenceDialog?) : SubtitlePreferencesUiEvent
+    data class UpdateSubtitleLanguage(val value: String) : SubtitlePreferencesUiEvent
+    data class UpdateSubtitleFont(val value: Font) : SubtitlePreferencesUiEvent
+    data object ToggleSubtitleTextBold : SubtitlePreferencesUiEvent
+    data class UpdateSubtitleFontSize(val value: Int) : SubtitlePreferencesUiEvent
+    data object ToggleSubtitleBackground : SubtitlePreferencesUiEvent
+    data object ToggleApplyEmbeddedStyles : SubtitlePreferencesUiEvent
+    data class UpdateSubtitleEncoding(val value: String) : SubtitlePreferencesUiEvent
+    data object ToggleUseSystemCaptionStyle : SubtitlePreferencesUiEvent
+    data object ResetSubtitlePosition : SubtitlePreferencesUiEvent
+    data class UpdateSubtitleAlignment(val alignment: SubtitleAlignment) : SubtitlePreferencesUiEvent
+    data class UpdateSubtitleScale(val scale: Float) : SubtitlePreferencesUiEvent
+    data object ToggleSubtitleBorder : SubtitlePreferencesUiEvent
+    data object ToggleSubtitleShadow : SubtitlePreferencesUiEvent
+    data object ToggleSubtitleFadeOut : SubtitlePreferencesUiEvent
+}

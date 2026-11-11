@@ -38,7 +38,7 @@
     <string name="seek_gesture_description">좌우로 화면을 쓸어 앞뒤로 동영상 탐색</string>
     <string name="resume_description">지난 번에 멈췄던 곳에서부터 동영상 재생</string>
     <string name="size">크기</string>
-    <string name="title_activity_player">Nova Player 액티비티</string>
+    <string name="title_activity_player">Next Player 액티비티</string>
     <string name="playback">재생</string>
     <string name="a_z">A-Z</string>
     <string name="z_a">Z-A</string>
@@ -213,6 +213,10 @@
     <string name="libraries">라이브러리</string>
     <string name="github">GitHub</string>
     <string name="donate">후원</string>
+    <string name="support_the_developer_on">%1$s에서 개발자에게 도움 주기</string>
+    <string name="kofi">Ko-fi</string>
+    <string name="paypal">PayPal</string>
+    <string name="upi">UPI</string>
     <string name="media_layout">미디어 레이아웃</string>
     <string name="list">목록</string>
     <string name="grid">그리드</string>

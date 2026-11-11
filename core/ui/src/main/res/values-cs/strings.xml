@@ -151,7 +151,7 @@
     <string name="group_videos">Seskupovat videa podle složky</string>
     <string name="navigate_up">Navigovat nahoru</string>
     <string name="permission_not_granted">Oprávnění nebylo uděleno</string>
-    <string name="permission_info">Aplikace Nova Player potřebuje k přístupu k médiím a jejich přehrávání oprávnění „%1$s“. Bez něj nebude přístup k médiím a jejich přehrávání fungovat. Chcete-li aplikaci plně využívat, udělte toto oprávnění.</string>
+    <string name="permission_info">Aplikace Next Player potřebuje k přístupu k médiím a jejich přehrávání oprávnění „%1$s“. Bez něj nebude přístup k médiím a jejich přehrávání fungovat. Chcete-li aplikaci plně využívat, udělte toto oprávnění.</string>
     <string name="permission_request">Žádost o oprávnění</string>
     <string name="player_controls_exit">Navigovat nahoru</string>
     <string name="pip_settings">Režim obraz v obraze</string>
@@ -161,7 +161,7 @@
     <string name="monospace">Neproporcionální</string>
     <string name="hundred_percent">100%</string>
     <string name="control_buttons_alignment_right">Vpravo</string>
-    <string name="permission_settings">Aplikace Nova Player potřebuje k přístupu k médiím a jejich přehrávání oprávnění „%1$s“. Bez něj nebude přístup k médiím a jejich přehrávání fungovat. Chcete-li aplikaci plně používat, povolte toto oprávnění v nastavení, protože bylo trvale odepřeno.</string>
+    <string name="permission_settings">Aplikace Next Player potřebuje k přístupu k médiím a jejich přehrávání oprávnění „%1$s“. Bez něj nebude přístup k médiím a jejich přehrávání fungovat. Chcete-li aplikaci plně používat, povolte toto oprávnění v nastavení, protože bylo trvale odepřeno.</string>
     <string name="enable_pip_from_settings">Režim Obraz v obraze je vypnutý. Chcete-li tuto funkci používat, povolte ji v Nastavení.</string>
     <string name="control_buttons_alignment_left">Vlevo</string>
     <string name="system_caption_style_desc">Klepnutím otevřete systémové nastavení titulků</string>
@@ -173,7 +173,7 @@
     <string name="play_pause_ff_rewind">Přehrát/Pozastavit a Rychlý posun vpřed/vzad</string>
     <string name="sample_format">Formát vzorku</string>
     <string name="screen_rotation">Otáčení obrazovky</string>
-    <string name="title_activity_player">Nova Player Aktivita</string>
+    <string name="title_activity_player">Next Player Aktivita</string>
     <string name="landscape_reverse">Na šířku (opačně)</string>
     <string name="landscape_auto">Na šířku (senzor)</string>
     <string name="video_orientation">Orientace videa</string>
@@ -198,9 +198,13 @@
     <string name="device_decoders_only">Pouze dekodéry v zařízení</string>
     <string name="donate">Darovat</string>
     <string name="libraries">Knihovny</string>
+    <string name="support_the_developer_on">Podpořte vývojáře na %1$s</string>
+    <string name="kofi">Ko-fi</string>
     <string name="error_opening_link">Žádná aplikace nenalezena pro tento odkaz</string>
+    <string name="upi">UPI</string>
     <string name="by">od %1$s</string>
     <string name="github">GitHub</string>
+    <string name="paypal">PayPal</string>
     <string name="mark_last_played_media_desc">Označit posledně přehráté video ve každé složce</string>
     <string name="grid">Mřížka</string>
     <string name="list">Seznam</string>
@@ -265,7 +269,7 @@
     <string name="no_results_found">Žádné výseldky nenalezeny</string>
     <string name="search_results">Výsledky hledání</string>
     <string name="now_playing">Právě hraje</string>
-    <string name="no_videos_in_queue">Žádné videa v frontě</string>
+    <string name="no_videos_in_queue">Žádné videa ve frontě</string>
     <string name="remove">Odebrat</string>
     <string name="unknown">Neznámé</string>
     <string name="search">Hledat</string>
@@ -353,10 +357,10 @@
         <item quantity="other">%1$d videí nešlo přesunout</item>
     </plurals>
     <plurals name="moved_videos_originals_remain">
-        <item quantity="one">Jedno video přesunuto, ale původní nešlo odebrat</item>
-        <item quantity="few">%1$d videa přesunuty, ale původní nešly odebrat</item>
-        <item quantity="many">%1$d videí přesunuty, ale původní nešly odebrat</item>
-        <item quantity="other">%1$d videí přesunuty, ale původní nešly odebrat</item>
+        <item quantity="one">Jedno video zkopírováno, ale původní nešlo odebrat</item>
+        <item quantity="few">%1$d videa zkopírovány, ale původní nešly odebrat</item>
+        <item quantity="many">%1$d videí zkopírovány, ale původní nešly odebrat</item>
+        <item quantity="other">%1$d videí zkopírovány, ale původní nešly odebrat</item>
     </plurals>
     <string name="cannot_move_to_same_folder">Nelze přesunout do stejné složky</string>
     <string name="folder_duration">Délka složky</string>
@@ -528,4 +532,19 @@
         <item quantity="other">%1$d nových videích</item>
     </plurals>
     <string name="new_label">NOVÉ</string>
+    <string name="tunneled_playback">Tunelované přehrávání</string>
+    <string name="tunneled_playback_description">Použít tunelované přehrávání podle podpory zařízení a videa. Možná zlepší přehrávání Dolby Vision a HDR10+ obsahu na Android televizích. Použije se pro nové přehrávací relace.</string>
+    <string name="network_watch_history_desc">Zaznamenat i videa přehrané přes síť ve historii sledování.</string>
+    <string name="network_watch_history">Síťová historie sledování</string>
+    <string name="watch_history">Historie sledování</string>
+    <string name="no_watch_history">Žádná historie sledování</string>
+    <string name="watch_history_turned_off">Historie sledování je vypnuta</string>
+    <string name="turn_on_watch_history_confirmation">Začít zaznamenávat zhlédnuté videa ve historii sledování?</string>
+    <string name="turn_off_watch_history_confirmation">Vypnutím historie sledování vymaže historii sledování a přestane zaznamenávat zhlédnuté videa.</string>
+    <string name="turn_on_watch_history">Zapnout historii sledování</string>
+    <string name="turn_off_watch_history">Vypnout historii sledování</string>
+    <string name="watch_history_desc">Zaznamenat videa, které sledujete</string>
+    <string name="add_to_home_screen">Přidat na domovskou obrazovku</string>
+    <string name="playlist_shortcut_failed">Nešlo přidat zástupce pro playlist. Zkuste to znovu.</string>
+    <string name="github_sponsors">GitHub Sponsors</string>
 </resources>

@@ -1,105 +1,134 @@
-<div align="center">
-  <img src="docs/assets/dark-player/dark-player-mark.svg" width="112" height="112" alt="Dark Player logo" />
-  <h1>Dark Player</h1>
-  <p><strong>A high-control Android video player for local libraries, network media, and deeply configurable playback.</strong></p>
-  <p>Crafted by <strong>ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (<code>@xboyrex</code>)</strong> · Media3 / FFmpeg engine · 3-Layer Liquid Glass Nav & Player UI</p>
-  <p>
-    <a href="https://github.com/xboyrex/DarkPlayer/releases"><img alt="GitHub releases" src="https://img.shields.io/github/v/release/xboyrex/DarkPlayer?style=for-the-badge&logo=github&label=release" /></a>
-    <a href="https://github.com/xboyrex/DarkPlayer/releases"><img alt="GitHub downloads" src="https://img.shields.io/github/downloads/xboyrex/DarkPlayer/total?style=for-the-badge&logo=android&label=downloads" /></a>
-    <a href="https://github.com/xboyrex/DarkPlayer/commits"><img alt="Last commit" src="https://img.shields.io/github/last-commit/xboyrex/DarkPlayer?style=for-the-badge&logo=git" /></a>
-    <img alt="Platform Android" src="https://img.shields.io/badge/platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
-  </p>
-  <p>
-    <a href="#features">Features</a> &nbsp;·&nbsp;
-    <a href="#interface-preview">Interface preview</a> &nbsp;·&nbsp;
-    <a href="#screenshots">Screenshots</a> &nbsp;·&nbsp;
-    <a href="#installation">Installation</a> &nbsp;·&nbsp;
-    <a href="#developer-links">Developer links</a>
-  </p>
-</div>
+![Next player banner](fastlane/metadata/android/en-US/images/featureGraphic.png)
 
----
+# Next Player
 
-## Interface preview
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/anilbeesetti/nextplayer.svg?logo=github&label=GitHub&cacheSeconds=3600)](https://github.com/anilbeesetti/nextplayer/releases/latest)
+[![Google Play](https://img.shields.io/endpoint?color=green&logo=google-play&url=https%3A%2F%2Fplay.cuzi.workers.dev%2Fplay%3Fi%3Ddev.anilbeesetti.nextplayer%26l%3DGoogle%2520Play%26m%3Dv%24version)](https://play.google.com/store/apps/details?id=dev.anilbeesetti.nextplayer)
+[![IzzyOnDroid](https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/dev.anilbeesetti.nextplayer)](https://apt.izzysoft.de/fdroid/index/apk/dev.anilbeesetti.nextplayer)
+[![F-Droid](https://img.shields.io/f-droid/v/dev.anilbeesetti.nextplayer?logo=f-droid&label=F-Droid&cacheSeconds=3600)](https://f-droid.org/packages/dev.anilbeesetti.nextplayer)
+[![GitHub all releases](https://img.shields.io/github/downloads/anilbeesetti/nextplayer/total?logo=github&cacheSeconds=3600)](https://github.com/anilbeesetti/nextplayer/releases/latest)
+[![Google Play](https://img.shields.io/endpoint?color=green&logo=google-play&url=https%3A%2F%2Fplay.cuzi.workers.dev%2Fplay%3Fi%3Ddev.anilbeesetti.nextplayer%26l%3Ddownloads%26m%3D%24totalinstalls)](https://play.google.com/store/apps/details?id=dev.anilbeesetti.nextplayer)
+[![Weblate project translated](https://img.shields.io/weblate/progress/next-player?logo=weblate&logoColor=white&cacheSeconds=36000)](https://hosted.weblate.org/engage/next-player/)
 
-<div align="center">
-  <img src="docs/assets/dark-player/dark-player-showcase.gif" alt="Animated preview made from Dark Player interface screenshots" width="960" />
-</div>
+Next Player is an Android native video player written in Kotlin. It provides a simple and easy-to-use interface for users to play videos on their
+Android devices
 
-## Overview
+**This project is still in development and is expected to have bugs. Please report any bugs you find in
+the [Issues](https://github.com/anilbeesetti/nextplayer/issues) section.**
 
-**Dark Player** is an Android video player built on Media3 and FFmpeg (`nextlib`), featuring a 3-layer refractive **Liquid Glass** navigation bar and video player UI, a clean **0–200% Hardware LoudnessEnhancer Volume Booster**, an interactive haptic speed ruler (`0.25×–4.0×`), conflict-free angle-locked playback gestures, and an in-app GitHub Releases OTA auto-updater.
+[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"/>](https://play.google.com/store/apps/details?id=dev.anilbeesetti.nextplayer)
+[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" alt="Get it on IzzyOnDroid" height="80">](https://apt.izzysoft.de/fdroid/index/apk/dev.anilbeesetti.nextplayer)
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/dev.anilbeesetti.nextplayer/)
 
-## Features
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/assets/dark-player/icons/library.svg" width="32" height="32" alt="Library icon" />
-      <h3>Local media library</h3>
-      Folder-first browsing, media counts, storage context, and instant hardware-accelerated thumbnails across Light, Dark, and AMOLED themes.
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/assets/dark-player/icons/video.svg" width="32" height="32" alt="Video icon" />
-      <h3>Liquid Glass player & controls</h3>
-      Refractive Liquid Glass controls, shape-morphing Play/Pause button, double-tap SeekBurstPill with particle sparks, 2× hold-speed pill, and interactive haptic speed ruler.
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/assets/dark-player/icons/network.svg" width="32" height="32" alt="Network icon" />
-      <h3>Network media</h3>
-      Direct SMB, FTP, SFTP, and WebDAV browsing and streaming plus external intent API support with custom HTTP headers.
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/assets/dark-player/icons/subtitles.svg" width="32" height="32" alt="Subtitle icon" />
-      <h3>200% Volume Boost & Subtitles</h3>
-      Clean 0–200% hardware LoudnessEnhancer volume boost (`2000 mB`), multi-track audio/subtitle switching, and embedded ASS/SSA styling.
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/assets/dark-player/icons/playlist.svg" width="32" height="32" alt="Playlist icon" />
-      <h3>Playlists & Background Play</h3>
-      Custom playlists, M3U import, Picture-in-Picture (PiP), and seamless background audio playback with URI permission retention.
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/assets/dark-player/icons/settings.svg" width="32" height="32" alt="Settings icon" />
-      <h3>Studio Settings & Auto-Updater</h3>
-      Floating blurred studio sheets for Theme Mode (System / Dark / Light / AMOLED), Color Palette Picker, real-time Storage Analyzer, and automatic GitHub OTA updates.
-    </td>
-  </tr>
-</table>
+> For Github releases, you can verify the app with the SHA-256 fingerprint certificate: `D3:7C:AB:F3:67:6C:F5:82:24:FB:24:2C:8D:D2:09:12:9D:05:88:03:79:29:5F:AA:A6:D0:FB:60:7B:EC:13:1B`
 
 ## Screenshots
 
-<table>
-  <tr>
-    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-library-home.png" width="220" alt="Dark Player library home" /><br /><sub>Library home</sub></td>
-    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-library-main.png" width="220" alt="Dark Player main library list" /><br /><sub>Main library</sub></td>
-    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-library-compact.png" width="220" alt="Dark Player compact library view" /><br /><sub>Compact library view</sub></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-player-landscape.png" width="220" alt="Dark Player landscape video playback" /><br /><sub>Landscape playback</sub></td>
-    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-decoder-picker.png" width="220" alt="Dark Player decoder selection overlay" /><br /><sub>Decoder selection</sub></td>
-    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-settings.png" width="220" alt="Dark Player Settings screen" /><br /><sub>Settings</sub></td>
-  </tr>
-</table>
+### Phone
 
-## Installation
+<div style="width:100%; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
 
-1. Open the [latest GitHub release](https://github.com/xboyrex/DarkPlayer/releases/latest).
-2. Download the APK matching your device architecture (`arm64-v8a` for modern phones, `armeabi-v7a` for 32-bit devices, or `universal`).
-3. Once installed, Dark Player automatically checks GitHub Releases and can download and install future updates directly inside the app.
+[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width=19% alt="Home folders">](fastlane/metadata/android/en-US/images/phoneScreenshots/1.png)
+[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width=19% alt="Demo folder videos">](fastlane/metadata/android/en-US/images/phoneScreenshots/2.png)
+[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width=19% alt="Quick settings">](fastlane/metadata/android/en-US/images/phoneScreenshots/3.png)
+[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width=19% alt="Grid view">](fastlane/metadata/android/en-US/images/phoneScreenshots/4.png)
+[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" width=19% alt="Search results">](fastlane/metadata/android/en-US/images/phoneScreenshots/6.png)
+[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.png" width=19% alt="Add network connection">](fastlane/metadata/android/en-US/images/phoneScreenshots/7.png)
+[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/8.png" width=19% alt="Appearance settings">](fastlane/metadata/android/en-US/images/phoneScreenshots/8.png)
+</div>
 
-## Developer links
+### Player UI
 
-- **Developer:** ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (`@xboyrex`)
-- **Source & Releases:** [github.com/xboyrex/DarkPlayer](https://github.com/xboyrex/DarkPlayer)
-- **GitHub Profile:** [github.com/xboyrex](https://github.com/xboyrex)
-- **Instagram:** [instagram.com/mayank.zx7](https://www.instagram.com/mayank.zx7)
-- **YouTube (Mayank Droid):** [youtube.com/@mayankdroid](https://youtube.com/@mayankdroid)
-- **YouTube (Onyx Droid):** [youtube.com/@onyxdroid89](https://youtube.com/@onyxdroid89)
-- **Telegram (MayankDroid7):** [t.me/MayankDroid7](https://t.me/MayankDroid7)
-- **Telegram (OnyxHub7):** [t.me/OnyxHub7](https://t.me/OnyxHub7)
-- **Email:** [xboyrex496@gmail.com](mailto:xboyrex496@gmail.com)
+<div style="width:100%; display:flex; justify-content:space-between;">
+
+[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width=49% alt="Phone player controls">](fastlane/metadata/android/en-US/images/phoneScreenshots/5.png)
+[<img src="fastlane/metadata/android/en-US/images/tvScreenshots/3.png" width=49% alt="TV player controls">](fastlane/metadata/android/en-US/images/tvScreenshots/3.png)
+</div>
+
+### Android TV
+
+<div style="width:100%; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+
+[<img src="fastlane/metadata/android/en-US/images/tvScreenshots/1.png" width=49% alt="TV home folders">](fastlane/metadata/android/en-US/images/tvScreenshots/1.png)
+[<img src="fastlane/metadata/android/en-US/images/tvScreenshots/2.png" width=49% alt="TV demo folder videos">](fastlane/metadata/android/en-US/images/tvScreenshots/2.png)
+[<img src="fastlane/metadata/android/en-US/images/tvScreenshots/4.png" width=49% alt="TV appearance settings">](fastlane/metadata/android/en-US/images/tvScreenshots/4.png)
+</div>
+
+## Player intent API
+
+Next Player supports MX Player-compatible VIEW intents, with additional playback
+speed and direct background-play options. See the [Player intent API reference](PLAYER_API.md)
+for integration examples, supported extras, URI permissions, playback results,
+and compatibility details.
+
+## Supported formats
+
+- **Video**: H.263, H.264 AVC (Baseline Profile; Main Profile on Android 6+), H.265 HEVC, MPEG-4 SP, VP8, VP9, AV1
+    - Support depends on Android device
+- **Audio**: Vorbis, Opus, FLAC, ALAC, PCM/WAVE (μ-law, A-law), MP1, MP2, MP3, AMR (NB, WB), AAC (LC, ELD, HE; xHE on Android 9+), AC-3, E-AC-3, DTS,
+  DTS-HD, TrueHD
+    - Support provided by ExoPlayer FFmpeg extension
+- **Subtitles**: SRT, SSA, ASS, TTML, VTT, DVB
+    - SSA/ASS has limited styling support see [this issue](https://github.com/google/ExoPlayer/issues/8435)
+
+## Features
+
+- Native Android app with simple and easy-to-use interface
+- Completely free and open source and without any ads or excessive permissions
+- Software decoders for h264 and hevc
+- Audio/Subtitle track selection
+- Vertical swipe to change brightness (left) / volume (right)
+- Horizontal swipe to seek through video
+- [Material 3 (You)](https://m3.material.io/) support
+- Media picker with tree, folder and file view modes
+- Play videos from url
+- Play videos from storage access framework (Android Document picker)
+- Control playback speed
+- External Subtitle support
+- Zoom gesture
+- Picture-in-picture mode
+- Background playback
+- Android TV version
+- Search Functionality
+- Subtitle delay
+- Network storage support (SMB/FTP/SFTP/WebDAV)
+
+## Planned Features
+
+- External Audio support
+- Online subtitles download
+
+## Contributing
+
+Contributions are welcome!
+
+### Developer documentation
+
+- [Runtime decoder switching](feature/player/DECODER_SWITCHING.md)
+
+### Translating
+
+You can help translate Next Player on [Hosted Weblate](https://hosted.weblate.org/engage/next-player/).
+
+[![Translate status](https://hosted.weblate.org/widgets/next-player/-/multi-auto.svg)](https://hosted.weblate.org/engage/next-player/)
+
+## Credits
+
+### Open Source Projects
+
+- [Findroid](https://github.com/jarnedemeulemeester/findroid)
+- [Just (Video) Player](https://github.com/moneytoo/Player)
+- [LibreTube](https://github.com/libre-tube/LibreTube)
+- [ReadYou](https://github.com/Ashinch/ReadYou)
+- [Seal](https://github.com/JunkFood02/Seal)
+- ...
+
+### Special Thanks
+
+[<img src="https://hosted.weblate.org/widgets/next-player/-/287x66-white.png"  width="200"/>](https://hosted.weblate.org/engage/next-player/)
+
+Thanks to **Weblate** for providing free hosting for the project.
+
+## License
+
+Next Player is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for more information.

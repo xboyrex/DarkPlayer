@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.darkplayer.feature.network"
+    namespace = "dev.anilbeesetti.nextplayer.feature.network"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {

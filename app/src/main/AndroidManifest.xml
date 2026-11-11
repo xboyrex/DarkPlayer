@@ -5,8 +5,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission
         android:name="com.android.launcher.permission.INSTALL_SHORTCUT"
         android:maxSdkVersion="25" />
@@ -26,7 +24,7 @@
         tools:ignore="ScopedStorage" />
 
     <application
-        android:name=".DarkPlayerApplication"
+        android:name=".NextPlayerApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -35,7 +33,7 @@
         android:label="@string/app_name"
         android:banner="@drawable/tv_banner"
         android:supportsRtl="true"
-        android:theme="@style/Theme.DarkPlayer.Splash"
+        android:theme="@style/Theme.NextPlayer.Splash"
         tools:targetApi="s">
         <activity
             android:name=".MainActivity"

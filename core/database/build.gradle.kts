@@ -7,8 +7,12 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.darkplayer.core.database"
+    namespace = "dev.anilbeesetti.nextplayer.core.database"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
 
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()

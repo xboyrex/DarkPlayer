@@ -84,11 +84,11 @@
     <string name="manage_folders_desc">Wybierz katalogi, które mają być wykluczone z biblioteki multimediów</string>
     <string name="screen_rotation">Obrót ekranu</string>
     <string name="extension">Rozszerzenie</string>
-    <string name="permission_settings">Aplikacja Nova Player wymaga pozwolenia %1$s, aby uzyskać dostęp do multimediów. Bez niego dostęp do multimediów i odtwarzanie nie będą działać. Aby w pełni korzystać z aplikacji, należy przyznać uprawnienie w ustawieniach, ponieważ zostało ono trwale odrzucone.</string>
+    <string name="permission_settings">Aplikacja Next Player wymaga pozwolenia %1$s, aby uzyskać dostęp do multimediów. Bez niego dostęp do multimediów i odtwarzanie nie będą działać. Aby w pełni korzystać z aplikacji, należy przyznać uprawnienie w ustawieniach, ponieważ zostało ono trwale odrzucone.</string>
     <string name="path">Ścieżka</string>
     <string name="media_library">Biblioteka mediów</string>
     <string name="fast_seek">Szybkie wyszukiwanie</string>
-    <string name="permission_info">Aplikacja Nova Player wymaga pozwolenia %1$s, aby mieć dostęp do multimediów. Bez niego, dostęp do multimediów i odtwarzanie nie będą działać. Aby w pełni korzystać z aplikacji, nadaj pozwolenie.</string>
+    <string name="permission_info">Aplikacja Next Player wymaga pozwolenia %1$s, aby mieć dostęp do multimediów. Bez niego, dostęp do multimediów i odtwarzanie nie będą działać. Aby w pełni korzystać z aplikacji, nadaj pozwolenie.</string>
     <string name="stretch">Rozciągnięcie</string>
     <string name="permission_not_granted">Nie udzielono zezwolenia</string>
     <string name="resolution">Rozdzielczość</string>
@@ -99,7 +99,7 @@
     <string name="pip_settings">Tryb \"Obraz w obrazie\"</string>
     <string name="pip_settings_description">Automatyczne przełączanie na miniaturowy odtwarzacz po dotknięciu przycisku \"Ekran główny\"</string>
     <string name="remember_selections_description">Zapamiętuje wybory dla każdego pliku, takie jak ścieżka audio, ścieżka napisów itp.</string>
-    <string name="title_activity_player">Czynności Nova Player</string>
+    <string name="title_activity_player">Czynności Next Player</string>
     <string name="video_zoom">Powiększanie wideo</string>
     <string name="controls_unlock">Elementy sterujące odblokowywaniem</string>
     <string name="dynamic_theme_description">Stosuje kolory z tapety systemowej do motywu aplikacji</string>
@@ -212,7 +212,11 @@
     <string name="github">Github</string>
     <string name="donate">Darowizna</string>
     <string name="error_opening_link">Nie znaleziono aplikacji do obsługi tego łącza</string>
+    <string name="support_the_developer_on">Wesprzyj programistę: %1$s</string>
+    <string name="kofi">Ko-fi</string>
     <string name="libraries">Biblioteki</string>
+    <string name="paypal">PayPal</string>
+    <string name="upi">UPI</string>
     <string name="by">według %1$s</string>
     <string name="media_layout">Układ multimediów</string>
     <string name="list">Lista</string>
@@ -362,10 +366,10 @@
         <item quantity="other">Nie można było przenieść %1$d wideo</item>
     </plurals>
     <plurals name="moved_videos_originals_remain">
-        <item quantity="one">Przeniesiono 1 wideo, ale nie udało się usunąć oryginału</item>
-        <item quantity="few">Przeniesiono %1$d wideo, ale nie udało się usunąć oryginałów</item>
-        <item quantity="many">Przeniesiono %1$d wideo, ale nie udało się usunąć oryginałów</item>
-        <item quantity="other">Przeniesiono %1$d wideo, ale nie udało się usunąć oryginałów</item>
+        <item quantity="one">Skopiowano 1 wideo, ale nie udało się usunąć oryginału</item>
+        <item quantity="few">Skopiowano %1$d wideo, ale nie udało się usunąć oryginałów</item>
+        <item quantity="many">Skopiowano %1$d wideo, ale nie udało się usunąć oryginałów</item>
+        <item quantity="other">Skopiowano %1$d wideo, ale nie udało się usunąć oryginałów</item>
     </plurals>
     <string name="cannot_move_to_same_folder">Nie można przenieść do tego samego katalogu</string>
     <string name="folder_duration">Czas trwania katalogu</string>
@@ -548,4 +552,24 @@
     <string name="watch_history_desc">Prowadź rejestr obejrzanych wideo</string>
     <string name="network_watch_history">Historia przeglądania sieci</string>
     <string name="network_watch_history_desc">Dodawaj odtworzone przez sieć wideo do historii odtwarzania.</string>
+    <string name="add_to_home_screen">Dodaj do ekranu głównego</string>
+    <string name="playlist_shortcut_failed">Nie można dodać skrótu do listy odtwarzania. Spróbuj ponownie.</string>
+    <string name="github_sponsors">Sponsorzy z GitHub</string>
+    <string name="reset_subtitle_position">Zresetuj położenie napisów</string>
+    <string name="reset_subtitle_position_desc">Aby przesunąć napisy, przeciągnij je w górę lub w dół podczas odtwarzania</string>
+    <string name="settings_export">Wyeksportuj ustawienia</string>
+    <string name="settings_export_description">Zapisz ustawienia w pliku JSON</string>
+    <string name="settings_import_description">Przywróć ustawienia z pliku JSON</string>
+    <string name="settings_export_confirmation">Eksportuj ustawienia aplikacji i odtwarzacza do pliku JSON.</string>
+    <string name="settings_export_include_credentials">Uwzględniaj połączenia sieciowe i dane uwierzytelniające</string>
+    <string name="settings_export_credentials_warning">Plik JSON nie jest zaszyfrowany. Może zawierać hasła i klucze prywatne SSH. Należy go przechowywać w bezpiecznym miejscu.</string>
+    <string name="settings_import_confirmation">Ustawienia zawarte w tym pliku zastąpią bieżące ustawienia. Brakujące, przestarzałe, nieznane lub nieprawidłowe pozycje zostaną zignorowane. Jeśli plik zawiera informacje o połączeniach sieciowych i danych uwierzytelniających, zostaną one również zaimportowane.</string>
+    <string name="settings_import">Zaimportuj ustawienia</string>
+    <string name="export_action">Eksportuj</string>
+    <string name="import_action">Importuj</string>
+    <string name="settings_export_success">Ustawienia zostały wyeksportowane</string>
+    <string name="settings_export_failed">Nie udało się wyeksportować ustawień</string>
+    <string name="settings_import_success">Ustawienia zostały zaimportowane</string>
+    <string name="settings_import_failed">Nie udało się zakończyć importowania ustawień. Spróbuj ponownie.</string>
+    <string name="settings_import_invalid">Nie udało się odczytać tego pliku lub nie zawiera on obsługiwanych ustawień JSON</string>
 </resources>

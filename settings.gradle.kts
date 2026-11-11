@@ -1,22 +1,34 @@
 pluginManagement {
     repositories {
-        gradlePluginPortal()
         google()
         mavenCentral()
+        gradlePluginPortal()
     }
-}
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://www.jitpack.io") }
+        maven { url = uri("https://jitpack.io") }
     }
 }
-rootProject.name = "DarkPlayer"
+
+// Opt in with -PnextlibPath=../nextlib to test unpublished decoder changes.
+providers.gradleProperty("nextlibPath").orNull?.let { nextlibPath ->
+    includeBuild(nextlibPath) {
+        dependencySubstitution {
+            substitute(
+                module("io.github.anilbeesetti:nextlib-media3ext"),
+            ).using(project(":media3ext"))
+            substitute(
+                module("io.github.anilbeesetti:nextlib-mediainfo"),
+            ).using(project(":mediainfo"))
+        }
+    }
+}
+
+rootProject.name = "NovaPlayer"
 include(":app")
 include(":core:common")
 include(":core:data")
@@ -26,8 +38,16 @@ include(":core:domain")
 include(":core:media")
 include(":core:model")
 include(":core:ui")
-include(":feature:player")
-include(":feature:playlist")
-include(":feature:videopicker")
-include(":feature:settings")
 include(":feature:network")
+include(":feature:playlist")
+include(":feature:player")
+include(":feature:settings")
+include(":feature:videopicker")
+include(":glasmio-core")
+include(":glasmio-icons")
+include(":glasmio-glass")
+include(":glasmio-ui")
+include(":glasmio-preference")
+include(":glasmio-scaffold")
+include(":ktlint-rules")
+project(":ktlint-rules").projectDir = file("tools/ktlint-rules")

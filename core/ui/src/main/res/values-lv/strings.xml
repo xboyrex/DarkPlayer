@@ -57,6 +57,9 @@
     <string name="libraries">Bibliotēkas</string>
     <string name="github">GitHub</string>
     <string name="donate">Ziedot</string>
+    <string name="kofi">Ko-fi</string>
+    <string name="paypal">PayPal</string>
+    <string name="upi">UPI</string>
     <string name="list">Saraksts</string>
     <string name="grid">Režģis</string>
     <string name="info">Informācija</string>

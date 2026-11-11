@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.darkplayer.feature.videopicker"
+    namespace = "dev.anilbeesetti.nextplayer.feature.videopicker"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
