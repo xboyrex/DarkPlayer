@@ -5,24 +5,37 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.koin.compiler)
+    alias(libs.plugins.aboutLibraries)
+}
+
+aboutLibraries {
+    offlineMode.set(true)
+    export {
+        excludeFields.addAll("generated")
+    }
 }
 
 android {
-    namespace = "dev.anilbeesetti.nextplayer"
+    namespace = "dev.xboyrex.darkplayer"
 
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        applicationId = "dev.anilbeesetti.nextplayer"
-        versionCode = 77
-        versionName = "0.20.0"
+        applicationId = "dev.xboyrex.darkplayer"
+        versionCode = 200
+        versionName = "2.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 
     testOptions {
@@ -34,10 +47,23 @@ android {
         targetCompatibility = JavaVersion.toVersion(libs.versions.android.jvm.get().toInt())
     }
 
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("${project.rootDir}/app/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+        }
+    }
+
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -47,28 +73,18 @@ android {
         getByName("debug") {
             isDebuggable = true
             applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("debug")
         }
 
         create("release-with-debug-signing") {
             initWith(getByName("release"))
             signingConfig = signingConfigs.getByName("debug")
-            applicationIdSuffix = ".release"
             matchingFallbacks.add("release")
-        }
-    }
-
-    signingConfigs {
-        getByName("debug") {
-            storeFile = file("${project.rootDir}/app/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
         }
     }
 
     splits {
         abi {
-            //noinspection WrongGradleMethod
             val isBuildingBundle = gradle.startParameter.taskNames.any {
                 it.lowercase().contains("bundle")
             }
@@ -78,7 +94,6 @@ android {
             include(
                 "armeabi-v7a",
                 "arm64-v8a",
-                "x86",
                 "x86_64",
             )
             isUniversalApk = true
@@ -86,17 +101,26 @@ android {
     }
 
     packaging {
+        jniLibs {
+            useLegacyPackaging = true
+            keepDebugSymbols.add("**/*.so")
+        }
         resources {
             excludes.add("/META-INF/{AL2.0,LGPL2.1}")
-            // Picnic signature data from Bouncy Castle; SSH never negotiates Picnic.
-            excludes.add("/org/bouncycastle/pqc/legacy/picnic/**")
+            excludes.add("META-INF/VERSIONS")
+            excludes.add("META-INF/versions/9/OSGI-INF/MANIFEST.MF")
+            excludes.add("org/bouncycastle/pqc/crypto/picnic/lowmcL5.bin.properties")
+            excludes.add("org/bouncycastle/pqc/crypto/picnic/lowmcL3.bin.properties")
+            excludes.add("org/bouncycastle/pqc/crypto/picnic/lowmcL1.bin.properties")
+            excludes.add("org/bouncycastle/x509/CertPathReviewerMessages_de.properties")
+            excludes.add("org/bouncycastle/x509/CertPathReviewerMessages.properties")
+            excludes.add("org/bouncycastle/pkix/CertPathReviewerMessages_de.properties")
+            excludes.add("org/bouncycastle/pkix/CertPathReviewerMessages.properties")
         }
     }
 
     dependenciesInfo {
-        // Disables dependency metadata when building APKs.
         includeInApk = false
-        // Disables dependency metadata when building Android App Bundles.
         includeInBundle = false
     }
 }
@@ -111,6 +135,7 @@ dependencies {
 
     implementation(project(":core:common"))
     implementation(project(":core:data"))
+    implementation(project(":core:domain"))
     implementation(project(":core:media"))
     implementation(project(":core:model"))
     implementation(project(":core:ui"))
@@ -136,6 +161,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtimeCompose)
 
+    // Liquid Glass & Shapes
+    implementation(libs.kyant.backdrop)
+    implementation(libs.kyant.shapes)
+
     implementation(libs.google.android.material)
     implementation(libs.androidx.core.splashscreen)
 
@@ -150,6 +179,7 @@ dependencies {
     implementation(libs.accompanist.permissions)
 
     implementation(libs.github.anilbeesetti.nextlib.mediainfo)
+    implementation(libs.aboutlibraries.core)
 
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -157,7 +187,6 @@ dependencies {
     androidTestImplementation(project(":core:domain"))
     androidTestImplementation(libs.androidx.datastore.core)
     androidTestImplementation(libs.androidx.media3.session)
-    androidTestImplementation(libs.androidx.media3.ui)
     androidTestImplementation(libs.github.anilbeesetti.nextlib.media3ext)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.test.ext)

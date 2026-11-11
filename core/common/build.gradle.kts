@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.anilbeesetti.nextplayer.core.common"
+    namespace = "dev.xboyrex.darkplayer.core.common"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {

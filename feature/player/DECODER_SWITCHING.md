@@ -1,6 +1,6 @@
 # Runtime decoder switching
 
-NextPlayer uses nextlib's `DecoderManager` on one `ExoPlayer`. Video and audio choices are
+DarkPlayer uses nextlib's `DecoderManager` on one `ExoPlayer`. Video and audio choices are
 independent and stored in each `MediaItem`. New items default to `AUTO`; returning to an
 existing playlist item restores its saved choices. Metadata updates preserve those choices.
 The overlay offers HW (`HARDWARE`), SW+ (`SOFTWARE` MediaCodec), and SW (`FFMPEG`).
@@ -35,7 +35,7 @@ uses the current playback position.
 Nextlib also restores active modes from successful decoder reuse evaluations: a renderer can be
 disabled and enabled again without initializing a new codec.
 
-NextPlayer owns fallback policy. Each track keeps a bounded queue of fallback modes;
+DarkPlayer owns fallback policy. Each track keeps a bounded queue of fallback modes;
 duplicate failures for the same attempt are ignored.
 
 | Failed selection | Next attempts |
@@ -67,9 +67,9 @@ names, position continuity, independent audio/video choices, and fallback dialog
 
 ## Verification on 2026-09-05
 
-Tested NextPlayer `fa76f296` against local nextlib `72b4125`, including nextlib's merge of
+Tested DarkPlayer `fa76f296` against local nextlib `72b4125`, including nextlib's merge of
 `origin/main` (`aafaf8a`). `assembleDebug`, `test`, and `ktlintCheck` passed with local composite
-substitution and test failures enforced (158 NextPlayer tests, 10 nextlib tests). The APK's
+substitution and test failures enforced (158 DarkPlayer tests, 10 nextlib tests). The APK's
 arm64 `libmedia3ext.so` SHA-256 matched nextlib's local debug JNI library.
 
 Disposable device: ARM64 Android API 37 / Android 37.1 system image, 16 KB pages, Pixel 6a

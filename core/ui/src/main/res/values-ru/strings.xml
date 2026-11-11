@@ -39,7 +39,7 @@
     <string name="dark_theme">Тёмная тема</string>
     <string name="video_zoom">Увеличить видео</string>
     <string name="controls_lock">Заблокировать управление</string>
-    <string name="title_activity_player">Активность Next Player</string>
+    <string name="title_activity_player">Активность Nova Player</string>
     <string name="controls_unlock">Разблокировать управление</string>
     <string name="select_playback_speed">Выбор скорости воспроизведения</string>
     <string name="fast_seek">Быстрая перемотка</string>
@@ -50,12 +50,12 @@
     <string name="duration">Длительность</string>
     <string name="menu">Меню</string>
     <string name="open_settings">Открыть настройки</string>
-    <string name="permission_info">Приложению Next Player требуется разрешение «%1$s» для доступа и воспроизведения видео и аудио. Чтобы использовать приложение, пожалуйста, предоставьте это разрешение в настройках.</string>
+    <string name="permission_info">Приложению Nova Player требуется разрешение «%1$s» для доступа и воспроизведения видео и аудио. Чтобы использовать приложение, пожалуйста, предоставьте это разрешение в настройках.</string>
     <string name="permission_request">Запрос на разрешение</string>
     <string name="group_videos">Группировка видео по папкам</string>
     <string name="location">Расположение</string>
     <string name="permission_not_granted">Разрешение не выдано</string>
-    <string name="permission_settings">Приложению Next Player требуется разрешение «%1$s» для доступа и воспроизведения видео и аудио. Чтобы использовать приложение, пожалуйста, предоставьте разрешение в настройках, поскольку оно было запрещено.</string>
+    <string name="permission_settings">Приложению Nova Player требуется разрешение «%1$s» для доступа и воспроизведения видео и аудио. Чтобы использовать приложение, пожалуйста, предоставьте разрешение в настройках, поскольку оно было запрещено.</string>
     <string name="player_name">Проигрыватель</string>
     <string name="quick_settings">Быстрые настройки</string>
     <string name="remember_brightness_level">Запоминать уровень яркости</string>
@@ -172,7 +172,7 @@
     <string name="language">Язык</string>
     <string name="okay">Ясно</string>
     <string name="audio_track">Аудиодорожка</string>
-    <string name="require_audio_focus_desc">Ставить на паузу другие источники звука при воспроизведении в Next Player и наоборот.</string>
+    <string name="require_audio_focus_desc">Ставить на паузу другие источники звука при воспроизведении в Nova Player и наоборот.</string>
     <string name="sample_rate">Частота дискретизации</string>
     <string name="file">Файл</string>
     <string name="resolution">Разрешение</string>
@@ -213,10 +213,6 @@
     <string name="github">GitHub</string>
     <string name="donate">Поддержка</string>
     <string name="error_opening_link">Не найдено ни одного приложения для работы с этой ссылкой</string>
-    <string name="support_the_developer_on">Поддержите разработчика на %1$s</string>
-    <string name="kofi">Ko-fi</string>
-    <string name="paypal">PayPal</string>
-    <string name="upi">UPI</string>
     <string name="media_layout">Отображение медиа</string>
     <string name="list">Список</string>
     <string name="grid">Сетка</string>
@@ -552,7 +548,4 @@
         <item quantity="many">%1$d дней</item>
         <item quantity="other">%1$d дней</item>
     </plurals>
-    <string name="add_to_home_screen">Добавить на главный экран</string>
-    <string name="playlist_shortcut_failed">Не удалось добавить ярлык плейлиста. Попробуйте ещё раз.</string>
-    <string name="github_sponsors">Спонсоры GitHub</string>
 </resources>

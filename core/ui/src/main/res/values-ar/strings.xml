@@ -15,7 +15,7 @@
     <string name="resume_description">حدد ما إذا كنت تريد استئناف تشغيل مقاطع الفيديو التي شُغلت من النقطة التي توقفت عندها</string>
     <string name="seek_gesture_description">اسحب أفقيًا للتقدم للأمام أو للخلف</string>
     <string name="select_audio_track">حدد مسار الصوت</string>
-    <string name="title_activity_player">نشاط Next Player</string>
+    <string name="title_activity_player">نشاط Nova Player</string>
     <string name="interface_name">الواجهة</string>
     <string name="z_a">ي-أ</string>
     <string name="shortest">الأقصر</string>
@@ -41,7 +41,7 @@
     <string name="group_videos">تجميع الفيديوهات حسب المجلد</string>
     <string name="navigate_up">الانتقال لأعلى</string>
     <string name="location">الموقع</string>
-    <string name="permission_info">يحتاج تطبيق Next Player إلى إذن \"%1$s\" للوصول إلى الوسائط وتشغيلها. بدونها لن يعمل التطبيق بشكل كامل، امنح الإذن.</string>
+    <string name="permission_info">يحتاج تطبيق Nova Player إلى إذن \"%1$s\" للوصول إلى الوسائط وتشغيلها. بدونها لن يعمل التطبيق بشكل كامل، امنح الإذن.</string>
     <string name="player_controls_progress">شريط التقدم</string>
     <string name="menu">القائمة</string>
     <string name="no_videos_found">لا توجد فيديوهات</string>
@@ -49,7 +49,7 @@
     <string name="permission_not_granted">الإذن غير ممنوح</string>
     <string name="player_controls_play_pause">التشغيل والإيقاف المؤقت للمشغل</string>
     <string name="permission_request">طلب الإذن</string>
-    <string name="permission_settings">يحتاج تطبيق Next Player إلى إذن\"%1$s\" للوصول إلى الوسائط وتشغيلها. بدونها لن يعمل التطبيق بشكل كامل، امنح الإذن من الإعدادات لأنه رُفض نهائيًا.</string>
+    <string name="permission_settings">يحتاج تطبيق Nova Player إلى إذن\"%1$s\" للوصول إلى الوسائط وتشغيلها. بدونها لن يعمل التطبيق بشكل كامل، امنح الإذن من الإعدادات لأنه رُفض نهائيًا.</string>
     <string name="player_name">المشغل</string>
     <string name="remember_brightness_level_description">تذكر مستوى السطوع بين جلسات التشغيل</string>
     <string name="player_controls_previous">تشغيل السابق</string>
@@ -214,13 +214,9 @@
     <string name="github">Github</string>
     <string name="donate">تبرع</string>
     <string name="error_opening_link">ليس هناك تطبيق يفتح هذا الرابط</string>
-    <string name="paypal">PayPal</string>
-    <string name="upi">UPI</string>
     <string name="media_layout">تصميم الوسائط</string>
     <string name="list">قائمة</string>
     <string name="grid">شبكة</string>
-    <string name="kofi">Ko-fi</string>
-    <string name="support_the_developer_on">ادعم المطور على %1$s</string>
     <string name="info">المعلومات</string>
     <string name="play">شغّل</string>
     <string name="recently_played">مشغل حديثا</string>
@@ -560,18 +556,4 @@
         <item quantity="many">%1$d يومًا</item>
         <item quantity="other">%1$d يوم</item>
     </plurals>
-    <string name="tunneled_playback">التشغيل عبر النفق</string>
-    <string name="tunneled_playback_description">استخدم التشغيل عبر النفق عندما يدعمه الجهاز والوسائط. قد يحسّن تشغيل Dolby Vision وHDR10+ على أجهزة Android TV. ينطبق على جلسات التشغيل الجديدة.</string>
-    <string name="turn_off_watch_history">إيقاف سجل المشاهدة</string>
-    <string name="turn_on_watch_history">تشغيل سجل المشاهدة</string>
-    <string name="turn_off_watch_history_confirmation">إيقاف سجل المشاهدة سيمسح سجل المشاهدة لديك ويوقف تسجيل مقاطع الفيديو التي تشاهدها.</string>
-    <string name="turn_on_watch_history_confirmation">هل تريد بدء تسجيل مقاطع الفيديو التي تشاهدها في سجل المشاهدة؟</string>
-    <string name="watch_history_turned_off">سجل المشاهدة متوقف</string>
-    <string name="no_watch_history">لا يوجد سجل مشاهدة</string>
-    <string name="watch_history">سجل المشاهدة</string>
-    <string name="watch_history_desc">الاحتفاظ بسجل بمقاطع الفيديو التي تشاهدها</string>
-    <string name="network_watch_history">سجل مشاهدة الشبكة</string>
-    <string name="network_watch_history_desc">أدرج مقاطع الفيديو التي تُشغَّل عبر الشبكة في سجل المشاهدة.</string>
-    <string name="add_to_home_screen">إضافة إلى الشاشة الرئيسية</string>
-    <string name="playlist_shortcut_failed">تعذّرت إضافة اختصار قائمة التشغيل. حاول مرة أخرى.</string>
 </resources>

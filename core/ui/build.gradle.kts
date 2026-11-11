@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.anilbeesetti.nextplayer.core.ui"
+    namespace = "dev.xboyrex.darkplayer.core.ui"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
@@ -36,17 +36,6 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:common"))
 
-    // Glasmio iOS 27 Liquid Glass & YTXTube Backdrop libraries exposed transitively to all feature modules
-    api(project(":glasmio-core"))
-    api(project(":glasmio-icons"))
-    api(project(":glasmio-glass"))
-    api(project(":glasmio-ui"))
-    api(project(":glasmio-preference"))
-    api(project(":glasmio-scaffold"))
-    api("io.github.kyant0:backdrop:2.0.1")
-    api("io.github.kyant0:shapes:1.2.1")
-    api("io.github.kyant0:capsule:2.1.3")
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.google.android.material)
@@ -57,7 +46,9 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtimeCompose)
-    implementation(libs.androidx.compose.material.iconsExtended)
+    api(libs.androidx.compose.material.iconsExtended)
+    api(libs.kyant.backdrop)
+    api(libs.kyant.shapes)
 
     testImplementation(libs.junit4)
     androidTestImplementation(platform(libs.androidx.compose.bom))
