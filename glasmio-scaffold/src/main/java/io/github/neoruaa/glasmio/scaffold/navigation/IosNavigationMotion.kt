@@ -17,7 +17,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation3.scene.Scene
-import androidx.navigation3.ui.NavDisplayTransitionEffects
 import androidx.navigationevent.NavigationEvent
 import kotlin.math.PI
 import kotlin.math.exp
@@ -115,4 +114,22 @@ fun <T : Any> iosPredictivePopTransitionSpec(layoutDirection: LayoutDirection = 
         },
         slideOutHorizontally(tween(IosNavigationDurationMillis, easing = LinearEasing)) { it * sign },
     )
+}
+
+/**
+ * Project-owned transition options for GlasmioNavDisplay.
+ *
+ * Kept independent of Miuix Navigation3 implementation classes
+ * to prevent duplicate androidx.navigation3 bytecode.
+ */
+data class NavDisplayTransitionEffects(
+    val enableCornerClip: Boolean = true,
+    val dimAmount: Float = 0.1f,
+    val blockInputDuringTransition: Boolean = true,
+) {
+    init {
+        require(dimAmount in 0f..1f) {
+            "dimAmount must be between 0 and 1."
+        }
+    }
 }

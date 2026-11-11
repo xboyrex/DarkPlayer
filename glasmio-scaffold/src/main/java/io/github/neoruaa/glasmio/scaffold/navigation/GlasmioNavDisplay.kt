@@ -247,7 +247,7 @@ private fun <T : Any> GlasmioNavDisplay(
 
     // Predictive Back Handling
     val navigationEventState = rememberNavigationEventState(sceneState)
-    NavigationBackHandler(sceneState, navigationEventState, onBack)
+    NavigationBackHandler(sceneState = sceneState, state = navigationEventState, onBackCancelled = {}, onBackCompleted = onBack)
 
     GlasmioNavDisplay(
         sceneState,
@@ -353,7 +353,7 @@ fun <T : Any> GlasmioNavDisplay(
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
     val windowInsets = LocalView.current.rootWindowInsets
-    val fallbackCorner = if (transitionEffects.enableCornerClip && windowInsets == null) getRoundedCorner() else 0.dp
+    val fallbackCorner = 0.dp // Native window corner data is used when WindowInsets is available.
     val windowShape = with(density) {
         fun radius(position: Int) = if (windowInsets == null) fallbackCorner
             else (windowInsets.getRoundedCorner(position)?.radius ?: 0).toDp()
