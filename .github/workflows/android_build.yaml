@@ -151,7 +151,7 @@ jobs:
                   sys.exit(1)
 
           for name in required:
-              if f"@color/{name}" not in splash.attrib.values() and not any(
+              if f"@color/{name}" not in splash_root.attrib.values() and not any(
                   f"@color/{name}" in value
                   for element in splash_root.iter()
                   for value in element.attrib.values()
