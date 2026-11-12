@@ -70,6 +70,8 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
+import dev.xboyrex.darkplayer.feature.player.extensions.selectedAudioFormat
+import dev.xboyrex.darkplayer.feature.player.extensions.selectedVideoFormat
 import androidx.media3.common.util.UnstableApi
 import dev.xboyrex.darkplayer.core.model.MxQuickShortcut
 import dev.xboyrex.darkplayer.core.model.PlayerControlStyle
@@ -957,8 +959,8 @@ fun BoxScope.MxMediaInformationOverlayView(
     player: Player,
 ) {
     val mediaItem = player.currentMediaItem
-    val videoFormat = player.videoFormat
-    val audioFormat = player.audioFormat
+    val videoFormat = player.selectedVideoFormat
+    val audioFormat = player.selectedAudioFormat
 
     OverlayView(
         modifier = modifier,

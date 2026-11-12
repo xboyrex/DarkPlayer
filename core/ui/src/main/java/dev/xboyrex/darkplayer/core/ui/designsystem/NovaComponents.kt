@@ -189,6 +189,7 @@ fun NovaFluidSlider(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    onValueChangeFinished: (() -> Unit)? = null,
 ) {
     val view = LocalView.current
     val hapticsEnabled = LocalNovaHapticsEnabled.current
@@ -210,11 +211,15 @@ fun NovaFluidSlider(
                     val f = (offset.x / size.width.toFloat()).coerceIn(0f, 1f)
                     view.novaHaptic(8L, 100, hapticsEnabled)
                     onValueChange(valueRange.start + f * span)
+                    onValueChangeFinished?.invoke()
                 }
             }
             .pointerInput(enabled, valueRange) {
                 if (!enabled) return@pointerInput
-                detectHorizontalDragGestures { change, _ ->
+                detectHorizontalDragGestures(
+                    onDragEnd = { onValueChangeFinished?.invoke() },
+                    onDragCancel = { onValueChangeFinished?.invoke() },
+                ) { change, _ ->
                     change.consume()
                     val f = (change.position.x / size.width.toFloat()).coerceIn(0f, 1f)
                     onValueChange(valueRange.start + f * span)

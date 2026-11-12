@@ -485,7 +485,7 @@ internal fun MediaPickerScreenContent(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = state.mediaDataState.throwable?.localizedMessage
+                                text = state.mediaDataState.value.localizedMessage
                                     ?: "Check storage permissions or refresh your media library.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,

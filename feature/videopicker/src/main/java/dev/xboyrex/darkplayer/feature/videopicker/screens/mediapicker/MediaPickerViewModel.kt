@@ -202,7 +202,7 @@ class MediaPickerViewModel(
                     .catch { throwable ->
                         if (throwable is CancellationException) throw throwable
                         stateInternal.update {
-                            it.copy(mediaDataState = DataState.Error(throwable = throwable))
+                            it.copy(mediaDataState = DataState.Error(value = throwable))
                         }
                     }
                     .collect { media ->

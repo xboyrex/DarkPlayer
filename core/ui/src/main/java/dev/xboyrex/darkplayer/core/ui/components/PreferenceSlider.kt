@@ -43,6 +43,7 @@ fun PreferenceSlider(
     steps: Int = 0,
     trailingContent: @Composable (() -> Unit)? = null,
     onValueChange: (Float) -> Unit,
+    onValueChangeFinished: (() -> Unit)? = null,
     onReset: (() -> Unit)? = null,
 ) {
     val stepSize = (valueRange.endInclusive - valueRange.start) / 20f
@@ -115,6 +116,7 @@ fun PreferenceSlider(
                     NovaFluidSlider(
                         value = value.coerceIn(valueRange),
                         onValueChange = onValueChange,
+                        onValueChangeFinished = onValueChangeFinished,
                         valueRange = valueRange,
                         enabled = enabled,
                         modifier = Modifier
@@ -128,6 +130,7 @@ fun PreferenceSlider(
                         steps = steps,
                         enabled = enabled,
                         onValueChange = onValueChange,
+                        onValueChangeFinished = onValueChangeFinished,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 4.dp),

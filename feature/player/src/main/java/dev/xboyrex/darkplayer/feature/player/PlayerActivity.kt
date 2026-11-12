@@ -39,6 +39,7 @@ import dev.xboyrex.darkplayer.core.data.repository.PreferencesRepository
 import dev.xboyrex.darkplayer.core.ui.R as coreUiR
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.extensions.OpenDocumentAtInitialUri
+import dev.xboyrex.darkplayer.feature.player.extensions.selectedVideoFormat
 import dev.xboyrex.darkplayer.feature.player.extensions.uriToSubtitleConfiguration
 import dev.xboyrex.darkplayer.feature.player.service.CustomCommands
 import dev.xboyrex.darkplayer.feature.player.service.PlayerService
@@ -697,7 +698,7 @@ class PlayerActivity : ComponentActivity() {
         }
         val controller = mediaController
         val isPlaying = controller?.isPlaying == true
-        val frameRate = controller?.videoFormat?.frameRate ?: 0f
+        val frameRate = controller?.selectedVideoFormat?.frameRate ?: 0f
         if (isPlaying && frameRate > 0f) {
             DisplaySyncEngine.matchWindowRefreshRate(window, frameRate)
         } else {

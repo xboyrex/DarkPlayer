@@ -149,7 +149,7 @@ object AppUpdater {
             conn.inputStream.bufferedReader().useLines { lines ->
                 lines.map { it.trim() }
                     .firstOrNull { it.endsWith(assetName) }
-                    ?.split(Regex("""\s+"""))
+                    ?.split(Regex("\\s+"))
                     ?.firstOrNull()
                     ?.lowercase()
             }

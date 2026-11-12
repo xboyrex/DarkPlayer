@@ -88,8 +88,8 @@ fun BoxScope.DecoderSelectorView(
 
                 val mxOptions = listOf(
                     "HW decoder" to DecoderMode.HARDWARE,
-                    "HW+ decoder" to DecoderMode.SYSTEM_SOFTWARE,
-                    "SW decoder" to DecoderMode.FFMPEG_SOFTWARE,
+                    "HW+ decoder" to DecoderMode.SOFTWARE,
+                    "SW decoder" to DecoderMode.FFMPEG,
                 )
 
                 mxOptions.forEach { (title, mode) ->
@@ -134,7 +134,7 @@ fun BoxScope.DecoderSelectorView(
                     color = Color.White.copy(alpha = 0.10f),
                 )
 
-                val useSwAudio = audioMode == DecoderMode.FFMPEG_SOFTWARE
+                val useSwAudio = audioMode == DecoderMode.FFMPEG
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -143,7 +143,7 @@ fun BoxScope.DecoderSelectorView(
                             selected = useSwAudio,
                             onClick = {
                                 onAudioModeSelected(
-                                    if (useSwAudio) DecoderMode.AUTO else DecoderMode.FFMPEG_SOFTWARE,
+                                    if (useSwAudio) DecoderMode.AUTO else DecoderMode.FFMPEG,
                                 )
                             },
                             role = Role.Switch,

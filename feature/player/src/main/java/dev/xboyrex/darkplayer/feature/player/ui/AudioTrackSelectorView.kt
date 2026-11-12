@@ -136,14 +136,14 @@ fun BoxScope.AudioTrackSelectorView(
             )
 
             // "Use SW audio decoder" checkbox matching MX #21 (155643)
-            val useSwAudio = audioDecoderMode == DecoderMode.FFMPEG_SOFTWARE
+            val useSwAudio = audioDecoderMode == DecoderMode.FFMPEG
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
                     .clickable {
                         onAudioDecoderModeSelected(
-                            if (useSwAudio) DecoderMode.AUTO else DecoderMode.FFMPEG_SOFTWARE,
+                            if (useSwAudio) DecoderMode.AUTO else DecoderMode.FFMPEG,
                         )
                     }
                     .padding(vertical = 8.dp),

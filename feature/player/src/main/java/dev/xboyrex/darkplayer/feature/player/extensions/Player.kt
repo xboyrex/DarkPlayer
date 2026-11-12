@@ -2,6 +2,7 @@ package dev.xboyrex.darkplayer.feature.player.extensions
 
 import androidx.annotation.OptIn
 import androidx.media3.common.C
+import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
@@ -127,3 +128,23 @@ fun Player.setIsScrubbingModeEnabled(enabled: Boolean) {
         is ExoPlayer -> this.isScrubbingModeEnabled = enabled
     }
 }
+
+val Player.selectedVideoFormat: Format?
+    @OptIn(UnstableApi::class)
+    get() = currentTracks.groups
+        .firstOrNull { it.type == C.TRACK_TYPE_VIDEO && it.isSelected }
+        ?.let { group ->
+            (0 until group.length).firstOrNull { group.isTrackSelected(it) }
+                ?.let(group::getTrackFormat)
+                ?: if (group.length > 0) group.getTrackFormat(0) else null
+        }
+
+val Player.selectedAudioFormat: Format?
+    @OptIn(UnstableApi::class)
+    get() = currentTracks.groups
+        .firstOrNull { it.type == C.TRACK_TYPE_AUDIO && it.isSelected }
+        ?.let { group ->
+            (0 until group.length).firstOrNull { group.isTrackSelected(it) }
+                ?.let(group::getTrackFormat)
+                ?: if (group.length > 0) group.getTrackFormat(0) else null
+        }

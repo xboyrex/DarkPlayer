@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Splash icon colors: reuse the canonical launcher background. -->
-    <color name="ic_launcher_background_tint">@color/ic_launcher_background</color>
-    <color name="ic_launcher_foreground_tint">#171B1C</color>
+    <color name="ic_launcher_background_tint">#FF000000</color>
+    <color name="ic_launcher_foreground_tint">#FFFFFFFF</color>
 </resources>

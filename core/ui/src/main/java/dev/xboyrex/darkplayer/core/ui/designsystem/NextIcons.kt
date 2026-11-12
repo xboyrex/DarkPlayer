@@ -35,7 +35,10 @@ import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.DoubleArrow
 import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.Animation
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.FileOpen
 import androidx.compose.material.icons.rounded.FilterFrames
@@ -186,4 +189,8 @@ object NextIcons {
     val Fingerprint = Icons.Rounded.Fingerprint
     val DragHandle = Icons.Rounded.DragHandle
     val Reorder = Icons.Rounded.SwapVert
+    val Cpu = Icons.Rounded.DeveloperBoard
+    val Equalizer = Icons.Rounded.Equalizer
+    val ZoomIn = Icons.Rounded.ZoomIn
+    val Animation = Icons.Rounded.Animation
 }

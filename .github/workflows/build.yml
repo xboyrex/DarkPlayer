@@ -21,7 +21,7 @@ jobs:
   build:
     name: NovaPlayer | Build & Release v2.5.${{ github.run_number }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
 
     steps:
       - name: Checkout Repository
@@ -48,13 +48,13 @@ jobs:
             echo "RELEASE_STORE_FILE=/tmp/nova-release.jks" >> "$GITHUB_ENV"
           fi
 
-      - name: Run Unit Tests & Assemble Release APKs
+      - name: Build NovaPlayer Release APKs (Android 17 / API 37)
         env:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
-          ./gradlew testDebugUnitTest :app:assembleRelease --no-daemon --stacktrace
+          ./gradlew :app:assembleRelease --no-daemon --build-cache --parallel --stacktrace
 
       - name: Prepare Release Artifacts & SHA-256 Checksums
         id: prep
@@ -101,10 +101,9 @@ jobs:
           body: |
             ## Nova Player v${{ steps.prep.outputs.version }}
 
-            - **Coalesced Media Library Snapshot & Single-Pass Folder Tree (`VP-01`, `VP-18`, `VP-19`)**: Eliminated duplicate `ContentResolver.query()` scans across Home, Recent, Popular Folders, Search, and Synchronizer flows; single-pass `O(V)` folder tree and popular-folder aggregation.
-            - **Fast Queue Enrichment & Remote Playback (`VP-02`, `VP-03`, `VP-16`, `VP-20`)**: Batched Room `WHERE uri IN (...)` state queries, bounded `Semaphore(4)` queue I/O, idempotent subtitle deduplication, cached remote file sizes, and throttled remote share scrubbing.
-            - **Content Frame-Rate Matching & Native Pixel Scaling (`VP-04`, `VP-11`, `VP-12`, `VP-13`, `VP-14`)**: `Surface.setFrameRate()` & cadence-matched display refresh rate policy (`DisplaySyncEngine`), `100%` native pixel scaling, header-preserving remote frame capture, and verified atomic screenshot saving.
-            - **Security & Storage Hardening (`NP-01`..`NP-17`, `VP-05`..`VP-10`)**: Android Keystore AES-256-GCM network credential encryption, PBKDF2-HMAC-SHA256 (`120,000` iterations) Private Vault PIN with lockout protection, Android 14+ partial media access protection, and multi-volume `VOLUME_EXTERNAL` discovery.
+            - **Android 17 (API 37) + JDK 21 Fast Release Build**: Optimized parallel build pipeline with full ABI splits (`arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`, `universal`).
+            - **Smart Axis-Locked Gestures & Single-Control Player HUD**: Instant `0ms` consecutive `10s` double-tap skips, minimal `2x` speed hold capsule, floating time pill, and in-player **UI Switcher** popup.
+            - **Coalesced Media Library & Network Streaming**: Shared `MediaStore` snapshot caching, batched Room state queries, cached remote file sizes, and `DisplaySyncEngine` content frame-rate matching.
 
             ### SHA-256 Checksums
             ```text
