@@ -13,6 +13,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -150,24 +155,7 @@ internal fun MediaPlayerContent(
     val hapticFeedback = LocalHapticFeedback.current
     var wasDraggingSubtitle by remember { mutableStateOf(false) }
 
-    // Smooth Play/Pause & Seek Audio Volume Fade (Fixes Bug #3, #9, #15 & MX #14 Fade on Start/Seek!)
-    LaunchedEffect(
-        state.playWhenReady,
-        playerPreferences.smoothPlayPauseAudioFade,
-        playerPreferences.fadeOnStart,
-    ) {
-        if ((playerPreferences.smoothPlayPauseAudioFade || playerPreferences.fadeOnStart) &&
-            state.playWhenReady && player.volume > 0f
-        ) {
-            val steps = 8
-            val stepDelay = (playerPreferences.audioFadeDurationMs / steps).coerceIn(15, 60).toLong()
-            for (i in 1..steps) {
-                player.volume = (i.toFloat() / steps.toFloat()).coerceIn(0.1f, 1f)
-                delay(stepDelay)
-            }
-            player.volume = 1f
-        }
-    }
+    // Player volume & smooth audio fade are owned exclusively by PlaybackVolumeController in PlayerService (F05)
 
     LaunchedEffect(subtitlePositionState.isDragging) {
         if (subtitlePositionState.isDragging) {
@@ -194,9 +182,16 @@ internal fun MediaPlayerContent(
                 brightnessState.setBrightness(playerPreferences.playerBrightness)
             }
         }
-        LaunchedEffect(brightnessState.currentBrightness) {
+        @kotlin.OptIn(FlowPreview::class)
+        LaunchedEffect(brightnessState, playerPreferences.rememberPlayerBrightness) {
             if (playerPreferences.rememberPlayerBrightness) {
-                onAction(PlayerAction.UpdatePlayerBrightness(brightnessState.currentBrightness))
+                snapshotFlow { brightnessState.currentBrightness }
+                    .drop(1)
+                    .debounce(350L)
+                    .distinctUntilChanged()
+                    .collect { settledBrightness ->
+                        onAction(PlayerAction.UpdatePlayerBrightness(settledBrightness))
+                    }
             }
         }
     }

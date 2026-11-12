@@ -29,12 +29,14 @@ allprojects {
 }
 
 subprojects {
-    apply(plugin = rootProject.libs.plugins.aboutLibraries.get().pluginId)
+    if (name == "app" || name == "settings") {
+        apply(plugin = rootProject.libs.plugins.aboutLibraries.get().pluginId)
 
-    configure<com.mikepenz.aboutlibraries.plugin.AboutLibrariesExtension> {
-        offlineMode.set(true)
-        export {
-            excludeFields.addAll("generated")
+        configure<com.mikepenz.aboutlibraries.plugin.AboutLibrariesExtension> {
+            offlineMode.set(true)
+            export {
+                excludeFields.addAll("generated")
+            }
         }
     }
 }

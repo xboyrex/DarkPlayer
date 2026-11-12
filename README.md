@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/nova_banner.png" alt="Nova Player Banner" width="100%" />
+<img src="fastlane/metadata/android/en-US/images/nova_banner.png" alt="Nova Player Banner" width="100%" />
 
 <br />
 

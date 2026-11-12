@@ -340,10 +340,11 @@ suspend fun Context.scanStorage(
             rootFile.walkTopDown()
                 .onEnter { dir -> !dir.name.startsWith(".") && !dir.path.contains("/Android/data") && !dir.path.contains("/Android/obb") }
                 .filter { it.isFile && it.extension.lowercase() in videoExts }
-                .take(2500)
                 .forEach { collected.add(it.path) }
         }
-        return@withContext scanPaths(paths = collected.distinct())
+        return@withContext collected.distinct()
+            .chunked(500)
+            .all { chunk -> scanPaths(paths = chunk) }
     } else {
         false
     }

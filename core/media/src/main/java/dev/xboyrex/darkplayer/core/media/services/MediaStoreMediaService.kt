@@ -338,9 +338,10 @@ class MediaStoreMediaService(
         val dateAddedIndex =
             getColumnIndex(MediaStore.Video.Media.DATE_ADDED).takeIf { it >= 0 } ?: return null
 
-        val path = getString(dataIndex) ?: return null
+        val path = getString(dataIndex)?.takeIf { it.isNotBlank() } ?: return null
         val file = File(path)
-        if (!file.exists()) return null
+        val size = getLong(sizeIndex)
+        if (size <= 0L && !file.exists()) return null
         val id = getLong(idIndex)
         return MediaVideo(
             id = id,
@@ -355,7 +356,7 @@ class MediaStoreMediaService(
             duration = getLong(durationIndex),
             width = getInt(widthIndex),
             height = getInt(heightIndex),
-            size = getLong(sizeIndex),
+            size = size,
             dateModified = getLong(dateModifiedIndex),
             dateAdded = getLong(dateAddedIndex),
         )

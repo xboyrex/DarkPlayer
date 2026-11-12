@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
+import androidx.media3.session.MediaController
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util.getStringForTime
 import androidx.media3.ui.compose.state.rememberProgressStateWithTickInterval
@@ -62,7 +64,11 @@ import dev.xboyrex.darkplayer.feature.player.ui.PlayerGestureIndicators
 import dev.xboyrex.darkplayer.feature.player.ui.captureVideoScreenshot
 import dev.xboyrex.darkplayer.feature.player.ui.shareCurrentVideo
 import kotlin.time.Duration.Companion.seconds
+import dev.xboyrex.darkplayer.feature.player.service.setAbRepeatPoints
+import dev.xboyrex.darkplayer.feature.player.service.setPlayerMuted
+import dev.xboyrex.darkplayer.feature.player.service.setSleepTimerMinutes
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -141,6 +147,7 @@ internal fun MediaPlayerControls(
     }
 
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val accent = LocalNovaAccentColor.current
     val isTv = remember { context.isTelevision }
     val handleDpadKeys = isTv || dpadUpDown != null
@@ -154,6 +161,7 @@ internal fun MediaPlayerControls(
         when {
             abRepeatPointA < 0L -> {
                 abRepeatPointA = player.currentPosition
+                (player as? MediaController)?.setAbRepeatPoints(abRepeatPointA, -1L)
                 Toast.makeText(
                     context,
                     "A-B Repeat: Point A set at ${getStringForTime(abRepeatPointA)}",
@@ -164,6 +172,7 @@ internal fun MediaPlayerControls(
                 val now = player.currentPosition
                 if (now > abRepeatPointA + 500L) {
                     abRepeatPointB = now
+                    (player as? MediaController)?.setAbRepeatPoints(abRepeatPointA, abRepeatPointB)
                     Toast.makeText(
                         context,
                         "A-B Repeat looping: ${getStringForTime(abRepeatPointA)} ⇄ ${getStringForTime(abRepeatPointB)}",
@@ -171,12 +180,14 @@ internal fun MediaPlayerControls(
                     ).show()
                 } else {
                     abRepeatPointA = -1L
+                    (player as? MediaController)?.setAbRepeatPoints(-1L, -1L)
                     Toast.makeText(context, "A-B Repeat cleared", Toast.LENGTH_SHORT).show()
                 }
             }
             else -> {
                 abRepeatPointA = -1L
                 abRepeatPointB = -1L
+                (player as? MediaController)?.setAbRepeatPoints(-1L, -1L)
                 Toast.makeText(context, "A-B Repeat turned off", Toast.LENGTH_SHORT).show()
             }
         }
@@ -308,6 +319,9 @@ internal fun MediaPlayerControls(
                     onPlayInBackgroundClick = { onAction(PlayerAction.PlayInBackground) },
                     onToggleTimeDisplay = { onAction(PlayerAction.ToggleTimeDisplay) },
                     onPictureInPictureClick = onPictureInPictureClick,
+                    onUpdatePlayerPreferences = { transform ->
+                        onAction(PlayerAction.UpdatePreferences(transform))
+                    },
                     onShortcutClick = { shortcut ->
                         when (shortcut) {
                             MxQuickShortcut.NIGHT_MODE -> {
@@ -331,7 +345,12 @@ internal fun MediaPlayerControls(
                             }
                             MxQuickShortcut.MUTE -> {
                                 isMuted = !isMuted
-                                player.volume = if (isMuted) 0f else 1f
+                                val controller = player as? MediaController
+                                if (controller != null) {
+                                    controller.setPlayerMuted(isMuted)
+                                } else {
+                                    player.volume = if (isMuted) 0f else 1f
+                                }
                                 Toast.makeText(
                                     context,
                                     if (isMuted) "Audio Muted" else "Audio Unmuted",
@@ -342,7 +361,21 @@ internal fun MediaPlayerControls(
                             MxQuickShortcut.AB_REPEAT -> handleAbRepeatToggle()
                             MxQuickShortcut.EQUALIZER -> showOverlay(OverlayView.EQUALIZER)
                             MxQuickShortcut.PLAYBACK_SPEED -> showOverlay(OverlayView.PLAYBACK_SPEED)
-                            MxQuickShortcut.SCREENSHOT -> captureVideoScreenshot(context, player)
+                            MxQuickShortcut.SCREENSHOT -> {
+                                coroutineScope.launch {
+                                    when (
+                                        val res = dev.xboyrex.darkplayer.feature.player.utils.VideoFrameCapture.captureAndSaveCurrentFrameAsync(
+                                            context = context,
+                                            player = player,
+                                        )
+                                    ) {
+                                        is dev.xboyrex.darkplayer.feature.player.utils.FrameSaveResult.Success ->
+                                            Toast.makeText(context, "Screenshot saved: ${res.fileName}", Toast.LENGTH_SHORT).show()
+                                        is dev.xboyrex.darkplayer.feature.player.utils.FrameSaveResult.Failure ->
+                                            Toast.makeText(context, "Screenshot failed: ${res.reason}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
                             MxQuickShortcut.BACKGROUND_PLAY -> onAction(PlayerAction.PlayInBackground)
                             MxQuickShortcut.SCREEN_ROTATION -> {
                                 val activity = context as? Activity
@@ -419,7 +452,10 @@ internal fun MediaPlayerControls(
                         bookmarkedPositionMs = -1L
                     }
                 },
-                onSelectSleepTimerMinutes = { sleepTimerMinutes = it },
+                onSelectSleepTimerMinutes = {
+                    sleepTimerMinutes = it
+                    (player as? MediaController)?.setSleepTimerMinutes(it)
+                },
                 onShareVideo = { shareCurrentVideo(context, player) },
             )
         }

@@ -147,6 +147,9 @@ class PlayerService : MediaSessionService() {
     private lateinit var decoderManager: DecoderManager
     private lateinit var trackSelector: DefaultTrackSelector
     private val decoderRecoveryManager = DecoderRecoveryManager()
+    private val volumeController = PlaybackVolumeController()
+    private val sessionTimerController = PlaybackSessionTimerController()
+    private var sessionTimerWatcherJob: Job? = null
 
     private val decoderAnalyticsListener = object : AnalyticsListener {
         override fun onEvents(player: Player, events: AnalyticsListener.Events) {
@@ -247,6 +250,7 @@ class PlayerService : MediaSessionService() {
                 reason,
             )
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) return
+            sessionTimerController.clearAbRepeat()
             restoreDecoderChoices(mediaItem = mediaItem)
             isMediaItemReady = false
             loadArtworkForCurrentMediaItem()
@@ -514,15 +518,41 @@ class PlayerService : MediaSessionService() {
     private fun triggerSmoothAudioRamp() {
         val player = mediaSession?.player as? ExoPlayer ?: return
         audioFadeJob?.cancel()
+        if (volumeController.isMuted) {
+            volumeController.applyTo(player)
+            return
+        }
         audioFadeJob = serviceScope.launch {
             runCatching {
-                player.volume = 0.2f
                 val steps = 8
+                val stepDelay = (playerPreferences.audioFadeDurationMs / steps).coerceIn(15, 60).toLong()
+                volumeController.setFadeMultiplier(0.2f, player)
                 for (step in 1..steps) {
-                    delay(22L)
-                    player.volume = (0.2f + (0.8f * step / steps.toFloat())).coerceIn(0f, 1f)
+                    delay(stepDelay)
+                    val mult = (0.2f + (0.8f * step / steps.toFloat())).coerceIn(0f, 1f)
+                    volumeController.setFadeMultiplier(mult, player)
                 }
-                player.volume = 1f
+                volumeController.resetFade(player)
+            }
+        }
+    }
+
+    private fun ensureSessionTimerWatcherRunning() {
+        if (sessionTimerWatcherJob?.isActive == true) return
+        sessionTimerWatcherJob = serviceScope.launch(Dispatchers.Main) {
+            while (sessionTimerController.isSleepTimerActive || sessionTimerController.isAbLoopActive) {
+                val player = mediaSession?.player
+                if (player != null) {
+                    if (sessionTimerController.pollSleepTimerExpired()) {
+                        player.pause()
+                    }
+                    if (sessionTimerController.isAbLoopActive &&
+                        sessionTimerController.shouldLoopBackToPointA(player.currentPosition)
+                    ) {
+                        player.seekTo(sessionTimerController.pointAMs)
+                    }
+                }
+                delay(250L)
             }
         }
     }
@@ -948,6 +978,28 @@ class PlayerService : MediaSessionService() {
                     savePositionAndStopSession()
                     return@future SessionResult(SessionResult.RESULT_SUCCESS)
                 }
+
+                CustomCommands.SET_PLAYER_MUTED -> {
+                    val muted = args.getBoolean(CustomCommands.PLAYER_MUTED_KEY, false)
+                    audioFadeJob?.cancel()
+                    volumeController.setMuted(muted, session.player)
+                    return@future SessionResult(SessionResult.RESULT_SUCCESS)
+                }
+
+                CustomCommands.SET_SLEEP_TIMER_MINUTES -> {
+                    val mins = args.getInt(CustomCommands.SLEEP_TIMER_MINUTES_KEY, 0)
+                    sessionTimerController.scheduleSleepTimer(mins)
+                    ensureSessionTimerWatcherRunning()
+                    return@future SessionResult(SessionResult.RESULT_SUCCESS)
+                }
+
+                CustomCommands.SET_AB_REPEAT_POINTS -> {
+                    val startMs = args.getLong(CustomCommands.AB_REPEAT_START_MS_KEY, -1L)
+                    val endMs = args.getLong(CustomCommands.AB_REPEAT_END_MS_KEY, -1L)
+                    sessionTimerController.setAbRepeatPoints(startMs, endMs)
+                    ensureSessionTimerWatcherRunning()
+                    return@future SessionResult(SessionResult.RESULT_SUCCESS)
+                }
             }
         }
     }
@@ -1179,6 +1231,7 @@ class PlayerService : MediaSessionService() {
         super.onDestroy()
         artworkLoadJob?.cancel()
         audioFadeJob?.cancel()
+        sessionTimerWatcherJob?.cancel()
         releaseAudioEffects()
         mediaSession?.run {
             player.clearMediaItems()

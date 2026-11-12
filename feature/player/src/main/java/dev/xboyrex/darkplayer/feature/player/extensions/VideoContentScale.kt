@@ -7,16 +7,17 @@ import dev.xboyrex.darkplayer.core.model.VideoContentScale
 import dev.xboyrex.darkplayer.core.ui.R
 
 /**
- * 1:1 Original Source Pixel Scale (VP-12).
- * Renders the video at its native pixel dimensions centered inside the destination surface,
- * falling back to [ContentScale.Fit] if source dimensions are unknown or zero.
+ * 1:1 Original Source Pixel Scale (F15 / VP-12).
+ * Maps each source video pixel to 1 destination surface pixel (`ScaleFactor(1f, 1f)` when
+ * `srcSize` represents unscaled source dimensions), falling back to [ContentScale.Fit] if
+ * source or destination dimensions are invalid.
  */
 object NativePixelContentScale : ContentScale {
     override fun computeScaleFactor(srcSize: Size, dstSize: Size): ScaleFactor {
         if (srcSize.width <= 0f || srcSize.height <= 0f || dstSize.width <= 0f || dstSize.height <= 0f) {
-            return ScaleFactor(1f, 1f)
+            return ContentScale.Fit.computeScaleFactor(srcSize, dstSize)
         }
-        return ScaleFactor(1f, 1f)
+        return ScaleFactor(scaleX = 1f, scaleY = 1f)
     }
 }
 

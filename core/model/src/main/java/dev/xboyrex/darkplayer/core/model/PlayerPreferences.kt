@@ -148,6 +148,7 @@ data class PlayerPreferences(
     val subtitleBorderEnabled: Boolean = true,
     val subtitleFadeOut: Boolean = false,
     val matchContentFrameRate: Boolean = true,
+    val enabledPlayerButtons: List<String> = DEFAULT_ENABLED_PLAYER_BUTTONS,
 ) {
 
     companion object {
@@ -157,5 +158,16 @@ data class PlayerPreferences(
         const val DEFAULT_BRIGHTNESS_GESTURE_SENSITIVITY = 0.50f
         const val DEFAULT_SUBTITLE_TEXT_SIZE = 20
         const val DEFAULT_CONTROLLER_AUTO_HIDE_TIMEOUT = 4
+        val DEFAULT_ENABLED_PLAYER_BUTTONS = listOf(
+            "UI_SWITCHER",
+            "SCALE",
+            "BG_PLAY",
+            "SCREENSHOT",
+            "TIMER",
+            "EQUALIZER",
+            "SHUFFLE",
+            "LOOP",
+            "PIP",
+        )
     }
 }

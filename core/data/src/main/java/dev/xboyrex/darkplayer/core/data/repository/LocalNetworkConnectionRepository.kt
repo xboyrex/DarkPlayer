@@ -1,5 +1,6 @@
 package dev.xboyrex.darkplayer.core.data.repository
 
+import dev.xboyrex.darkplayer.core.data.security.CredentialCipher
 import dev.xboyrex.darkplayer.core.data.security.SecureCredentialStore
 import dev.xboyrex.darkplayer.core.database.dao.NetworkConnectionDao
 import dev.xboyrex.darkplayer.core.database.entities.NetworkConnectionEntity
@@ -11,8 +12,18 @@ import kotlinx.coroutines.flow.map
 import org.koin.core.annotation.Single
 
 @Single
-class LocalNetworkConnectionRepository(private val networkConnectionDao: NetworkConnectionDao) :
-    NetworkConnectionRepository {
+class LocalNetworkConnectionRepository(
+    private val networkConnectionDao: NetworkConnectionDao,
+) : NetworkConnectionRepository {
+
+    private var credentialCipher: CredentialCipher = SecureCredentialStore
+
+    internal constructor(
+        networkConnectionDao: NetworkConnectionDao,
+        credentialCipher: CredentialCipher,
+    ) : this(networkConnectionDao = networkConnectionDao) {
+        this.credentialCipher = credentialCipher
+    }
 
     override fun getConnections(): Flow<List<NetworkConnection>> =
         networkConnectionDao.getAll().map { entities -> entities.map { it.toModel() } }
@@ -35,12 +46,12 @@ class LocalNetworkConnectionRepository(private val networkConnectionDao: Network
         port = port,
         path = path,
         username = username,
-        password = SecureCredentialStore.decrypt(password),
+        password = credentialCipher.decrypt(password).getOrDefault(""),
         useHttps = useHttps,
         authentication = runCatching { NetworkAuthentication.valueOf(value = authentication) }
             .getOrDefault(NetworkAuthentication.PASSWORD),
         privateKeyFileName = privateKeyFileName,
-        privateKeyPassphrase = SecureCredentialStore.decrypt(privateKeyPassphrase),
+        privateKeyPassphrase = credentialCipher.decrypt(privateKeyPassphrase).getOrDefault(""),
         hostKeyFingerprint = hostKeyFingerprint,
     )
 
@@ -52,11 +63,12 @@ class LocalNetworkConnectionRepository(private val networkConnectionDao: Network
         port = port,
         path = path,
         username = username,
-        password = SecureCredentialStore.encrypt(password),
+        // Fail closed (F01): never persist plaintext if encryption fails
+        password = credentialCipher.encrypt(password).getOrThrow(),
         useHttps = useHttps,
         authentication = authentication.name,
         privateKeyFileName = privateKeyFileName,
-        privateKeyPassphrase = SecureCredentialStore.encrypt(privateKeyPassphrase),
+        privateKeyPassphrase = credentialCipher.encrypt(privateKeyPassphrase).getOrThrow(),
         hostKeyFingerprint = hostKeyFingerprint,
     )
 }

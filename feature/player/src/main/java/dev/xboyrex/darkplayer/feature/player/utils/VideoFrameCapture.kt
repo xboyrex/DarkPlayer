@@ -15,6 +15,8 @@ import androidx.media3.common.util.UnstableApi
 import io.github.anilbeesetti.nextlib.mediainfo.MediaThumbnailRetriever
 import java.io.File
 import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 sealed interface FrameSaveResult {
     data class Success(val fileName: String) : FrameSaveResult
@@ -153,6 +155,27 @@ object VideoFrameCapture {
             } catch (e: Exception) {
                 runCatching { file.delete() }
                 FrameSaveResult.Failure(e.message ?: "Failed to save screenshot")
+            }
+        }
+    }
+
+    @OptIn(UnstableApi::class)
+    suspend fun captureAndSaveCurrentFrameAsync(context: Context, player: Player): FrameSaveResult {
+        val mediaItem = withContext(Dispatchers.Main) { player.currentMediaItem }
+            ?: return FrameSaveResult.Failure("No active media item")
+        val positionMs = withContext(Dispatchers.Main) { player.currentPosition }
+        return withContext(Dispatchers.IO) {
+            val bitmap = captureFrame(
+                context = context,
+                mediaItem = mediaItem,
+                positionMs = positionMs,
+            ) ?: return@withContext FrameSaveResult.Failure("Unable to extract video frame")
+            try {
+                saveBitmapToGallery(context = context, bitmap = bitmap)
+            } finally {
+                if (!bitmap.isRecycled) {
+                    bitmap.recycle()
+                }
             }
         }
     }

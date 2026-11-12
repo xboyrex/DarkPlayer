@@ -107,10 +107,8 @@ fun PlayerControls(
     middleControlsModifier: Modifier = Modifier,
 ) {
     var showPlayerUiPopup by rememberSaveable { mutableStateOf(false) }
-    var enabledPlayerButtons by rememberSaveable {
-        mutableStateOf(
-            setOf("UI_SWITCHER", "SCALE", "BG_PLAY", "SCREENSHOT", "TIMER", "EQUALIZER", "SHUFFLE", "LOOP", "PIP"),
-        )
+    val enabledPlayerButtons = remember(playerPreferences.enabledPlayerButtons) {
+        playerPreferences.enabledPlayerButtons.toSet()
     }
 
     Box(
@@ -337,10 +335,13 @@ fun PlayerControls(
                                     )
                                     .clickable {
                                         view.novaHaptic(10L, 125, hapticsEnabled)
-                                        enabledPlayerButtons = if (isSelected) {
+                                        val nextSet = if (isSelected) {
                                             enabledPlayerButtons - key
                                         } else {
                                             enabledPlayerButtons + key
+                                        }
+                                        onUpdatePlayerPreferences {
+                                            it.copy(enabledPlayerButtons = nextSet.toList())
                                         }
                                     }
                                     .padding(horizontal = 12.dp, vertical = 7.dp),
