@@ -48,6 +48,5 @@ vendor/
 .junie
 docs/*
 !docs/agents/
-!docs/nova_banner.png
 .superpowers
 .koda

@@ -6,9 +6,8 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.darkplayer.core.domain"
+    namespace = "dev.xboyrex.novaplayer.core.domain"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
-    buildToolsVersion = libs.versions.android.buildTools.get()
 
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()

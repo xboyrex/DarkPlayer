@@ -7,9 +7,8 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.darkplayer.feature.player"
+    namespace = "dev.xboyrex.novaplayer.feature.player"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
-    buildToolsVersion = libs.versions.android.buildTools.get()
 
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -38,6 +37,11 @@ kotlin {
 }
 
 dependencies {
+    api(libs.kyant.backdrop)
+    api(libs.kyant.shapes)
+    implementation(libs.okhttp.core)
+    implementation(libs.androidx.compose.material.iconsExtended)
+
 
     implementation(project(":core:common"))
     implementation(project(":core:ui"))
@@ -45,6 +49,7 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:media"))
     implementation(project(":core:model"))
+    implementation(project(":core:ui"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.pip)
@@ -73,8 +78,8 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.ui.compose)
     implementation(libs.androidx.media3.session)
-    implementation(libs.github.anilbeesetti.nextlib.media3ext)
-    implementation(libs.github.anilbeesetti.nextlib.mediainfo)
+    implementation(libs.ffmpeg.decoder.media3ext)
+    implementation(libs.ffmpeg.decoder.mediainfo)
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.guava)

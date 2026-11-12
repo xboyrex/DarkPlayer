@@ -8,9 +8,8 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.darkplayer.feature.settings"
+    namespace = "dev.xboyrex.novaplayer.feature.settings"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
-    buildToolsVersion = libs.versions.android.buildTools.get()
 
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -37,6 +36,11 @@ kotlin {
 }
 
 dependencies {
+    api(libs.kyant.backdrop)
+    api(libs.kyant.shapes)
+    implementation(libs.okhttp.core)
+    implementation(libs.androidx.compose.material.iconsExtended)
+
 
     implementation(project(":core:ui"))
     implementation(project(":core:data"))
@@ -53,7 +57,6 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.iconsExtended)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtimeCompose)

@@ -1,89 +1,63 @@
 <div align="center">
-
-<img src="fastlane/metadata/android/en-US/images/nova_banner.png" alt="Nova Player Banner" width="100%" />
-
-<br />
-
-<img src="fastlane/metadata/android/en-US/images/icon.png" alt="Nova Player Circular Logo" width="110" height="110" />
-
-# Nova Player
-
-**Next-Generation Native Android Video Player — AMOLED Pitch Black, Fluid Glass UI & Hardware-Accelerated Media3 Engine**
-
-[![Android CI](https://img.shields.io/github/actions/workflow/status/xboyrex/DarkPlayer/build.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=Build%20%26%20Release)](https://github.com/xboyrex/DarkPlayer/actions)
-[![Latest Release](https://img.shields.io/github/v/release/xboyrex/DarkPlayer?style=for-the-badge&logo=android&color=7C3AED&label=Latest%20APK)](https://github.com/xboyrex/DarkPlayer/releases/latest)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-4A90FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
-[![Media3](https://img.shields.io/badge/Media3-1.11.1-EC4899?style=for-the-badge&logo=googleplay&logoColor=white)](https://developer.android.com/media/media3)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-10B981?style=for-the-badge)](LICENSE)
-
+  <img src="app/src/main/ic_launcher-playstore.png" width="128" height="128" alt="Nova Player Logo" />
+  <h1>Nova Player</h1>
+  <p><b>A native Android video player built in Kotlin & Jetpack Compose with Liquid Glass UI, Pure AMOLED Black / Pure White themes, and an integrated Dolby Atmos & 20-Band Graphic Equalizer Studio.</b></p>
 </div>
 
----
+## Overview
 
-## Highlights
+**Nova Player** is a fast, ad-free, open-source video player for Android phones, tablets, and Android TV. Built with Kotlin, Jetpack Compose, and Media3 ExoPlayer + FFmpeg decoders, it combines local and network media management with a refractive **Liquid Glass UI** and a built-in **Dolby Atmos & 20-Band Graphic Equalizer Studio**.
 
-| Pillar | Capabilities |
-| :--- | :--- |
-| **Smart Player HUD & Gestures** | Single center transport (`Prev \| Play/Pause \| Next`), axis-locked horizontal seek vs. vertical volume/brightness gestures, instant `0ms` consecutive `10s` double-tap skips, minimal `2x` hold capsule, and an in-player **UI Switcher** popup. |
-| **Dual Theme & Accent Engine** | Strictly **AMOLED Pitch Black (`#000000`)** and **Pure White (`#FFFFFF`)** surfaces paired with either the **Nova Logo Gradient (`#4A90FF → #7C3AED → #EC4899`)** or **Device Dynamic Accent (Material You)**. |
-| **Hardware + FFmpeg Playback** | Media3 ExoPlayer `1.11.1` with bundled FFmpeg software audio/video decoders (`HW` / `HW+` / `SW`), 5-band Studio Equalizer, Bass Boost, Virtualizer, and up to `200%` Volume Boost (`0–30` scale). |
-| **Security & Storage Integrity** | Hardware-backed **Android Keystore AES-256-GCM** encryption for SMB/SFTP/WebDAV credentials, **PBKDF2-HMAC-SHA256 (`120,000` iterations)** Private Vault PIN with exponential lockout, Android 14+ selected-photos playlist protection, and multi-volume SD/USB discovery. |
-| **Silent Verified OTA Updater** | Non-intrusive background update checker on launch with strict ABI matching, byte-length validation, and `SHA-256` digest verification before package installation. |
+## Supported Formats
 
----
+* **Video**: H.263, H.264 AVC, H.265 HEVC, MPEG-4 SP, VP8, VP9, AV1, HDR10, HDR10+, Dolby Vision
+* **Audio**: Vorbis, Opus, FLAC, ALAC, PCM/WAVE (μ-law, A-law), MP1, MP2, MP3, AMR (NB, WB), AAC (LC, ELD, HE, xHE), AC-3, E-AC-3, E-AC-3 JOC (Dolby Atmos), AC-4, DTS, DTS-HD, TrueHD (via bundled FFmpeg extension)
+* **Subtitles**: SRT, SSA, ASS (with embedded font & style rendering), TTML, VTT, DVB, VobSub, PGS
 
-## Project Architecture
+## Key Features
 
-```text
-NovaPlayer (dev.xboyrex.darkplayer)
-├── app/                        # Main entry point, adaptive navigation & silent OTA updater
-├── core/
-│   ├── common/                 # Multi-volume storage scanner, charset detector & extensions
-│   ├── data/                   # Repositories, Keystore AES-256-GCM store & PBKDF2 Vault PIN
-│   ├── database/               # Room database, DAOs & entity schemas
-│   ├── datastore/              # Proto/JSON DataStore preferences
-│   ├── domain/                 # Media sorting, grouping & synchronization use cases
-│   ├── media/                  # LocalMediaSynchronizer, SMB/SFTP/WebDAV & thumbnail decoders
-│   ├── model/                  # Immutable domain models & UI configuration enums
-│   └── ui/                     # AMOLED/Pure White theme engine, fluid switches & glass bars
-└── feature/
-    ├── network/                # SMB, SFTP & WebDAV network streaming browser
-    ├── player/                 # Media3 video player, smart gestures, EQ & UI Switcher popup
-    ├── playlist/               # Custom playlists & watch history
-    ├── settings/               # Appearance, Player, Audio, Subtitle, Gesture & About screens
-    └── videopicker/            # Folders, Videos, Private Vault, Recycle Bin & Hub screens
-```
+* **Liquid Glass UI & Motion**: Frosted refractive glass navigation bar with damped drag-to-switch pill, interactive press shaders, spring-physics animations, and tactile haptic feedback across controls.
+* **Strictly Dual High-Contrast Color Modes**: Instant switching between **Pure AMOLED Black (`#000000`)** and **Pure White (`#FFFFFF`)** modes, plus optional Dynamic Wallpaper accents and custom typography.
+* **Nova Dolby Atmos & Equalizer Studio**:
+  * **Hardware & Software DAP**: Supports vendor Dolby Audio Processing (`libswdap.so` / `libhwdap.so`) alongside universal Android `DynamicsProcessing` multi-band DSP.
+  * **7 Acoustic Profiles**: Dynamic, Movie/Video, Music, Game, Work, Casual, and Mood.
+  * **Intelligent Equalizer (IEQ)**: Off, Detailed, Balanced, and Warm real-time tonal targets.
+  * **10 / 15 / 20-Band Graphic Equalizer**: Interactive draggable cubic Bézier frequency response curve, vertical band sliders, and a `0.1 dB` precision band tuner (`±15.0 dB`).
+  * **19 Built-in Presets & Custom Presets**: Flat, Rock, Jazz, Pop, Classical, Hip Hop, Blues, Electronic, Metal, Acoustic, Bass Boost, Beats, Crystal Clear, Deep, Dubstep, Hardstyle, Movie, R&B, Vocal Booster, plus JSON preset import/export.
+  * **Advanced Audio Enhancers**: Bass Enhancer (with Balanced, Sub Boost, and Punch curves), Mid Enhancer, Treble Enhancer, Headphone & Speaker Surround Virtualizer (`4–64` stereo widening), Dialogue Enhancer (`1–12` clarity), Volume Leveler, and Per-Device Audio Memory.
+* **Advanced Playback & Decoder Switching**: Runtime switching between Hardware (`MediaCodec`), System Software, and Bundled FFmpeg decoders, plus 4K HDR window output and high-refresh-rate display mode locking.
+* **Media Picker & Private Vault**: Browse media in Folder, Tree, or Video views (List or Grid layouts), or lock sensitive videos inside a PIN & Biometric-protected private Vault.
+* **Network Streaming & Playlists**: Stream directly from SMB, FTP, SFTP (with SSH key verification), WebDAV, HTTP/HTTPS URLs, and local or remote M3U playlists.
+* **Touch Gestures & PiP**: Vertical swipe for brightness (left) and volume (right), horizontal swipe to seek, pinch-to-zoom & pan, double-tap seek/play/pause, long-press `2.0x` speed boost, Picture-in-Picture (PiP), background audio playback, and Android TV D-pad navigation.
+* **In-App OTA Updater & Storage Cleaner**: Built-in GitHub Releases update checker/installer and real-time storage analyzer with one-tap cache cleaning.
 
----
+## Player Intent API
 
-## Building from Source
+Nova Player supports standard Android `ACTION_VIEW` intents with MX Player-compatible extras for external integrations, position resume, custom headers, subtitle tracks, and background playback. See [PLAYER_API.md](PLAYER_API.md) for full integration details.
+
+## Build Instructions
+
+Clone the repository and assemble the debug or release APKs using the Gradle wrapper:
 
 ```bash
-# Clone the repository
-git clone https://github.com/xboyrex/DarkPlayer.git
-cd DarkPlayer
-
-# Toolchain: JDK 21, Gradle 9.9.1, Android Gradle Plugin 9.5.1, Android API 37 (Android 17), Build Tools 37.0.0
-# Run unit tests and assemble release APKs
-chmod +x ./gradlew
-./gradlew testDebugUnitTest :app:assembleRelease
+./gradlew assembleDebug
+./gradlew assembleRelease
 ```
 
-### Custom Release Signing (Optional)
+The generated universal and per-ABI APKs are written to `app/build/outputs/apk/debug/` and `app/build/outputs/apk/release/`.
 
-Provide your release keystore credentials via environment variables or `~/.gradle/gradle.properties`:
+## Developer & Community
 
-```bash
-export RELEASE_STORE_FILE="/path/to/release.jks"
-export RELEASE_STORE_PASSWORD="your_store_password"
-export RELEASE_KEY_ALIAS="your_key_alias"
-export RELEASE_KEY_PASSWORD="your_key_password"
-./gradlew :app:assembleRelease
-```
+Developed and maintained by **Mayank** (`ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく` · [`@xboyrex`](https://github.com/xboyrex)):
 
----
+* **GitHub**: [github.com/xboyrex](https://github.com/xboyrex)
+* **Telegram Channel**: [t.me/MayankDroid7](https://t.me/MayankDroid7)
+* **Onyx Hub Community**: [t.me/OnyxHub7](https://t.me/OnyxHub7)
+* **YouTube (Mayank Droid)**: [youtube.com/@mayankdroid](https://youtube.com/@mayankdroid?si=slX8DDU0dpLSIYyY)
+* **YouTube (Onyx Droid)**: [youtube.com/@onyxdroid89](https://youtube.com/@onyxdroid89?si=9gxpZfa3bpI9PKku)
+* **Instagram**: [instagram.com/mayank.zx7](https://www.instagram.com/mayank.zx7)
+* **Email**: [xboyrex496@gmail.com](mailto:xboyrex496@gmail.com)
 
-## Credits & Maintainer
+## License
 
-Crafted and maintained by **Mayank ([@xboyrex](https://github.com/xboyrex))**.  
-Licensed under the [GNU General Public License v3.0](LICENSE).
+Nova Player is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See the [LICENSE](LICENSE) file for full details.

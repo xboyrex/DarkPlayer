@@ -14,21 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-// Opt in with -PnextlibPath=../nextlib to test unpublished decoder changes.
-providers.gradleProperty("nextlibPath").orNull?.let { nextlibPath ->
-    includeBuild(nextlibPath) {
-        dependencySubstitution {
-            substitute(
-                module("io.github.anilbeesetti:nextlib-media3ext"),
-            ).using(project(":media3ext"))
-            substitute(
-                module("io.github.anilbeesetti:nextlib-mediainfo"),
-            ).using(project(":mediainfo"))
-        }
-    }
-}
-
-rootProject.name = "DarkPlayer"
+rootProject.name = "NovaPlayer"
 include(":app")
 include(":core:common")
 include(":core:data")

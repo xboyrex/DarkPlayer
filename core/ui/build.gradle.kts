@@ -6,9 +6,8 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.darkplayer.core.ui"
+    namespace = "dev.xboyrex.novaplayer.core.ui"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
-    buildToolsVersion = libs.versions.android.buildTools.get()
 
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -33,14 +32,14 @@ kotlin {
 }
 
 dependencies {
+    api(libs.kyant.backdrop)
+    api(libs.kyant.shapes)
+    implementation(libs.okhttp.core)
+    implementation(libs.androidx.compose.material.iconsExtended)
+
 
     implementation(project(":core:model"))
     implementation(project(":core:common"))
-
-    // Glasmio iOS 27 Liquid Glass & YTXTube Backdrop libraries exposed transitively to all feature modules
-    api("io.github.kyant0:backdrop:2.0.1")
-    api("io.github.kyant0:shapes:1.2.1")
-    api("io.github.kyant0:capsule:2.1.3")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

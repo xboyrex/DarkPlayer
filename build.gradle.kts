@@ -29,14 +29,12 @@ allprojects {
 }
 
 subprojects {
-    if (name == "app" || name == "settings") {
-        apply(plugin = rootProject.libs.plugins.aboutLibraries.get().pluginId)
+    apply(plugin = rootProject.libs.plugins.aboutLibraries.get().pluginId)
 
-        configure<com.mikepenz.aboutlibraries.plugin.AboutLibrariesExtension> {
-            offlineMode.set(true)
-            export {
-                excludeFields.addAll("generated")
-            }
+    configure<com.mikepenz.aboutlibraries.plugin.AboutLibrariesExtension> {
+        offlineMode.set(true)
+        export {
+            excludeFields.addAll("generated")
         }
     }
 }
@@ -57,6 +55,5 @@ allprojects {
             showCauses = true
             showStackTraces = true
         }
-        ignoreFailures = false
     }
 }

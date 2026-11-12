@@ -7,40 +7,18 @@ plugins {
     alias(libs.plugins.koin.compiler)
 }
 
-val ciRunNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
-val resolvedVersionCode = (findProperty("versionCode") as? String)?.toIntOrNull()
-    ?: ciRunNumber?.let { 250 + it }
-    ?: 310
-val resolvedVersionName = (findProperty("versionName") as? String)
-    ?: ciRunNumber?.let { "2.5.$it" }
-    ?: "2.5.60"
-
-val releaseStoreFilePath = (findProperty("RELEASE_STORE_FILE") as? String)
-    ?: System.getenv("RELEASE_STORE_FILE")
-val releaseStorePassword = (findProperty("RELEASE_STORE_PASSWORD") as? String)
-    ?: System.getenv("RELEASE_STORE_PASSWORD")
-val releaseKeyAlias = (findProperty("RELEASE_KEY_ALIAS") as? String)
-    ?: System.getenv("RELEASE_KEY_ALIAS")
-val releaseKeyPassword = (findProperty("RELEASE_KEY_PASSWORD") as? String)
-    ?: System.getenv("RELEASE_KEY_PASSWORD")
-val hasDedicatedReleaseKeystore = !releaseStoreFilePath.isNullOrBlank() &&
-    !releaseStorePassword.isNullOrBlank() &&
-    !releaseKeyAlias.isNullOrBlank() &&
-    !releaseKeyPassword.isNullOrBlank() &&
-    file(releaseStoreFilePath).exists()
-
 android {
-    namespace = "dev.xboyrex.darkplayer"
+    namespace = "dev.xboyrex.novaplayer"
 
     compileSdk = libs.versions.android.compileSdk.get().toInt()
-    buildToolsVersion = libs.versions.android.buildTools.get()
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        applicationId = "dev.xboyrex.darkplayer"
-        versionCode = resolvedVersionCode
-        versionName = resolvedVersionName
+        applicationId = "dev.xboyrex.novaplayer"
+        versionCode = 250
+        versionName = "2.5.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
     }
 
     buildFeatures {
@@ -49,6 +27,7 @@ android {
     }
 
     testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
         unitTests.isIncludeAndroidResources = true
     }
 
@@ -57,35 +36,11 @@ android {
         targetCompatibility = JavaVersion.toVersion(libs.versions.android.jvm.get().toInt())
     }
 
-    signingConfigs {
-        getByName("debug") {
-            val dbgFile = file("${project.rootDir}/app/debug.keystore")
-            if (dbgFile.exists()) {
-                storeFile = dbgFile
-                storePassword = "android"
-                keyAlias = "androiddebugkey"
-                keyPassword = "android"
-            }
-        }
-        if (hasDedicatedReleaseKeystore) {
-            create("release") {
-                storeFile = file(releaseStoreFilePath!!)
-                storePassword = releaseStorePassword
-                keyAlias = releaseKeyAlias
-                keyPassword = releaseKeyPassword
-            }
-        }
-    }
-
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
-            isShrinkResources = false
-            signingConfig = if (hasDedicatedReleaseKeystore) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -105,14 +60,18 @@ android {
         }
     }
 
-    lint {
-        checkReleaseBuilds = true
-        abortOnError = false
-        ignoreWarnings = true
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("${project.rootDir}/app/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     splits {
         abi {
+            //noinspection WrongGradleMethod
             val isBuildingBundle = gradle.startParameter.taskNames.any {
                 it.lowercase().contains("bundle")
             }
@@ -132,12 +91,15 @@ android {
     packaging {
         resources {
             excludes.add("/META-INF/{AL2.0,LGPL2.1}")
+            // Picnic signature data from Bouncy Castle; SSH never negotiates Picnic.
             excludes.add("/org/bouncycastle/pqc/legacy/picnic/**")
         }
     }
 
     dependenciesInfo {
+        // Disables dependency metadata when building APKs.
         includeInApk = false
+        // Disables dependency metadata when building Android App Bundles.
         includeInBundle = false
     }
 }
@@ -149,6 +111,12 @@ kotlin {
 }
 
 dependencies {
+    api(libs.kyant.backdrop)
+    api(libs.kyant.shapes)
+    implementation(libs.okhttp.core)
+    implementation(libs.androidx.compose.material.iconsExtended)
+
+
     implementation(project(":core:common"))
     implementation(project(":core:data"))
     implementation(project(":core:media"))
@@ -189,7 +157,7 @@ dependencies {
 
     implementation(libs.accompanist.permissions)
 
-    implementation(libs.github.anilbeesetti.nextlib.mediainfo)
+    implementation(libs.ffmpeg.decoder.mediainfo)
 
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -198,12 +166,13 @@ dependencies {
     androidTestImplementation(libs.androidx.datastore.core)
     androidTestImplementation(libs.androidx.media3.session)
     androidTestImplementation(libs.androidx.media3.ui)
-    androidTestImplementation(libs.github.anilbeesetti.nextlib.media3ext)
+    androidTestImplementation(libs.ffmpeg.decoder.media3ext)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.test.ext)
     androidTestImplementation(libs.androidx.test.rules)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.okhttp.mockwebserver)
+    androidTestUtil(libs.androidx.test.orchestrator)
     androidTestImplementation(libs.androidx.compose.ui.test)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.testManifest)

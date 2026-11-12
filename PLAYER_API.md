@@ -1,12 +1,12 @@
 # Player intent API
 
-Launch Next Player from another Android app with an `ACTION_VIEW` intent. You can
+Launch Nova Player from another Android app with an `ACTION_VIEW` intent. You can
 supply a video or queue, subtitles, HTTP headers, and playback options, and request
 an activity result when the player closes.
 
-Next Player supports the [MX Player VIEW intent contract](https://mx.j2inter.com/api)
+Nova Player supports the [MX Player VIEW intent contract](https://mx.j2inter.com/api)
 and adds `playback_speed` and `background` extensions. The behavior below describes
-Next Player; it does not imply that MX Player supports those extensions.
+Nova Player; it does not imply that MX Player supports those extensions.
 
 - [Launch a video](#launch-a-video)
 - [URI permissions](#uri-permissions)
@@ -15,7 +15,7 @@ Next Player; it does not imply that MX Player supports those extensions.
 - [Subtitles](#subtitles)
 - [HTTP headers](#http-headers)
 - [Playback and display options](#playback-and-display-options)
-- [Next Player extensions](#next-player-extensions)
+- [Nova Player extensions](#next-player-extensions)
 - [Playback results](#playback-results)
 - [New requests and saved preferences](#new-requests-and-saved-preferences)
 - [Compatibility limits](#compatibility-limits)
@@ -28,13 +28,13 @@ Use these intent fields:
 | --- | --- |
 | Action | `Intent.ACTION_VIEW` (`android.intent.action.VIEW`) |
 | Data | The media `Uri` to start playing |
-| Package | `dev.xboyrex.darkplayer`; debug builds use `dev.xboyrex.darkplayer.debug` |
-| Activity | `dev.xboyrex.darkplayer.feature.player.PlayerActivity` |
+| Package | `dev.xboyrex.novaplayer`; debug builds use `dev.xboyrex.novaplayer.debug` |
+| Activity | `dev.xboyrex.novaplayer.feature.player.PlayerActivity` |
 | MIME type | An appropriate type such as `video/mp4`, `video/*`, or `application/vnd.apple.mpegurl` |
 
-Set the package or component explicitly when you want Next Player. Intents addressed
+Set the package or component explicitly when you want Nova Player. Intents addressed
 to `com.mxtech.videoplayer.ad` or `com.mxtech.videoplayer.pro` launch MX Player.
-An implicit VIEW intent with a matching URI and MIME type can also offer Next Player
+An implicit VIEW intent with a matching URI and MIME type can also offer Nova Player
 in Android's app chooser.
 
 Register an activity result launcher in your Activity or Fragment before it starts:
@@ -65,8 +65,8 @@ Launch the request from that Activity or Fragment:
 ```kotlin
 val intent = Intent(Intent.ACTION_VIEW).apply {
     setClassName(
-        "dev.xboyrex.darkplayer",
-        "dev.xboyrex.darkplayer.feature.player.PlayerActivity",
+        "dev.xboyrex.novaplayer",
+        "dev.xboyrex.novaplayer.feature.player.PlayerActivity",
     )
     setDataAndType(videoUri, "video/mp4")
     putExtra("title", "Example video")
@@ -78,7 +78,7 @@ val intent = Intent(Intent.ACTION_VIEW).apply {
 try {
     playerLauncher.launch(intent)
 } catch (error: ActivityNotFoundException) {
-    // Offer an installation prompt or another player when Next Player is unavailable.
+    // Offer an installation prompt or another player when Nova Player is unavailable.
 }
 ```
 
@@ -95,7 +95,7 @@ for Android's package visibility rules. Add this inside the caller's manifest:
 
 ```xml
 <queries>
-    <package android:name="dev.xboyrex.darkplayer" />
+    <package android:name="dev.xboyrex.novaplayer" />
 </queries>
 ```
 
@@ -122,7 +122,7 @@ Here `videoUris` includes the intent's data URI, so the list is nonempty. `ClipD
 is `android.content.ClipData`. The caller must hold access that Android allows it
 to forward; the player cannot obtain access to a private provider on its own.
 
-For a successful `background=true` handoff, Next Player forwards read access for
+For a successful `background=true` handoff, Nova Player forwards read access for
 the effective content media and subtitle URIs to its playback service before the
 launch activity finishes. The service retains temporary access for its lifetime.
 The handoff does not request persistable, write, or prefix permissions. A provider
@@ -141,7 +141,7 @@ HTTP(S) sources do not need Android URI grants; they may need request headers.
 | `video_list.name` | `String[]` | Optional titles corresponding to the original `video_list` entries. |
 
 The data URI selects the starting item in `video_list`. For the documented
-contract, include it in the array. Next Player also tolerates a data URI omitted
+contract, include it in the array. Nova Player also tolerates a data URI omitted
 from `video_list` by prepending it to a nonempty supplied queue. If an identical URI
 occurs more than once, playback starts at its first occurrence. Duplicate entries retain
 their order and their corresponding names.
@@ -152,7 +152,7 @@ An available queue and an explicit selection have different meanings:
   leave `video_list_is_explicit` absent or `false`. With Autoplay off, playback
   ends after the current item instead of automatically advancing.
 - A caller implementing “play these selected videos” should set
-  `video_list_is_explicit=true`. Next Player's own media picker does this for
+  `video_list_is_explicit=true`. Nova Player's own media picker does this for
   selected-video queues. Repeat behavior still follows the user's repeat mode.
 
 For example, play two selected videos starting with the first:
@@ -165,7 +165,7 @@ intent.putExtra("video_list_is_explicit", true)
 ```
 
 Grant both URIs through `ClipData` when they come from a content provider. A plain
-single-video launch from Next Player can build its usual folder queue; API requests
+single-video launch from Nova Player can build its usual folder queue; API requests
 with recognized extras use the supplied queue or data URI instead.
 
 ## Titles and starting position
@@ -183,7 +183,7 @@ extra is not an accepted substitute for the `Int` position extra.
 When `video_list.name` is supplied, it takes precedence over `title` for entries
 in that supplied list. Keep the array aligned with `video_list`; use null entries
 when you want filename or metadata fallback. A missing or null name in this array
-does not fall back to `title`. If Next Player prepends the data URI because it was
+does not fall back to `title`. If Nova Player prepends the data URI because it was
 absent from the list, the original names remain associated with their original
 URI entries, and `title` can name the prepended item.
 
@@ -217,7 +217,7 @@ lowercase `.ass`/`.ssa`, `.vtt`, and `.ttml`/`.xml`/`.dfxp`; other extensions fa
 back to SRT. Labels use `subs.name`, then `subs.filename`, then the source filename.
 
 HTTP(S) API subtitles load through Media3 and receive the request's HTTP headers.
-Local subtitles use Next Player's subtitle encoding conversion. The app can also
+Local subtitles use Nova Player's subtitle encoding conversion. The app can also
 load subtitles from its usual local discovery and saved selections.
 
 ## HTTP headers
@@ -254,7 +254,7 @@ Omitted options normally use the app's settings or standard behavior.
 
 | Extra | Type | Values and behavior |
 | --- | --- | --- |
-| `decode_mode` | `Byte` | `1`: hardware (HW); `2`: FFmpeg software (SW); `4`: hardware (HW+ compatibility alias). Next Player does not implement a separate MX HW+ engine. Unsupported values leave normal decoder selection in effect. |
+| `decode_mode` | `Byte` | `1`: hardware (HW); `2`: FFmpeg software (SW); `4`: hardware (HW+ compatibility alias). Nova Player does not implement a separate MX HW+ engine. Unsupported values leave normal decoder selection in effect. |
 | `video` | `Boolean` | Defaults to `true`. `false` omits the video surface while playback and the foreground player controls remain available. |
 | `video_zoom` | `Int` | `0`: stretch; `1`: best fit; `2`: original size (100%); `3`: crop. Other values use the normal zoom setting. |
 | `DAR_horz`, `DAR_vert` | `Float`, both required | Override display aspect ratio with `DAR_horz / DAR_vert`, for example `16f` and `9f`. Both components must be positive and the resulting ratio must be positive and finite. |
@@ -262,7 +262,7 @@ Omitted options normally use the app's settings or standard behavior.
 | `sticky` | `Boolean` | `true` keeps playback running when the activity goes into the background; `false` disables that automatic background-play behavior for this request. If absent, the saved background-play setting applies. Back from the foreground player still stops playback. |
 | `keys.dpad_up_down` | `Int` | With controls hidden, `0`: Up/Down adjusts volume; `1`: Up selects the next item and Down selects the previous item. Supported on phones as well as TV. If absent or invalid, normal device key handling applies. |
 | `suppress_error_message` | `Boolean` | Defaults to `false`. In the foreground, `true` skips a failed item if another exists, or closes the player if no next item exists, without an error dialog. |
-| `secure_uri` | `Boolean` | Accepted for compatibility. Next Player has no MX-style URI property dialog, so this adds no property-dialog behavior. It does not encrypt media or change URI permissions. |
+| `secure_uri` | `Boolean` | Accepted for compatibility. Nova Player has no MX-style URI property dialog, so this adds no property-dialog behavior. It does not encrypt media or change URI permissions. |
 
 The current parser also accepts other numeric types for `decode_mode` by
 converting them to an integer; callers should use the documented `Byte` type.
@@ -295,7 +295,7 @@ Android and the device's window configuration can constrain orientation requests
 DPAD queue navigation applies while the player controls are hidden; visible
 controls and open player overlays retain their normal interaction behavior.
 
-## Next Player extensions
+## Nova Player extensions
 
 ### Playback speed
 
@@ -325,7 +325,7 @@ intent.putExtra("playback_speed", 1.5f)
 intent.putExtra("return_result", true)
 ```
 
-With `background=true`, Next Player starts the requested queue in its playback
+With `background=true`, Nova Player starts the requested queue in its playback
 service and closes the launch activity without creating the player screen or a
 video surface. A data URI is required. This request starts playback even if the
 existing session was paused, and takes precedence over `sticky=false` or a
@@ -346,7 +346,7 @@ requirements still apply.
 
 This option still uses an activity launch. Android's
 [background activity launch restrictions](https://developer.android.com/guide/components/activities/secure-bal)
-apply to the caller even when `background=true`; the extra controls Next Player's
+apply to the caller even when `background=true`; the extra controls Nova Player's
 handoff and UI behavior, rather than granting permission to launch from any
 background component.
 
@@ -416,7 +416,7 @@ can still update the app's stored state.
 
 ## Compatibility limits
 
-- `fast_mode` is deprecated in MX and is ignored by Next Player.
+- `fast_mode` is deprecated in MX and is ignored by Nova Player.
 - MX's OpenSubtitles lookup hints `size`, `filename`, `hash.opensubtitles`,
   `video_list.size`, `video_list.filename`, and `video_list.hash.opensubtitles`
   are ignored by this intent API. `subs.filename` is supported separately as a
@@ -426,9 +426,9 @@ can still update the app's stored state.
 - HW+ is a hardware-decoding alias, not a separate decoder implementation.
 - The intent API launches playback and returns results; it is not a general
   remote-control, library-query, thumbnail-extraction, or settings API.
-- MX package names are not Next Player aliases. Change the intent's package or
+- MX package names are not Nova Player aliases. Change the intent's package or
   component when reusing an MX-compatible integration.
-- `playback_speed` and `background` are Next Player extensions; other players may
+- `playback_speed` and `background` are Nova Player extensions; other players may
   ignore them.
 
 For the underlying MX extra names and types, see the

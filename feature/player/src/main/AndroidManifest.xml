@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
-    <application>
+    <application android:usesCleartextTraffic="true">
         <activity
             android:name=".PlayerActivity"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|keyboard|keyboardHidden|navigation"
@@ -13,7 +13,7 @@
             android:launchMode="singleTop"
             android:supportsPictureInPicture="true"
             android:resizeableActivity="true"
-            android:theme="@style/NextPlayer"
+            android:theme="@style/NovaPlayer"
             android:windowSoftInputMode="adjustResize"
             tools:targetApi="o">
 

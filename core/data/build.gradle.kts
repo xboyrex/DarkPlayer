@@ -6,9 +6,8 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.darkplayer.core.data"
+    namespace = "dev.xboyrex.novaplayer.core.data"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
-    buildToolsVersion = libs.versions.android.buildTools.get()
 
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -36,7 +35,7 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.github.anilbeesetti.nextlib.mediainfo)
+    implementation(libs.ffmpeg.decoder.mediainfo)
 
     // Koin
     implementation(libs.koin.core)

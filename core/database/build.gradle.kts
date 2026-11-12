@@ -7,9 +7,12 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.darkplayer.core.database"
+    namespace = "dev.xboyrex.novaplayer.core.database"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
-    buildToolsVersion = libs.versions.android.buildTools.get()
+
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
 
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
