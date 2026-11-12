@@ -8,14 +8,16 @@ import androidx.media3.datasource.DataSpec
 import dev.xboyrex.darkplayer.core.media.network.NetworkClient
 import java.io.IOException
 import java.io.InputStream
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.runBlocking
 
 /**
  * Reads a file on a saved network connection (SMB/FTP/SFTP/WebDAV) for the Media3 player.
  *
- * Media3 ships no data source for these protocols, so this adapts [NetworkClient.openStream],
- * which can start at an arbitrary byte offset and therefore supports seeking directly. The player
- * closes and reopens the source at a new offset for each seek.
+ * Implements VP-03 optimization:
+ * - Skips remote [NetworkClient.fileSize] metadata round-trips when [DataSpec.length] is already supplied.
+ * - Caches resolved remote file sizes per URI/path so repeated seek re-opens do not re-issue
+ *   WebDAV PROPFIND/list or SMB metadata queries before opening the byte stream.
  */
 @UnstableApi
 class NetworkDataSource(private val sessions: NetworkSessions) : BaseDataSource(true) {
@@ -25,6 +27,15 @@ class NetworkDataSource(private val sessions: NetworkSessions) : BaseDataSource(
     private var bytesRemaining: Long = C.LENGTH_UNSET.toLong()
     private var opened = false
 
+    companion object {
+        private const val MAX_CACHE_ENTRIES = 256
+        private val fileSizeCache = ConcurrentHashMap<String, Long>()
+
+        internal fun clearFileSizeCache() {
+            fileSizeCache.clear()
+        }
+    }
+
     override fun open(dataSpec: DataSpec): Long {
         uri = dataSpec.uri
         transferInitializing(dataSpec)
@@ -32,13 +43,31 @@ class NetworkDataSource(private val sessions: NetworkSessions) : BaseDataSource(
         try {
             runBlocking {
                 val target = sessions.target(dataSpec.uri)
-                val fileSize = target.client.fileSize(target.filePath)
+                val cacheKey = "${dataSpec.uri.scheme}://${dataSpec.uri.authority}/${target.filePath}"
 
-                bytesRemaining = when {
-                    dataSpec.length != C.LENGTH_UNSET.toLong() -> dataSpec.length
-                    fileSize >= 0 -> (fileSize - dataSpec.position).coerceAtLeast(minimumValue = 0)
-                    else -> C.LENGTH_UNSET.toLong()
+                bytesRemaining = if (dataSpec.length != C.LENGTH_UNSET.toLong()) {
+                    dataSpec.length
+                } else {
+                    val cachedSize = fileSizeCache[cacheKey]
+                    val fileSize = if (cachedSize != null && cachedSize >= 0L) {
+                        cachedSize
+                    } else {
+                        target.client.fileSize(target.filePath).also { resolved ->
+                            if (resolved >= 0L) {
+                                if (fileSizeCache.size >= MAX_CACHE_ENTRIES) {
+                                    fileSizeCache.clear()
+                                }
+                                fileSizeCache[cacheKey] = resolved
+                            }
+                        }
+                    }
+                    if (fileSize >= 0L) {
+                        (fileSize - dataSpec.position).coerceAtLeast(minimumValue = 0L)
+                    } else {
+                        C.LENGTH_UNSET.toLong()
+                    }
                 }
+
                 stream = target.client.openStream(
                     target.filePath,
                     dataSpec.position,
@@ -48,7 +77,7 @@ class NetworkDataSource(private val sessions: NetworkSessions) : BaseDataSource(
             throw e
         } catch (e: Exception) {
             throw IOException(
-                "Failed to open ${dataSpec.uri}",
+                "Failed to open ${dataSpec.uri.scheme} stream",
                 e,
             )
         }

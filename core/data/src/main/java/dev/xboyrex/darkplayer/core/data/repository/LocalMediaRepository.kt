@@ -65,9 +65,16 @@ class LocalMediaRepository(
         mediaService.fetchFolders(folderPath = folderPath).map { it.toFolder() }
 
     override suspend fun fetchVideos(folderPath: String?): List<Video> =
-        mediaService.fetchVideos(folderPath = folderPath).mapAsync { mediaVideo ->
-            val mediaState = mediumStateDao.get(mediaVideo.uri.toString())
-            mediaVideo.toVideo(mediaState = mediaState)
+        withContext(Dispatchers.IO) {
+            val mediaVideos = mediaService.fetchVideos(folderPath = folderPath)
+            if (mediaVideos.isEmpty()) return@withContext emptyList()
+            val uris = mediaVideos.map { it.uri.toString() }.distinct()
+            val statesByUri = uris.chunked(500)
+                .flatMap { chunk -> mediumStateDao.getByUris(chunk) }
+                .associateBy { it.uriString }
+            mediaVideos.map { mediaVideo ->
+                mediaVideo.toVideo(mediaState = statesByUri[mediaVideo.uri.toString()])
+            }
         }
 
     override fun observePlaybackHistory(): Flow<List<Video>> = combine(
@@ -102,6 +109,15 @@ class LocalMediaRepository(
 
     override suspend fun getVideoState(uri: String): VideoState? =
         mediumStateDao.get(uri = uri)?.toVideoState()
+
+    override suspend fun getVideosState(uris: List<String>): Map<String, VideoState> =
+        withContext(Dispatchers.IO) {
+            val distinctUris = uris.distinct()
+            if (distinctUris.isEmpty()) return@withContext emptyMap()
+            distinctUris.chunked(500)
+                .flatMap { chunk -> mediumStateDao.getByUris(chunk) }
+                .associate { entity -> entity.uriString to entity.toVideoState() }
+        }
 
     override suspend fun getMediaInfo(uri: String): MediaInfo? = withContext(Dispatchers.IO) {
         val video = getVideoByUri(uri = uri) ?: return@withContext null

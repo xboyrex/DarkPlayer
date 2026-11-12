@@ -19,10 +19,9 @@ import org.koin.core.annotation.Named
 /**
  * Produces the hierarchical (tree) view of media for a folder.
  *
- * Each level shows the videos directly inside the current folder plus a [Folder] for every
- * immediate subfolder that contains videos. The top level (folderPath == null) spans all storage
- * volumes: when more than one volume holds videos each volume is shown as a folder ("Internal
- * Storage", a USB drive, …); with a single volume its contents are shown directly.
+ * Implements VP-18 single-pass folder tree index: each video contributes once to its parent
+ * and ancestor folder accumulators in O(V * depth) rather than repeatedly filtering the full
+ * descendant list for every child folder.
  */
 @Factory
 class GetFolderTreeMediaUseCase(
@@ -31,44 +30,97 @@ class GetFolderTreeMediaUseCase(
     @Named(DiQualifiers.DEFAULT_DISPATCHER) private val defaultDispatcher: CoroutineDispatcher,
 ) {
 
+    private class FolderAccumulator(val path: String) {
+        var dateModified: Long = 0L
+        var totalSize: Long = 0L
+        var totalDuration: Long = 0L
+        var directVideosCount: Int = 0
+        var newVideosCount: Int = 0
+        val immediateChildren = LinkedHashSet<String>()
+        val directVideos = ArrayList<Video>()
+    }
+
     operator fun invoke(folderPath: String? = null): Flow<MediaHolder> = combine(
         mediaRepository.observeVideos(folderPath = folderPath),
         preferencesRepository.applicationPreferences,
         flow3 = newVideoClock(),
     ) { videos, preferences, nowMillis ->
-        val included = videos.filterNot { it.parentPath in preferences.excludeFolders }
+        val excludedSet = preferences.excludeFolders.toHashSet()
+        val included = videos.filterNot { it.parentPath in excludedSet }
         val sort = Sort(
             by = preferences.sortBy,
             order = preferences.sortOrder,
         )
         val thresholdDays = preferences.newVideoThresholdDays
+        val treeIndex = buildFolderTreeIndex(
+            videos = included,
+            thresholdDays = thresholdDays,
+            nowMillis = nowMillis,
+        )
 
         if (folderPath != null) {
-            mediaUnder(
+            mediaUnderIndexed(
                 root = folderPath,
-                videos = included,
-                preferences.excludeFolders,
+                treeIndex = treeIndex,
+                excludedFolders = excludedSet,
                 sort = sort,
-                thresholdDays = thresholdDays,
-                nowMillis = nowMillis,
             )
         } else {
-            topLevelMedia(
+            topLevelMediaIndexed(
                 videos = included,
-                preferences.excludeFolders,
+                treeIndex = treeIndex,
+                excludedFolders = excludedSet,
                 sort = sort,
-                thresholdDays = thresholdDays,
-                nowMillis = nowMillis,
             )
         }
     }.flowOn(context = defaultDispatcher)
 
-    private fun topLevelMedia(
+    private fun buildFolderTreeIndex(
         videos: List<Video>,
-        excludedFolders: Collection<String>,
-        sort: Sort,
         thresholdDays: Int,
         nowMillis: Long,
+    ): Map<String, FolderAccumulator> {
+        val index = HashMap<String, FolderAccumulator>(videos.size.coerceAtLeast(16))
+        for (video in videos) {
+            val isNewVideo = video.isNew(
+                nowMillis = nowMillis,
+                thresholdDays = thresholdDays,
+            )
+            val parentPath = video.parentPath
+            val volumeRoot = volumeRootOf(video.path)
+
+            var currentPath: String? = parentPath
+            var childPath: String? = null
+            while (!currentPath.isNullOrEmpty() && currentPath != "/") {
+                val acc = index.getOrPut(currentPath) { FolderAccumulator(currentPath) }
+                if (video.dateModified > acc.dateModified) {
+                    acc.dateModified = video.dateModified
+                }
+                acc.totalSize += video.size
+                acc.totalDuration += video.duration
+                if (isNewVideo) {
+                    acc.newVideosCount += 1
+                }
+                if (currentPath == parentPath) {
+                    acc.directVideosCount += 1
+                    acc.directVideos.add(video)
+                }
+                if (childPath != null) {
+                    acc.immediateChildren.add(childPath)
+                }
+                if (currentPath == volumeRoot) break
+                childPath = currentPath
+                currentPath = File(currentPath).parent
+            }
+        }
+        return index
+    }
+
+    private fun topLevelMediaIndexed(
+        videos: List<Video>,
+        treeIndex: Map<String, FolderAccumulator>,
+        excludedFolders: Set<String>,
+        sort: Sort,
     ): MediaHolder {
         val volumeRoots = videos.mapNotNull { volumeRootOf(it.path) }.distinct()
         if (volumeRoots.size <= 1) {
@@ -77,27 +129,17 @@ class GetFolderTreeMediaUseCase(
                     videos = emptyList(),
                     folders = emptyList(),
                 )
-            return mediaUnder(
+            return mediaUnderIndexed(
                 root = root,
-                videos = videos,
+                treeIndex = treeIndex,
                 excludedFolders = excludedFolders,
                 sort = sort,
-                thresholdDays = thresholdDays,
-                nowMillis = nowMillis,
             )
         }
         val folders = volumeRoots
             .filterNot { it in excludedFolders }
-            .map { volumeRoot ->
-                summarize(
-                    path = volumeRoot,
-                    descendantVideos = videosUnder(
-                        path = volumeRoot,
-                        videos = videos,
-                    ),
-                    thresholdDays = thresholdDays,
-                    nowMillis = nowMillis,
-                )
+            .mapNotNull { volumeRoot ->
+                treeIndex[volumeRoot]?.toFolder()
             }
         return MediaHolder(
             videos = emptyList(),
@@ -105,95 +147,43 @@ class GetFolderTreeMediaUseCase(
         )
     }
 
-    /** The videos directly inside [root] plus a [Folder] for each immediate subfolder with videos. */
-    private fun mediaUnder(
+    private fun mediaUnderIndexed(
         root: String,
-        videos: List<Video>,
-        excludedFolders: Collection<String>,
+        treeIndex: Map<String, FolderAccumulator>,
+        excludedFolders: Set<String>,
         sort: Sort,
-        thresholdDays: Int,
-        nowMillis: Long,
     ): MediaHolder {
-        val descendants = videosUnder(
-            path = root,
-            videos = videos,
-        )
-        val directVideos = descendants.filter { it.parentPath == root }
-        val folders = immediateChildFolders(
-            path = root,
-            videos = descendants,
-        )
+        val rootAcc = treeIndex[root]
+            ?: return MediaHolder(
+                videos = emptyList(),
+                folders = emptyList(),
+            )
+        val folders = rootAcc.immediateChildren
             .filterNot { it in excludedFolders }
-            .map { childPath ->
-                summarize(
-                    path = childPath,
-                    descendantVideos = videosUnder(
-                        path = childPath,
-                        videos = descendants,
-                    ),
-                    thresholdDays = thresholdDays,
-                    nowMillis = nowMillis,
-                )
+            .mapNotNull { childPath ->
+                treeIndex[childPath]?.toFolder()
             }
-
         return MediaHolder(
-            videos = directVideos.sortedWith(sort.videoComparator()),
+            videos = rootAcc.directVideos.sortedWith(sort.videoComparator()),
             folders = folders.sortedWith(sort.folderComparator()),
         )
     }
 
-    /** Builds a [Folder] aggregating the stats of every video beneath [path]. */
-    private fun summarize(
-        path: String,
-        descendantVideos: List<Video>,
-        thresholdDays: Int,
-        nowMillis: Long,
-    ): Folder {
+    private fun FolderAccumulator.toFolder(): Folder {
         val file = File(path)
         return Folder(
             name = file.prettyName,
             path = path,
             parentPath = file.parent,
-            dateModified = descendantVideos.maxOfOrNull { it.dateModified } ?: 0L,
-            totalSize = descendantVideos.sumOf { it.size },
-            totalDuration = descendantVideos.sumOf { it.duration },
-            videosCount = descendantVideos.count { it.parentPath == path },
-            foldersCount = immediateChildFolders(
-                path = path,
-                videos = descendantVideos,
-            ).size,
-            newVideosCount = descendantVideos.count {
-                it.isNew(
-                    nowMillis = nowMillis,
-                    thresholdDays = thresholdDays,
-                )
-            },
+            dateModified = dateModified,
+            totalSize = totalSize,
+            totalDuration = totalDuration,
+            videosCount = directVideosCount,
+            foldersCount = immediateChildren.size,
+            newVideosCount = newVideosCount,
         )
     }
 
-    /** Distinct immediate subfolders of [path] that contain at least one of [videos] (which are all beneath [path]). */
-    private fun immediateChildFolders(path: String, videos: List<Video>): List<String> {
-        val prefix = path + File.separator
-        return videos
-            .filter { it.parentPath != path }
-            .map {
-                prefix +
-                    it.parentPath.removePrefix(prefix = prefix).substringBefore(File.separator)
-            }
-            .distinct()
-    }
-
-    /** All videos located somewhere beneath [path]. */
-    private fun videosUnder(path: String, videos: List<Video>): List<Video> {
-        val prefix = path + File.separator
-        return videos.filter { it.path.startsWith(prefix = prefix) }
-    }
-
-    /**
-     * Infers the storage-volume root that contains [path] from its canonical MediaStore path:
-     * "/storage/emulated/<user>" for emulated (internal) storage, or "/storage/<volume>" for
-     * removable volumes (SD card / USB OTG). Returns null for unrecognised layouts.
-     */
     private fun volumeRootOf(path: String): String? {
         val parts = path.split('/').filter { it.isNotEmpty() }
         return when {

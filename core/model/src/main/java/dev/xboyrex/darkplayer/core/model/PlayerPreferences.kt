@@ -143,6 +143,11 @@ data class PlayerPreferences(
     val subtitleBorderWidth: Float = 2f,
     val subtitleShadowEnabled: Boolean = true,
     val subtitleTextColorHex: String = "#FFFFFF",
+    val subtitleAlignment: SubtitleAlignment = SubtitleAlignment.CENTER,
+    val subtitleScale: Float = 1.0f,
+    val subtitleBorderEnabled: Boolean = true,
+    val subtitleFadeOut: Boolean = false,
+    val matchContentFrameRate: Boolean = true,
 ) {
 
     companion object {

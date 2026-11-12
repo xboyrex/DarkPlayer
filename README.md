@@ -65,7 +65,7 @@ cd DarkPlayer
 
 # Run unit tests and assemble FOSS release APKs
 chmod +x ./gradlew
-./gradlew testFossDebugUnitTest assembleFossRelease
+./gradlew testDebugUnitTest :app:assembleRelease
 ```
 
 ### Custom Release Signing (Optional)
@@ -77,7 +77,7 @@ export RELEASE_STORE_FILE="/path/to/release.jks"
 export RELEASE_STORE_PASSWORD="your_store_password"
 export RELEASE_KEY_ALIAS="your_key_alias"
 export RELEASE_KEY_PASSWORD="your_key_password"
-./gradlew assembleFossRelease
+./gradlew :app:assembleRelease
 ```
 
 ---

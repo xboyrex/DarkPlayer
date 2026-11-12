@@ -1011,34 +1011,26 @@ private fun MxInfoItem(label: String, value: String) {
  */
 @OptIn(UnstableApi::class)
 fun captureVideoScreenshot(context: android.content.Context, player: Player) {
-    val uriString = player.currentMediaItem?.mediaId ?: return
-    val posUs = player.currentPosition * 1000L
-    val retriever = MediaMetadataRetriever()
-    try {
-        retriever.setDataSource(context, android.net.Uri.parse(uriString))
-        val bmp = retriever.getFrameAtTime(posUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
-        if (bmp != null) {
-            val dir = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-                "NovaPlayer",
-            )
-            dir.mkdirs()
-            val file = File(dir, "Nova_Screenshot_${System.currentTimeMillis()}.png")
-            FileOutputStream(file).use { out ->
-                bmp.compress(Bitmap.CompressFormat.PNG, 95, out)
-            }
+    when (
+        val result = dev.xboyrex.darkplayer.feature.player.utils.VideoFrameCapture.captureAndSaveCurrentFrame(
+            context = context,
+            player = player,
+        )
+    ) {
+        is dev.xboyrex.darkplayer.feature.player.utils.FrameSaveResult.Success -> {
             Toast.makeText(
                 context,
-                "Screenshot saved: ${file.name}",
+                "Screenshot saved: ${result.fileName}",
                 Toast.LENGTH_SHORT,
             ).show()
-        } else {
-            Toast.makeText(context, "Frame captured to clipboard/gallery", Toast.LENGTH_SHORT).show()
         }
-    } catch (_: Exception) {
-        Toast.makeText(context, "Screenshot captured", Toast.LENGTH_SHORT).show()
-    } finally {
-        runCatching { retriever.release() }
+        is dev.xboyrex.darkplayer.feature.player.utils.FrameSaveResult.Failure -> {
+            Toast.makeText(
+                context,
+                "Screenshot failed: ${result.reason}",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
     }
 }
 

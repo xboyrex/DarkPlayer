@@ -2,9 +2,9 @@ package dev.xboyrex.darkplayer.core.data.security
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import android.util.Base64
 import java.security.KeyStore
 import java.security.SecureRandom
+import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -13,7 +13,7 @@ import javax.crypto.spec.SecretKeySpec
 
 /**
  * Hardware-backed Android Keystore AES-256-GCM encryption for saved network passwords,
- * SSH private key passphrases, and sensitive tokens (NP-03).
+ * SSH private key passphrases, and sensitive tokens (NP-03 / VP-09).
  */
 object SecureCredentialStore {
     private const val ANDROID_KEYSTORE = "AndroidKeyStore"
@@ -49,7 +49,6 @@ object SecureCredentialStore {
                 keyGenerator.generateKey()
             }
         } catch (_: Throwable) {
-            // Fallback ephemeral key when running inside JVM unit tests without AndroidKeyStore
             fallbackTestKey ?: synchronized(this) {
                 fallbackTestKey ?: run {
                     val bytes = ByteArray(32)
@@ -63,14 +62,8 @@ object SecureCredentialStore {
     fun encrypt(plaintext: String): String {
         if (plaintext.isEmpty() || plaintext.startsWith(PREFIX)) return plaintext
         return try {
-            val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(Cipher.ENCRYPT_MODE, getOrCreateSecretKey())
-            val iv = cipher.iv
-            val ciphertext = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
-            val combined = ByteArray(iv.size + ciphertext.size)
-            System.arraycopy(iv, 0, combined, 0, iv.size)
-            System.arraycopy(ciphertext, 0, combined, iv.size, ciphertext.size)
-            PREFIX + Base64.encodeToString(combined, Base64.NO_WRAP)
+            val encrypted = encryptBytes(plaintext.toByteArray(Charsets.UTF_8))
+            PREFIX + Base64.getEncoder().encodeToString(encrypted)
         } catch (_: Throwable) {
             plaintext
         }
@@ -79,19 +72,35 @@ object SecureCredentialStore {
     fun decrypt(stored: String): String {
         if (stored.isEmpty() || !stored.startsWith(PREFIX)) return stored
         return try {
-            val raw = Base64.decode(stored.removePrefix(PREFIX), Base64.NO_WRAP)
-            if (raw.size <= GCM_IV_LENGTH) return ""
-            val iv = raw.copyOfRange(0, GCM_IV_LENGTH)
-            val ciphertext = raw.copyOfRange(GCM_IV_LENGTH, raw.size)
-            val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(
-                Cipher.DECRYPT_MODE,
-                getOrCreateSecretKey(),
-                GCMParameterSpec(GCM_TAG_BITS, iv),
-            )
-            String(cipher.doFinal(ciphertext), Charsets.UTF_8)
+            val raw = Base64.getDecoder().decode(stored.removePrefix(PREFIX))
+            val plain = decryptBytes(raw) ?: return ""
+            String(plain, Charsets.UTF_8)
         } catch (_: Throwable) {
             ""
         }
+    }
+
+    fun encryptBytes(plainBytes: ByteArray): ByteArray {
+        val cipher = Cipher.getInstance(TRANSFORMATION)
+        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateSecretKey())
+        val iv = cipher.iv
+        val ciphertext = cipher.doFinal(plainBytes)
+        val combined = ByteArray(iv.size + ciphertext.size)
+        System.arraycopy(iv, 0, combined, 0, iv.size)
+        System.arraycopy(ciphertext, 0, combined, iv.size, ciphertext.size)
+        return combined
+    }
+
+    fun decryptBytes(combined: ByteArray): ByteArray? {
+        if (combined.size <= GCM_IV_LENGTH) return null
+        val iv = combined.copyOfRange(0, GCM_IV_LENGTH)
+        val ciphertext = combined.copyOfRange(GCM_IV_LENGTH, combined.size)
+        val cipher = Cipher.getInstance(TRANSFORMATION)
+        cipher.init(
+            Cipher.DECRYPT_MODE,
+            getOrCreateSecretKey(),
+            GCMParameterSpec(GCM_TAG_BITS, iv),
+        )
+        return cipher.doFinal(ciphertext)
     }
 }

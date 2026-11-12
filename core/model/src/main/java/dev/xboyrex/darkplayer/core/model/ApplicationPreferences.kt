@@ -59,6 +59,7 @@ data class ApplicationPreferences(
     val httpUserAgent: String = "",
     val showQuitButton: Boolean = false,
     val allowEditing: Boolean = true,
+    val clearPlaybackHistoryOnExit: Boolean = false,
     val deleteSubtitleFilesTogether: Boolean = true,
     val cacheThumbnail: Boolean = true,
 ) {

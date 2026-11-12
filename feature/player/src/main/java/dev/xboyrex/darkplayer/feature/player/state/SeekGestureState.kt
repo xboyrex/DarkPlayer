@@ -1,5 +1,6 @@
 package dev.xboyrex.darkplayer.feature.player.state
 
+import android.os.SystemClock
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -55,6 +56,18 @@ class SeekGestureState(
         private set
 
     private var seekStartX = 0f
+    private var lastRemoteSeekDispatchMs = 0L
+    private var pendingRemoteSeekPosition: Long? = null
+
+    companion object {
+        private const val REMOTE_SEEK_THROTTLE_MS = 140L
+        private val REMOTE_SHARE_SCHEMES = setOf("smb", "sftp", "ftp", "webdav", "webdavs")
+    }
+
+    private fun isRemoteNetworkShare(): Boolean {
+        val scheme = player.currentMediaItem?.localConfiguration?.uri?.scheme?.lowercase()
+        return scheme in REMOTE_SHARE_SCHEMES
+    }
 
     fun onSeek(value: Long) {
         val duration = player.duration
@@ -73,10 +86,11 @@ class SeekGestureState(
             maximumValue = duration,
         )
         seekAmount = position - seekStartPosition!!
-        player.seekTo(position)
+        dispatchOrThrottleSeek(position)
     }
 
     fun onSeekEnd() {
+        flushPendingRemoteSeek()
         reset()
     }
 
@@ -89,6 +103,7 @@ class SeekGestureState(
         isSeeking = true
         seekStartX = offset.x
         seekStartPosition = player.currentPosition
+        pendingRemoteSeekPosition = null
 
         player.setIsScrubbingModeEnabled(enabled = true)
     }
@@ -113,11 +128,37 @@ class SeekGestureState(
             maximumValue = duration,
         )
         seekAmount = position - seekStartPosition!!
-        player.seekTo(position)
+        dispatchOrThrottleSeek(position)
     }
 
     fun onDragEnd() {
+        flushPendingRemoteSeek()
         reset()
+    }
+
+    private fun dispatchOrThrottleSeek(position: Long) {
+        if (!isRemoteNetworkShare()) {
+            pendingRemoteSeekPosition = null
+            player.seekTo(position)
+            return
+        }
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastRemoteSeekDispatchMs >= REMOTE_SEEK_THROTTLE_MS) {
+            lastRemoteSeekDispatchMs = now
+            pendingRemoteSeekPosition = null
+            player.seekTo(position)
+        } else {
+            pendingRemoteSeekPosition = position
+        }
+    }
+
+    private fun flushPendingRemoteSeek() {
+        val pending = pendingRemoteSeekPosition ?: return
+        pendingRemoteSeekPosition = null
+        val duration = player.duration
+        if (duration > 0 && player.currentPosition >= 0 && player.isCurrentMediaItemSeekable) {
+            player.seekTo(pending.coerceIn(0L, duration))
+        }
     }
 
     private fun reset() {
@@ -125,7 +166,7 @@ class SeekGestureState(
         isSeeking = false
         seekStartPosition = null
         seekAmount = null
-
+        pendingRemoteSeekPosition = null
         seekStartX = 0f
     }
 }

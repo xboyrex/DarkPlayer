@@ -1,9 +1,24 @@
 package dev.xboyrex.darkplayer.feature.player.extensions
 
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.FixedScale
+import androidx.compose.ui.layout.ScaleFactor
 import dev.xboyrex.darkplayer.core.model.VideoContentScale
 import dev.xboyrex.darkplayer.core.ui.R
+
+/**
+ * 1:1 Original Source Pixel Scale (VP-12).
+ * Renders the video at its native pixel dimensions centered inside the destination surface,
+ * falling back to [ContentScale.Fit] if source dimensions are unknown or zero.
+ */
+object NativePixelContentScale : ContentScale {
+    override fun computeScaleFactor(srcSize: Size, dstSize: Size): ScaleFactor {
+        if (srcSize.width <= 0f || srcSize.height <= 0f || dstSize.width <= 0f || dstSize.height <= 0f) {
+            return ScaleFactor(1f, 1f)
+        }
+        return ScaleFactor(1f, 1f)
+    }
+}
 
 fun VideoContentScale.nameRes(): Int = when (this) {
     VideoContentScale.BEST_FIT -> R.string.best_fit
@@ -23,5 +38,5 @@ fun VideoContentScale.toContentScale(): ContentScale = when (this) {
     VideoContentScale.BEST_FIT -> ContentScale.Fit
     VideoContentScale.STRETCH -> ContentScale.FillBounds
     VideoContentScale.CROP -> ContentScale.Crop
-    VideoContentScale.HUNDRED_PERCENT -> FixedScale(value = 1.0f) // TODO: fix this
+    VideoContentScale.HUNDRED_PERCENT -> NativePixelContentScale
 }

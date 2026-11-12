@@ -52,6 +52,7 @@ import dev.xboyrex.darkplayer.feature.player.service.startBackgroundPlayback
 import dev.xboyrex.darkplayer.feature.player.service.stopPlayerSession
 import dev.xboyrex.darkplayer.feature.player.service.tryDecoderFallback
 import dev.xboyrex.darkplayer.feature.player.state.rememberMediaController
+import dev.xboyrex.darkplayer.feature.player.utils.DisplaySyncEngine
 import dev.xboyrex.darkplayer.feature.player.utils.PlayerApi
 import dev.xboyrex.darkplayer.feature.player.utils.PlaylistPlaybackContract
 import dev.xboyrex.darkplayer.feature.player.utils.toMediaQueue
@@ -117,6 +118,11 @@ class PlayerActivity : ComponentActivity() {
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             updateKeepScreenOnFlag()
+            updateDisplayFrameRateSync()
+        }
+
+        override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+            updateDisplayFrameRateSync()
         }
 
         override fun onPlayerError(error: PlaybackException) {
@@ -278,6 +284,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        DisplaySyncEngine.restoreDefaultDisplayMode(window)
         backgroundControllerFuture?.let {
             MediaController.releaseFuture(it)
             mediaController = null
@@ -681,6 +688,21 @@ class PlayerActivity : ComponentActivity() {
                 )?.name,
         )
         super.onSaveInstanceState(outState)
+    }
+
+    private fun updateDisplayFrameRateSync() {
+        if (playerApi.launchInBackground || !playerPreferences.matchContentFrameRate) {
+            DisplaySyncEngine.restoreDefaultDisplayMode(window)
+            return
+        }
+        val controller = mediaController
+        val isPlaying = controller?.isPlaying == true
+        val frameRate = controller?.videoFormat?.frameRate ?: 0f
+        if (isPlaying && frameRate > 0f) {
+            DisplaySyncEngine.matchWindowRefreshRate(window, frameRate)
+        } else {
+            DisplaySyncEngine.restoreDefaultDisplayMode(window)
+        }
     }
 
     private fun updateKeepScreenOnFlag() {

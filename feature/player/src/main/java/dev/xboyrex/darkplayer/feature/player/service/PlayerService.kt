@@ -99,6 +99,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.guava.future
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import org.koin.core.qualifier.named
@@ -200,8 +202,21 @@ class PlayerService : MediaSessionService() {
         ) {
             Logger.logInfo(
                 tag = DECODER_LOG_TAG,
-                message = "Rendered first frame with video=${decoderManager.activeVideoMode}",
+                message = "Rendered first frame with video=${decoderManager.activeVideoMode} at renderTimeMs=$renderTimeMs",
             )
+        }
+
+        override fun onDroppedVideoFrames(
+            eventTime: AnalyticsListener.EventTime,
+            droppedFrames: Int,
+            elapsedMs: Long,
+        ) {
+            if (droppedFrames > 0) {
+                Logger.logInfo(
+                    tag = DECODER_LOG_TAG,
+                    message = "Dropped $droppedFrames video frames over ${elapsedMs}ms (mode=${decoderManager.activeVideoMode})",
+                )
+            }
         }
 
         override fun onPlayerError(
@@ -545,35 +560,45 @@ class PlayerService : MediaSessionService() {
         runCatching {
             val eq = audioEqualizer
             if (eq != null) {
-                eq.enabled = prefs.equalizerEnabled
-                val bands = prefs.equalizerBands.split(",")
-                    .mapNotNull { it.trim().toIntOrNull() }
+                eq.enabled = prefs.enableAudioEqualizer
+                val bands = prefs.equalizerBandGainsDb
                 val numBands = eq.numberOfBands.toInt().coerceAtMost(bands.size)
                 val range = eq.bandLevelRange
-                val minLevel = range.getOrNull(0) ?: -1500
-                val maxLevel = range.getOrNull(1) ?: 1500
+                val minLevel = range.getOrNull(0)?.toInt() ?: -1500
+                val maxLevel = range.getOrNull(1)?.toInt() ?: 1500
                 for (i in 0 until numBands) {
-                    val targetMb = (bands[i] * 100 + prefs.equalizerPreampDb * 100)
-                        .coerceIn(minLevel.toInt(), maxLevel.toInt())
+                    val targetMb = (bands[i] * 100)
+                        .coerceIn(minLevel, maxLevel)
                         .toShort()
                     eq.setBandLevel(i.toShort(), targetMb)
                 }
             }
             bassBoostEffect?.apply {
-                enabled = prefs.equalizerEnabled && prefs.bassBoostStrength > 0
+                val strength = (prefs.bassBoostPercent * 10).coerceIn(0, 1000)
+                enabled = prefs.enableAudioEqualizer && strength > 0
                 if (strengthSupported) {
-                    setStrength(prefs.bassBoostStrength.coerceIn(0, 1000).toShort())
+                    setStrength(strength.toShort())
                 }
             }
             virtualizerEffect?.apply {
-                enabled = prefs.equalizerEnabled && prefs.surroundVirtualizerStrength > 0
+                val strength = (prefs.virtualizerPercent * 10).coerceIn(0, 1000)
+                enabled = prefs.enableAudioEqualizer && strength > 0
                 if (strengthSupported) {
-                    setStrength(prefs.surroundVirtualizerStrength.coerceIn(0, 1000).toShort())
+                    setStrength(strength.toShort())
                 }
             }
             presetReverbEffect?.apply {
-                enabled = prefs.equalizerEnabled && prefs.reverbPreset > 0
-                preset = prefs.reverbPreset.coerceIn(0, 6).toShort()
+                val reverbCode = when (prefs.reverbPreset.lowercase()) {
+                    "smallroom", "small room" -> 1
+                    "mediumroom", "medium room" -> 2
+                    "largeroom", "large room" -> 3
+                    "mediumhall", "medium hall" -> 4
+                    "largehall", "large hall" -> 5
+                    "plate" -> 6
+                    else -> 0
+                }
+                enabled = prefs.enableAudioEqualizer && reverbCode > 0
+                preset = reverbCode.toShort()
             }
         }
     }
@@ -1174,52 +1199,63 @@ class PlayerService : MediaSessionService() {
     private suspend fun updatedMediaItemsWithMetadata(
         mediaItems: List<MediaItem>,
     ): List<MediaItem> = supervisorScope {
+        val batchedStates = runCatching {
+            mediaRepository.getVideosState(mediaItems.map { it.mediaId })
+        }.getOrDefault(emptyMap())
+        val ioSemaphore = Semaphore(permits = 4)
+
         mediaItems.map { mediaItem ->
             async {
-                val uri = mediaItem.mediaId.toUri()
-                val isNetwork = mediaItem.isNetworkMediaItem()
+                ioSemaphore.withPermit {
+                    val uri = mediaItem.mediaId.toUri()
+                    val isNetwork = mediaItem.isNetworkMediaItem()
 
-                val video = if (isNetwork) {
-                    null
-                } else {
-                    mediaRepository.getVideoByUri(
-                        uri = mediaItem.mediaId,
-                    )
-                }
-                val videoState = mediaRepository.getVideoState(uri = mediaItem.mediaId)
-
-                val externalSubs = videoState?.externalSubs ?: emptyList()
-                val savedAudio = videoState?.externalAudio.orEmpty()
-                val externalAudio = withContext(Dispatchers.IO) {
-                    savedAudio.filter { uri ->
-                        runCatching {
-                            contentResolver.openAssetFileDescriptor(
-                                uri,
-                                "r",
-                            )?.use { true } == true
-                        }
-                            .getOrDefault(defaultValue = false)
-                    }
-                }
-                val localSubs = if (!isNetwork) {
-                    (videoState?.path ?: getPath(uri = uri))?.let {
-                        File(it).getLocalSubtitles(
-                            context = this@PlayerService,
-                            excludeSubsList = externalSubs,
+                    val video = if (isNetwork) {
+                        null
+                    } else {
+                        mediaRepository.getVideoByUri(
+                            uri = mediaItem.mediaId,
                         )
-                    } ?: emptyList()
-                } else {
-                    emptyList()
-                }
+                    }
+                    val videoState = batchedStates[mediaItem.mediaId]
+                        ?: mediaRepository.getVideoState(uri = mediaItem.mediaId)
 
-                val existingSubConfigurations =
-                    mediaItem.localConfiguration?.subtitleConfigurations ?: emptyList()
-                val subConfigurations = (localSubs + externalSubs).map { subtitleUri ->
-                    uriToSubtitleConfiguration(
-                        uri = subtitleUri,
-                        subtitleEncoding = playerPreferences.subtitleTextEncoding,
-                    )
-                }
+                    val externalSubs = videoState?.externalSubs ?: emptyList()
+                    val savedAudio = videoState?.externalAudio.orEmpty()
+                    val externalAudio = if (savedAudio.isEmpty()) {
+                        emptyList()
+                    } else {
+                        withContext(Dispatchers.IO) {
+                            savedAudio.filter { audioUri ->
+                                runCatching {
+                                    contentResolver.openAssetFileDescriptor(
+                                        audioUri,
+                                        "r",
+                                    )?.use { true } == true
+                                }
+                                    .getOrDefault(defaultValue = false)
+                            }
+                        }
+                    }
+                    val localSubs = if (!isNetwork) {
+                        (video?.path ?: videoState?.path ?: getPath(uri = uri))?.let {
+                            File(it).getLocalSubtitles(
+                                context = this@PlayerService,
+                                excludeSubsList = externalSubs,
+                            )
+                        } ?: emptyList()
+                    } else {
+                        emptyList()
+                    }
+
+                    val existingSubConfigurations =
+                        mediaItem.localConfiguration?.subtitleConfigurations ?: emptyList()
+                    val subConfigurations = (localSubs + externalSubs).map { subtitleUri ->
+                        uriToSubtitleConfiguration(
+                            uri = subtitleUri,
+                            subtitleEncoding = playerPreferences.subtitleTextEncoding,
+                        )
+                    }
 
                 // Local items get a placeholder now and their real artwork in the background;
                 // network items have no thumbnail to extract, so keep any supplied artwork.
@@ -1245,7 +1281,12 @@ class PlayerService : MediaSessionService() {
                     mediaItem.mediaMetadata.subtitleSpeed ?: videoState?.subtitleSpeed
 
                 mediaItem.buildUpon().apply {
-                    setSubtitleConfigurations(existingSubConfigurations + subConfigurations)
+                    setSubtitleConfigurations(
+                        deduplicateSubtitleConfigurations(
+                            existing = existingSubConfigurations,
+                            added = subConfigurations,
+                        ),
+                    )
                     setMediaMetadata(
                         MediaMetadata.Builder().apply {
                             setTitle(title)
@@ -1265,6 +1306,7 @@ class PlayerService : MediaSessionService() {
                         }.build(),
                     )
                 }.build().withExternalAudio(uris = externalAudio)
+                }
             }
         }.awaitAll()
     }
@@ -1549,3 +1591,11 @@ private val REMOTE_SCHEMES = setOf(
     "https",
     "rtsp",
 )
+
+internal fun deduplicateSubtitleConfigurations(
+    existing: List<MediaItem.SubtitleConfiguration>,
+    added: List<MediaItem.SubtitleConfiguration>,
+): List<MediaItem.SubtitleConfiguration> =
+    (existing + added).distinctBy { config ->
+        config.id ?: "${config.uri}|${config.mimeType.orEmpty()}|${config.language.orEmpty()}"
+    }

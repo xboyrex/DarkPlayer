@@ -54,23 +54,23 @@ fun PlayerButton(
     val context = LocalContext.current
     val isTv = remember { context.isTelevision }
 
-    LaunchedEffect(key1 = interactionSource) {
-        var isLongPressClicked = false
-        interactionSource.interactions.collectLatest { interaction ->
-            when (interaction) {
-                is PressInteraction.Press -> {
-                    isLongPressClicked = false
-                    delay(viewConfiguration.longPressTimeoutMillis.milliseconds)
-                    onLongClick?.let {
+    if (onLongClick != null) {
+        LaunchedEffect(key1 = interactionSource, key2 = onLongClick) {
+            var isLongPressClicked = false
+            interactionSource.interactions.collectLatest { interaction ->
+                when (interaction) {
+                    is PressInteraction.Press -> {
+                        isLongPressClicked = false
+                        delay(viewConfiguration.longPressTimeoutMillis.milliseconds)
                         isLongPressClicked = true
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        it.invoke()
+                        onLongClick.invoke()
                     }
-                }
 
-                is PressInteraction.Release -> {
-                    if (!isLongPressClicked) {
-                        onClick()
+                    is PressInteraction.Release -> {
+                        if (!isLongPressClicked) {
+                            onClick()
+                        }
                     }
                 }
             }
@@ -117,7 +117,7 @@ fun PlayerButton(
                 .clickable(
                     interactionSource = interactionSource,
                     enabled = enabled,
-                    onClick = {},
+                    onClick = { if (onLongClick == null) onClick() },
                 )
                 .padding(paddingValues = contentPadding)
                 .tvFocusRing(isTv = isTv),

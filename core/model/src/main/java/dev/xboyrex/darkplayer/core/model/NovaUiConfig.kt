@@ -113,3 +113,10 @@ enum class MxTouchAction {
     PLAY_PAUSE,
     PLAY_SHOW_HIDE_INTERFACE,
 }
+
+@Serializable
+enum class SubtitleAlignment {
+    LEFT,
+    CENTER,
+    RIGHT,
+}

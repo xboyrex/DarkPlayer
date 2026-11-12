@@ -30,6 +30,8 @@ import coil3.util.component2
 import io.github.anilbeesetti.nextlib.mediainfo.MediaThumbnailRetriever
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import okio.FileSystem
 
 class VideoThumbnailDecoder(
@@ -38,6 +40,12 @@ class VideoThumbnailDecoder(
     private val strategy: ThumbnailStrategy,
     private val diskCache: Lazy<DiskCache?>,
 ) : Decoder {
+
+    companion object {
+        private val decodeSemaphore = Semaphore(
+            permits = Runtime.getRuntime().availableProcessors().coerceIn(2, 4),
+        )
+    }
 
     private val diskCacheKey: String
         get() = options.diskCacheKey ?: run {
@@ -100,8 +108,9 @@ class VideoThumbnailDecoder(
             }
         }
 
-        // Cache miss OR cache insufficient: decode fresh thumbnail
-        val rawBitmap = MediaMetadataRetriever().use { nativeRetriever ->
+        // Cache miss OR cache insufficient: decode fresh thumbnail with bounded concurrency (VP-21)
+        val rawBitmap = decodeSemaphore.withPermit {
+            MediaMetadataRetriever().use { nativeRetriever ->
             MediaThumbnailRetriever().use { ffmpegRetriever ->
                 nativeRetriever.setDataSource(source = source)
                 val fallbackRetriever = try {
@@ -153,6 +162,7 @@ class VideoThumbnailDecoder(
                         }
                     }
                 } ?: throw IllegalStateException("Failed to get video thumbnail.")
+            }
             }
         }
 
