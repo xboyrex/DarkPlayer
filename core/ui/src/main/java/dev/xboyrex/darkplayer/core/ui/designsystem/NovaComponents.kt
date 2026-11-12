@@ -44,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -189,8 +190,10 @@ fun NovaFluidSlider(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-    onValueChangeFinished: (() -> Unit)? = null,
+    onValueChangeFinished: () -> Unit = {},
 ) {
+    val currentOnValueChange by rememberUpdatedState(onValueChange)
+    val currentOnValueChangeFinished by rememberUpdatedState(onValueChangeFinished)
     val view = LocalView.current
     val hapticsEnabled = LocalNovaHapticsEnabled.current
     val span = (valueRange.endInclusive - valueRange.start).coerceAtLeast(0.0001f)
@@ -210,19 +213,19 @@ fun NovaFluidSlider(
                 detectTapGestures { offset ->
                     val f = (offset.x / size.width.toFloat()).coerceIn(0f, 1f)
                     view.novaHaptic(8L, 100, hapticsEnabled)
-                    onValueChange(valueRange.start + f * span)
-                    onValueChangeFinished?.invoke()
+                    currentOnValueChange(valueRange.start + f * span)
+                    currentOnValueChangeFinished()
                 }
             }
             .pointerInput(enabled, valueRange) {
                 if (!enabled) return@pointerInput
                 detectHorizontalDragGestures(
-                    onDragEnd = { onValueChangeFinished?.invoke() },
-                    onDragCancel = { onValueChangeFinished?.invoke() },
+                    onDragEnd = { currentOnValueChangeFinished() },
+                    onDragCancel = { currentOnValueChangeFinished() },
                 ) { change, _ ->
                     change.consume()
                     val f = (change.position.x / size.width.toFloat()).coerceIn(0f, 1f)
-                    onValueChange(valueRange.start + f * span)
+                    currentOnValueChange(valueRange.start + f * span)
                 }
             },
         contentAlignment = Alignment.CenterStart,

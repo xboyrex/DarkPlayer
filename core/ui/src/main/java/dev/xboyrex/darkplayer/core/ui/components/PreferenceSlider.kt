@@ -116,9 +116,9 @@ fun PreferenceSlider(
                     NovaFluidSlider(
                         value = value.coerceIn(valueRange),
                         onValueChange = onValueChange,
-                        onValueChangeFinished = onValueChangeFinished,
                         valueRange = valueRange,
                         enabled = enabled,
+                        onValueChangeFinished = { onValueChangeFinished?.invoke() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 4.dp),
@@ -130,7 +130,7 @@ fun PreferenceSlider(
                         steps = steps,
                         enabled = enabled,
                         onValueChange = onValueChange,
-                        onValueChangeFinished = onValueChangeFinished,
+                        onValueChangeFinished = { onValueChangeFinished?.invoke() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 4.dp),

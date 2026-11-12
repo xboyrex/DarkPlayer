@@ -8,6 +8,7 @@ plugins {
 android {
     namespace = "dev.xboyrex.darkplayer.core.common"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+    buildToolsVersion = libs.versions.android.buildTools.get()
 
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()

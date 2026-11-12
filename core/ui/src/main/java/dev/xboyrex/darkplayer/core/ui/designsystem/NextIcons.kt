@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Animation
 import androidx.compose.material.icons.rounded.AppSettingsAlt
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
@@ -35,10 +36,7 @@ import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.DoubleArrow
 import androidx.compose.material.icons.rounded.DragHandle
-import androidx.compose.material.icons.rounded.Animation
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Equalizer
-import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.FileOpen
 import androidx.compose.material.icons.rounded.FilterFrames
@@ -95,6 +93,7 @@ import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Update
+import androidx.compose.material.icons.rounded.ZoomIn
 
 object NextIcons {
     val Add = Icons.Rounded.Add
@@ -109,6 +108,10 @@ object NextIcons {
     val Brightness = Icons.Rounded.BrightnessHigh
     val Calendar = Icons.Rounded.CalendarMonth
     val Caption = Icons.Rounded.ClosedCaption
+    val Cpu = Icons.Rounded.DeveloperBoard
+    val Equalizer = Icons.Rounded.Tune
+    val ZoomIn = Icons.Rounded.ZoomIn
+    val Animation = Icons.Rounded.Animation
     val Check = Icons.Rounded.Check
     val CheckBox = Icons.Rounded.CheckCircle
     val CheckBoxOutline = Icons.Rounded.RadioButtonUnchecked
@@ -189,8 +192,4 @@ object NextIcons {
     val Fingerprint = Icons.Rounded.Fingerprint
     val DragHandle = Icons.Rounded.DragHandle
     val Reorder = Icons.Rounded.SwapVert
-    val Cpu = Icons.Rounded.DeveloperBoard
-    val Equalizer = Icons.Rounded.Equalizer
-    val ZoomIn = Icons.Rounded.ZoomIn
-    val Animation = Icons.Rounded.Animation
 }

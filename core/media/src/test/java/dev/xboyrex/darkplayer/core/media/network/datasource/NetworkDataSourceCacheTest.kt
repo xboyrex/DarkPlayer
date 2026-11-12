@@ -32,16 +32,22 @@ class NetworkDataSourceCacheTest {
         val fileSizeCalls = AtomicInteger(0)
         val payload = "0123456789abcdef".toByteArray()
         val fakeClient = object : NetworkClient {
-            override val rootPath: String = "/"
+            override val rootPath: String = "/fake/root"
+
             override suspend fun connect(): Result<Unit> = Result.success(Unit)
+
             override suspend fun disconnect() = Unit
+
             override fun isConnected(): Boolean = true
+
             override suspend fun listFiles(path: String): Result<List<NetworkFile>> =
                 Result.success(emptyList())
+
             override suspend fun fileSize(path: String): Long {
                 fileSizeCalls.incrementAndGet()
                 return payload.size.toLong()
             }
+
             override suspend fun openStream(path: String, offset: Long): InputStream =
                 ByteArrayInputStream(payload.drop(offset.toInt()).toByteArray())
         }

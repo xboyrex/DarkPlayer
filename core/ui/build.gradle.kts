@@ -8,6 +8,7 @@ plugins {
 android {
     namespace = "dev.xboyrex.darkplayer.core.ui"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+    buildToolsVersion = libs.versions.android.buildTools.get()
 
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -51,7 +52,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtimeCompose)
-    api(libs.androidx.compose.material.iconsExtended)
+    implementation(libs.androidx.compose.material.iconsExtended)
 
     testImplementation(libs.junit4)
     androidTestImplementation(platform(libs.androidx.compose.bom))

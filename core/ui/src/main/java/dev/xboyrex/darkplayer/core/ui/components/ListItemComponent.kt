@@ -145,7 +145,7 @@ fun NextSegmentedListItem(
         ) {
             if (leadingContent != null) {
                 CompositionLocalProvider(
-                    LocalContentColor provides if (selected) accent else colors.leadingContentColor,
+                    LocalContentColor provides if (selected) accent else colors.leadingIconColor,
                 ) {
                     leadingContent()
                 }
@@ -159,7 +159,7 @@ fun NextSegmentedListItem(
                 if (overlineContent != null) {
                     ProvideTextStyle(
                         MaterialTheme.typography.labelSmall.copy(
-                            color = colors.overlineContentColor,
+                            color = colors.overlineColor,
                         ),
                     ) {
                         overlineContent()
@@ -187,7 +187,7 @@ fun NextSegmentedListItem(
             if (trailingContent != null) {
                 Spacer(modifier = Modifier.width(12.dp))
                 CompositionLocalProvider(
-                    LocalContentColor provides colors.trailingContentColor,
+                    LocalContentColor provides colors.trailingIconColor,
                 ) {
                     trailingContent()
                 }

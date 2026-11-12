@@ -12,8 +12,8 @@
 
 [![Android CI](https://img.shields.io/github/actions/workflow/status/xboyrex/DarkPlayer/build.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=Build%20%26%20Release)](https://github.com/xboyrex/DarkPlayer/actions)
 [![Latest Release](https://img.shields.io/github/v/release/xboyrex/DarkPlayer?style=for-the-badge&logo=android&color=7C3AED&label=Latest%20APK)](https://github.com/xboyrex/DarkPlayer/releases/latest)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-4A90FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
-[![Media3](https://img.shields.io/badge/Media3-1.9.2-EC4899?style=for-the-badge&logo=googleplay&logoColor=white)](https://developer.android.com/media/media3)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-4A90FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Media3](https://img.shields.io/badge/Media3-1.11.1-EC4899?style=for-the-badge&logo=googleplay&logoColor=white)](https://developer.android.com/media/media3)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-10B981?style=for-the-badge)](LICENSE)
 
 </div>
@@ -26,7 +26,7 @@
 | :--- | :--- |
 | **Smart Player HUD & Gestures** | Single center transport (`Prev \| Play/Pause \| Next`), axis-locked horizontal seek vs. vertical volume/brightness gestures, instant `0ms` consecutive `10s` double-tap skips, minimal `2x` hold capsule, and an in-player **UI Switcher** popup. |
 | **Dual Theme & Accent Engine** | Strictly **AMOLED Pitch Black (`#000000`)** and **Pure White (`#FFFFFF`)** surfaces paired with either the **Nova Logo Gradient (`#4A90FF → #7C3AED → #EC4899`)** or **Device Dynamic Accent (Material You)**. |
-| **Hardware + FFmpeg Playback** | Media3 ExoPlayer `1.9.2` with bundled FFmpeg software audio/video decoders (`HW` / `HW+` / `SW`), 5-band Studio Equalizer, Bass Boost, Virtualizer, and up to `200%` Volume Boost (`0–30` scale). |
+| **Hardware + FFmpeg Playback** | Media3 ExoPlayer `1.11.1` with bundled FFmpeg software audio/video decoders (`HW` / `HW+` / `SW`), 5-band Studio Equalizer, Bass Boost, Virtualizer, and up to `200%` Volume Boost (`0–30` scale). |
 | **Security & Storage Integrity** | Hardware-backed **Android Keystore AES-256-GCM** encryption for SMB/SFTP/WebDAV credentials, **PBKDF2-HMAC-SHA256 (`120,000` iterations)** Private Vault PIN with exponential lockout, Android 14+ selected-photos playlist protection, and multi-volume SD/USB discovery. |
 | **Silent Verified OTA Updater** | Non-intrusive background update checker on launch with strict ABI matching, byte-length validation, and `SHA-256` digest verification before package installation. |
 
@@ -63,7 +63,8 @@ NovaPlayer (dev.xboyrex.darkplayer)
 git clone https://github.com/xboyrex/DarkPlayer.git
 cd DarkPlayer
 
-# Run unit tests and assemble FOSS release APKs
+# Toolchain: JDK 21, Gradle 9.9.1, Android Gradle Plugin 9.5.1, Android API 37 (Android 17), Build Tools 37.0.0
+# Run unit tests and assemble release APKs
 chmod +x ./gradlew
 ./gradlew testDebugUnitTest :app:assembleRelease
 ```

@@ -10,9 +10,6 @@ on:
 permissions:
   contents: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 concurrency:
   group: novaplayer-${{ github.ref }}
   cancel-in-progress: true
@@ -21,20 +18,46 @@ jobs:
   build:
     name: NovaPlayer | Build & Release v2.5.${{ github.run_number }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Install Android 17 SDK (API 37.0)
+        uses: android-actions/setup-android@v4.0.4
+        with:
+          packages: 'platform-tools platforms;android-37.0 build-tools;37.0.0'
+
+      - name: Normalize Android 17 SDK platform path for AGP
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [[ -z "$SDK_ROOT" || ! -d "$SDK_ROOT/platforms" ]]; then
+            echo "ERROR: Android SDK platforms directory is missing."
+            exit 1
+          fi
+          if [[ -d "$SDK_ROOT/platforms/android-37" ]]; then
+            echo "Android API 37 platform path is already available."
+          elif [[ -d "$SDK_ROOT/platforms/android-37.0" ]]; then
+            ln -s android-37.0 "$SDK_ROOT/platforms/android-37"
+            echo "Created AGP-compatible android-37 -> android-37.0 symlink."
+          else
+            echo "ERROR: Android 17 platform android-37.0 was not installed."
+            ls -la "$SDK_ROOT/platforms" || true
+            exit 1
+          fi
+          test -f "$SDK_ROOT/platforms/android-37/android.jar"
+
       - name: Setup Gradle Cache
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6.4.1
 
       - name: Ensure Gradle Wrapper is Executable
         run: chmod +x ./gradlew
@@ -48,13 +71,26 @@ jobs:
             echo "RELEASE_STORE_FILE=/tmp/nova-release.jks" >> "$GITHUB_ENV"
           fi
 
-      - name: Build NovaPlayer Release APKs (Android 17 / API 37)
+      - name: Run Unit Tests & Assemble Release APKs
         env:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
-          ./gradlew :app:assembleRelease --no-daemon --build-cache --parallel --stacktrace
+          ./gradlew testDebugUnitTest :app:assembleRelease \
+            --parallel --build-cache --continue --stacktrace --console=plain
+
+      - name: Upload Build Diagnostics on Failure
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: NovaPlayer-build-diagnostics-${{ github.run_number }}
+          path: |
+            **/build/reports/**
+            **/build/test-results/**
+            app/build/outputs/logs/**
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Prepare Release Artifacts & SHA-256 Checksums
         id: prep
@@ -87,28 +123,28 @@ jobs:
           cat SHA256SUMS.txt
 
       - name: Upload Release APKs Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: NovaPlayer-v${{ steps.prep.outputs.version }}-APKs
           path: release_assets/*
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Publish GitHub Release
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.4
         with:
           tag_name: v${{ steps.prep.outputs.version }}
           name: Nova Player v${{ steps.prep.outputs.version }}
           body: |
             ## Nova Player v${{ steps.prep.outputs.version }}
 
-            - **Android 17 (API 37) + JDK 21 Fast Release Build**: Optimized parallel build pipeline with full ABI splits (`arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`, `universal`).
-            - **Smart Axis-Locked Gestures & Single-Control Player HUD**: Instant `0ms` consecutive `10s` double-tap skips, minimal `2x` speed hold capsule, floating time pill, and in-player **UI Switcher** popup.
-            - **Coalesced Media Library & Network Streaming**: Shared `MediaStore` snapshot caching, batched Room state queries, cached remote file sizes, and `DisplaySyncEngine` content frame-rate matching.
+            - **Coalesced Media Library Snapshot & Single-Pass Folder Tree (`VP-01`, `VP-18`, `VP-19`)**: Eliminated duplicate `ContentResolver.query()` scans across Home, Recent, Popular Folders, Search, and Synchronizer flows; single-pass `O(V)` folder tree and popular-folder aggregation.
+            - **Fast Queue Enrichment & Remote Playback (`VP-02`, `VP-03`, `VP-16`, `VP-20`)**: Batched Room `WHERE uri IN (...)` state queries, bounded `Semaphore(4)` queue I/O, idempotent subtitle deduplication, cached remote file sizes, and throttled remote share scrubbing.
+            - **Content Frame-Rate Matching & Native Pixel Scaling (`VP-04`, `VP-11`, `VP-12`, `VP-13`, `VP-14`)**: `Surface.setFrameRate()` & cadence-matched display refresh rate policy (`DisplaySyncEngine`), `100%` native pixel scaling, header-preserving remote frame capture, and verified atomic screenshot saving.
+            - **Security & Storage Hardening (`NP-01`..`NP-17`, `VP-05`..`VP-10`)**: Android Keystore AES-256-GCM network credential encryption, PBKDF2-HMAC-SHA256 (`120,000` iterations) Private Vault PIN with lockout protection, Android 14+ partial media access protection, and multi-volume `VOLUME_EXTERNAL` discovery.
 
-            ### SHA-256 Checksums
-            ```text
-            ${{ hashFiles('release_assets/*.apk') }}
-            ```
+            APK SHA-256 checksums are included in the attached `SHA256SUMS.txt` file.
           files: |
             release_assets/*.apk
             release_assets/SHA256SUMS.txt
