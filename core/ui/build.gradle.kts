@@ -35,8 +35,8 @@ dependencies {
     api(libs.kyant.backdrop)
     api(libs.kyant.shapes)
     implementation(libs.okhttp.core)
+    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material.iconsExtended)
-
 
     implementation(project(":core:model"))
     implementation(project(":core:common"))
@@ -51,7 +51,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtimeCompose)
-    implementation(libs.androidx.compose.material.iconsExtended)
 
     testImplementation(libs.junit4)
     androidTestImplementation(platform(libs.androidx.compose.bom))

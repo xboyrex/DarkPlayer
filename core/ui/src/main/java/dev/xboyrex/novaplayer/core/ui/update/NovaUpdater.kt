@@ -89,7 +89,7 @@ data class NovaUpdateInfo(
 
 internal val NOVA_RELEASE_NOTES = """
     • Liquid Glass UI: Refractive frosted glass navigation bar, smooth damped tab drag pill, and interactive press highlights.
-    • Nova Dolby Atmos & Equalizer: Built-in 10/15/20-band graphic equalizer with interactive frequency response curve, 19 studio presets, bass/mid/treble enhancers, surround virtualizer, and dialogue enhancer.
+    • Nova Dolby Atmos & Equalizer: Built-in 10/15/20-band graphic equalizer with interactive frequency response curve, 19 studio presets, AutoEQ headphone database, bass/mid/treble enhancers, surround virtualizer, and dialogue enhancer.
     • Dual High-Contrast Themes: Pure AMOLED Black (#000000) and Pure White (#FFFFFF) modes.
     • Hardware & FFmpeg Decoders: Seamless H.264, HEVC, AV1, VP9, AC-3, E-AC-3, DTS, TrueHD, and ASS/SSA subtitle playback.
     • Network Streaming: Browse and stream from SMB, FTP, SFTP, WebDAV, and M3U playlists.
@@ -207,8 +207,8 @@ class NovaUpdateState(
 
     private fun fetchLatest(): NovaUpdateInfo? {
         val endpoints = listOf(
-            "https://api.github.com/repos/xboyrex/NovaPlayer/releases/latest",
             "https://api.github.com/repos/xboyrex/DarkPlayer/releases/latest",
+            "https://api.github.com/repos/xboyrex/NovaPlayer/releases/latest",
         )
         for (endpoint in endpoints) {
             val request = Request.Builder()

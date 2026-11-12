@@ -15,12 +15,66 @@ enum class NovaDsParam(val id: Int, val length: Int = 1) {
     STEREO_WIDENING_AMOUNT(113);
 }
 
-class NovaDolbyEffect(priority: Int, audioSession: Int) : AudioEffect(
-    EFFECT_TYPE_NULL,
-    EFFECT_TYPE_DAP,
-    priority,
-    audioSession,
-) {
+/**
+ * Hardware/Vendor Dolby Audio Processing (DAP) wrapper that uses reflection to invoke hidden
+ * AOSP AudioEffect constructors and parameter methods, allowing clean compilation against the
+ * standard public Android SDK while maintaining full hardware/vendor DAP control at runtime.
+ */
+class NovaDolbyEffect(priority: Int, audioSession: Int) {
+
+    private val audioEffect: AudioEffect
+    private val setParamMethod = AudioEffect::class.java.getMethod(
+        "setParameter",
+        Int::class.javaPrimitiveType,
+        ByteArray::class.java,
+    )
+    private val getParamMethod = AudioEffect::class.java.getMethod(
+        "getParameter",
+        Int::class.javaPrimitiveType,
+        ByteArray::class.java,
+    )
+
+    init {
+        val effectTypeNull = runCatching {
+            AudioEffect::class.java.getField("EFFECT_TYPE_NULL").get(null) as UUID
+        }.getOrElse {
+            UUID.fromString("ec7178ec-e5e1-4432-a3f4-4657e6795210")
+        }
+        val constructor = AudioEffect::class.java.getConstructor(
+            UUID::class.java,
+            UUID::class.java,
+            Int::class.javaPrimitiveType,
+            Int::class.javaPrimitiveType,
+        )
+        audioEffect = constructor.newInstance(effectTypeNull, EFFECT_TYPE_DAP, priority, audioSession)
+    }
+
+    var enabled: Boolean
+        get() = audioEffect.enabled
+        set(value) {
+            audioEffect.enabled = value
+        }
+
+    fun hasControl(): Boolean = audioEffect.hasControl()
+
+    fun release() {
+        audioEffect.release()
+    }
+
+    private fun checkStatus(status: Int) {
+        if (status != AudioEffect.SUCCESS) {
+            throw IllegalStateException("NovaDolbyEffect parameter operation failed with status $status")
+        }
+    }
+
+    private fun rawSetParameter(param: Int, value: ByteArray): Int {
+        return (setParamMethod.invoke(audioEffect, param, value) as? Int) ?: AudioEffect.ERROR
+    }
+
+    private fun rawGetParameter(param: Int, value: ByteArray): Int {
+        return (getParamMethod.invoke(audioEffect, param, value) as? Int) ?: AudioEffect.ERROR
+    }
+
     var dsOn: Boolean
         get() = getIntParam(EFFECT_PARAM_ENABLE) == 1
         set(value) {
@@ -39,13 +93,13 @@ class NovaDolbyEffect(priority: Int, audioSession: Int) : AudioEffect(
         int32ToByteArray(param, buf, 0)
         int32ToByteArray(1, buf, 4)
         int32ToByteArray(value, buf, 8)
-        checkStatus(setParameter(EFFECT_PARAM_CPDP_VALUES, buf))
+        checkStatus(rawSetParameter(EFFECT_PARAM_CPDP_VALUES, buf))
     }
 
     private fun getIntParam(param: Int): Int {
         val buf = ByteArray(12)
         int32ToByteArray(param, buf, 0)
-        checkStatus(getParameter(EFFECT_PARAM_CPDP_VALUES + param, buf))
+        checkStatus(rawGetParameter(EFFECT_PARAM_CPDP_VALUES + param, buf))
         return byteArrayToInt32(buf)
     }
 
@@ -61,7 +115,7 @@ class NovaDolbyEffect(priority: Int, audioSession: Int) : AudioEffect(
         int32ToByteArray(profile, buf, 8)
         int32ToByteArray(param.id, buf, 12)
         int32ArrayToByteArray(values, buf, 16)
-        checkStatus(setParameter(EFFECT_PARAM_CPDP_VALUES, buf))
+        checkStatus(rawSetParameter(EFFECT_PARAM_CPDP_VALUES, buf))
     }
 
     fun setDapParameter(param: NovaDsParam, enable: Boolean, profile: Int = this.profile) =
@@ -74,7 +128,7 @@ class NovaDolbyEffect(priority: Int, audioSession: Int) : AudioEffect(
         val length = param.length
         val buf = ByteArray((length + 2) * 4)
         val p = (param.id shl 16) + (profile shl 8) + EFFECT_PARAM_GET_PROFILE_PARAMETER
-        checkStatus(getParameter(p, buf))
+        checkStatus(rawGetParameter(p, buf))
         return byteArrayToInt32Array(buf, length)
     }
 

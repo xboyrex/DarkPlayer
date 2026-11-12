@@ -2,29 +2,50 @@ package dev.xboyrex.novaplayer.core.ui.dolby
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.media.AudioAttributes
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.audiofx.BassBoost
 import android.media.audiofx.DynamicsProcessing
 import android.media.audiofx.Equalizer
 import android.media.audiofx.Virtualizer
+import android.net.Uri
 import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import java.io.BufferedReader
+import java.io.BufferedWriter
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.zip.GZIPInputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+
+data class NovaAutoEqEntry(
+    val id: String,
+    val name: String,
+    val source: String,
+    val measurementRig: String,
+    val searchKey: String,
+    val builtinGraphicEq: String? = null,
+)
 
 /**
  * Dual-mode Nova Dolby Atmos & Equalizer Engine:
  * - Connects to hardware/vendor Dolby DAP (`NovaDolbyEffect` UUID 9d4921da-8225-4f29-aefa-39537a04bcaa) when present.
  * - Simultaneously drives Android's native `DynamicsProcessing` / `Equalizer` / `BassBoost` / `Virtualizer` DSP
- *   on active playback sessions so every profile, 10/15/20-band EQ curve, bass/mid/treble enhancer,
- *   surround virtualizer, dialogue enhancer, and volume leveler works across all Android devices.
+ *   on active playback sessions so every profile, 10/15/20-band EQ curve, AutoEQ headphone profile,
+ *   bass/mid/treble enhancer, surround virtualizer, dialogue enhancer, and volume leveler works across all Android devices.
  */
 object NovaDolbyController {
     private const val PREF_MAIN = "nova_dolby_prefs"
     private const val PREF_PRESETS = "nova_dolby_presets"
+    private const val PRESET_FILE_VERSION = 2
 
     private var appContext: Context? = null
     private var mainPrefs: SharedPreferences? = null
@@ -65,6 +86,12 @@ object NovaDolbyController {
         private set
 
     var isHardwareDapActive by mutableStateOf(false)
+        private set
+
+    var autoEqCatalog by mutableStateOf<List<NovaAutoEqEntry>>(BUILTIN_AUTOEQ_ENTRIES)
+        private set
+
+    var isAutoEqLoading by mutableStateOf(false)
         private set
 
     private var raw20BandGains = IntArray(20) { 0 }
@@ -150,9 +177,18 @@ object NovaDolbyController {
         val ctx = appContext ?: return
         isOnSpeaker = runCatching {
             val am = ctx.getSystemService(AudioManager::class.java)
-            val attrs = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).build()
-            val devices = am?.getDevicesForAttributes(attrs).orEmpty()
-            devices.firstOrNull()?.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
+            val devices = am?.getDevices(AudioManager.GET_DEVICES_OUTPUTS) ?: emptyArray()
+            val hasExternalOutput = devices.any { device ->
+                device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                    device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                    device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                    device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    device.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
+                    device.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+                    device.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                    device.type == AudioDeviceInfo.TYPE_BLE_SPEAKER
+            }
+            !hasExternalOutput
         }.getOrDefault(true)
     }
 
@@ -220,7 +256,7 @@ object NovaDolbyController {
                 )
             }.getOrNull()
         }
-        val allPresets = builtIn + userList
+        val allPresets = userList + builtIn
         val matched = allPresets.find { preset ->
             preset.bandGains.size == bandGains.size &&
                 preset.bandGains.zip(bandGains).all { (a, b) -> kotlin.math.abs(a.gain - b.gain) <= 2 }
@@ -292,7 +328,7 @@ object NovaDolbyController {
     fun saveUserPreset(name: String): String? {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return "Enter a preset name"
-        if (trimmed.length > 28) return "Preset name is too long"
+        if (trimmed.length > 50) return "Preset name is too long (max 50 chars)"
         if (presets.any { it.name.equals(trimmed, ignoreCase = true) }) {
             return "Preset name already exists"
         }
@@ -309,25 +345,255 @@ object NovaDolbyController {
         resetGains()
     }
 
+    fun exportPresetToJsonObject(preset: NovaEqualizerPreset): JSONObject {
+        return JSONObject().apply {
+            put("version", PRESET_FILE_VERSION)
+            put("name", preset.name)
+            put("timestamp", System.currentTimeMillis())
+            put("createdBy", "Nova Player Dolby Studio")
+            put("bandMode", preset.bandMode.value)
+            put("bandCount", preset.bandMode.bandCount)
+            val gainsArray = JSONArray()
+            preset.bandGains.forEach { bg ->
+                gainsArray.put(
+                    JSONObject().apply {
+                        put("frequency", bg.frequency)
+                        put("gain", bg.gain)
+                    },
+                )
+            }
+            put("bandGains", gainsArray)
+        }
+    }
+
     fun exportCurrentPresetJson(): String {
-        val gainsStr = raw20BandGains.joinToString(",")
-        return """{"name":"$currentPresetName","bandMode":"${bandMode.value}","gains":[$gainsStr]}"""
+        val current = presets.find { it.name == currentPresetName } ?: NovaEqualizerPreset(
+            name = currentPresetName,
+            bandGains = bandGains,
+            isUserDefined = true,
+            bandMode = bandMode,
+        )
+        return exportPresetToJsonObject(current).toString(2)
+    }
+
+    fun parseImportedPresetJson(jsonString: String): NovaEqualizerPreset? {
+        return runCatching {
+            val trimmed = jsonString.trim()
+            if (trimmed.startsWith("{") && trimmed.contains("bandGains")) {
+                val json = JSONObject(trimmed)
+                val name = json.optString("name", "Imported Preset").trim().ifEmpty { "Imported Preset" }
+                val mode = NovaBandMode.fromValue(json.optString("bandMode", bandMode.value))
+                val gainsArray = json.getJSONArray("bandGains")
+                val list = mutableListOf<NovaBandGain>()
+                for (i in 0 until gainsArray.length()) {
+                    val obj = gainsArray.getJSONObject(i)
+                    list.add(
+                        NovaBandGain(
+                            frequency = obj.getInt("frequency"),
+                            gain = obj.getInt("gain").coerceIn(-150, 150),
+                        ),
+                    )
+                }
+                NovaEqualizerPreset(
+                    name = name,
+                    bandGains = list,
+                    isUserDefined = true,
+                    bandMode = mode,
+                )
+            } else {
+                val gainsMatch = Regex("""\[([0-9,\-\s]+)]""").find(trimmed)?.groupValues?.get(1) ?: return null
+                val nums = gainsMatch.split(",").mapNotNull { it.trim().toIntOrNull() }
+                if (nums.size == 20) {
+                    NovaEqualizerPreset(
+                        name = "Imported Preset",
+                        bandGains = deserializeGains(nums.map { it.coerceIn(-150, 150) }.toIntArray(), bandMode),
+                        isUserDefined = true,
+                        bandMode = bandMode,
+                    )
+                } else {
+                    null
+                }
+            }
+        }.getOrNull()
     }
 
     fun importPresetJson(raw: String): Boolean {
-        return runCatching {
-            val gainsMatch = Regex("""\[([0-9,\-\s]+)]""").find(raw)?.groupValues?.get(1) ?: return false
-            val nums = gainsMatch.split(",").mapNotNull { it.trim().toIntOrNull() }
-            if (nums.size == 20) {
-                raw20BandGains = nums.map { it.coerceIn(-150, 150) }.toIntArray()
-                saveCurrent20BandGains()
-                rebuildPresetsAndGains()
-                syncAllToEffects()
-                true
-            } else {
-                false
+        val preset = parseImportedPresetJson(raw) ?: return false
+        raw20BandGains = serializeGains(preset.bandGains, preset.bandMode)
+        val serialized = raw20BandGains.joinToString(",") + "|${preset.bandMode.value}"
+        presetsPrefs?.edit()?.putString(preset.name, serialized)?.apply()
+        saveCurrent20BandGains()
+        rebuildPresetsAndGains()
+        syncAllToEffects()
+        return true
+    }
+
+    suspend fun exportPresetToUri(context: Context, preset: NovaEqualizerPreset, uri: Uri): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val json = exportPresetToJsonObject(preset).toString(2)
+                context.contentResolver.openOutputStream(uri)?.use { os ->
+                    BufferedWriter(OutputStreamWriter(os, Charsets.UTF_8)).use { writer ->
+                        writer.write(json)
+                    }
+                } ?: error("Cannot open output stream")
             }
-        }.getOrDefault(false)
+        }
+
+    suspend fun exportAllCustomPresetsToUri(context: Context, uri: Uri): Result<Int> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val custom = presets.filter { it.isUserDefined }
+                val root = JSONObject().apply {
+                    put("version", PRESET_FILE_VERSION)
+                    put("count", custom.size)
+                    put("timestamp", System.currentTimeMillis())
+                    put("supportsBandModes", true)
+                    val arr = JSONArray()
+                    custom.forEach { p -> arr.put(exportPresetToJsonObject(p)) }
+                    put("presets", arr)
+                }
+                context.contentResolver.openOutputStream(uri)?.use { os ->
+                    BufferedWriter(OutputStreamWriter(os, Charsets.UTF_8)).use { writer ->
+                        writer.write(root.toString(2))
+                    }
+                } ?: error("Cannot open output stream")
+                custom.size
+            }
+        }
+
+    suspend fun importPresetsFromUri(context: Context, uri: Uri): Result<Int> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val text = context.contentResolver.openInputStream(uri)?.use { input ->
+                    BufferedReader(InputStreamReader(input, Charsets.UTF_8)).use { it.readText() }
+                } ?: error("Cannot open file")
+                val json = JSONObject(text)
+                if (json.has("presets")) {
+                    val arr = json.getJSONArray("presets")
+                    var importedCount = 0
+                    for (i in 0 until arr.length()) {
+                        val itemStr = arr.getJSONObject(i).toString()
+                        if (importPresetJson(itemStr)) importedCount++
+                    }
+                    importedCount
+                } else {
+                    if (importPresetJson(text)) 1 else 0
+                }
+            }
+        }
+
+    suspend fun refreshRemoteAutoEqIndex() {
+        if (isAutoEqLoading) return
+        isAutoEqLoading = true
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val url = URL("https://raw.githubusercontent.com/Pong-Development/DolbyProfiles/main/index.json.gz")
+                val conn = (url.openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 12000
+                    readTimeout = 20000
+                    setRequestProperty("User-Agent", "NovaPlayer-AutoEQ/2.5.0")
+                }
+                if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+                    val rawJson = GZIPInputStream(conn.inputStream).bufferedReader().use { it.readText() }
+                    val obj = JSONObject(rawJson)
+                    val arr = obj.getJSONArray("profiles")
+                    val remoteEntries = ArrayList<NovaAutoEqEntry>(arr.length())
+                    for (i in 0 until arr.length()) {
+                        val item = arr.getJSONObject(i)
+                        remoteEntries.add(
+                            NovaAutoEqEntry(
+                                id = item.getString("id"),
+                                name = item.getString("name"),
+                                source = item.optString("source", "AutoEQ"),
+                                measurementRig = item.optString("measurementRig", "Harman"),
+                                searchKey = item.getString("searchKey"),
+                            ),
+                        )
+                    }
+                    if (remoteEntries.isNotEmpty()) {
+                        autoEqCatalog = BUILTIN_AUTOEQ_ENTRIES + remoteEntries
+                    }
+                }
+                conn.disconnect()
+            }
+        }
+        isAutoEqLoading = false
+    }
+
+    fun searchAutoEq(query: String): List<NovaAutoEqEntry> {
+        if (query.isBlank()) return autoEqCatalog.take(80)
+        val norm = query.filter { it.isLetterOrDigit() }.lowercase()
+        val primary = autoEqCatalog.filter { it.searchKey.startsWith(norm) }
+        val secondary = autoEqCatalog.filter { it.searchKey.contains(norm) && !it.searchKey.startsWith(norm) }
+        return (primary + secondary).take(100)
+    }
+
+    suspend fun applyAutoEqEntry(entry: NovaAutoEqEntry): Boolean = withContext(Dispatchers.IO) {
+        val graphicEqStr = entry.builtinGraphicEq ?: runCatching {
+            val url = URL("https://raw.githubusercontent.com/Pong-Development/DolbyProfiles/main/profiles/${entry.id}.json.gz")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                connectTimeout = 12000
+                readTimeout = 20000
+                setRequestProperty("User-Agent", "NovaPlayer-AutoEQ/2.5.0")
+            }
+            val result = if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+                val json = GZIPInputStream(conn.inputStream).bufferedReader().use { it.readText() }
+                JSONObject(json).optString("graphicEq").takeIf { it.isNotBlank() }
+            } else {
+                null
+            }
+            conn.disconnect()
+            result
+        }.getOrNull() ?: return@withContext false
+
+        val parsed = parseAutoEqString(graphicEqStr)
+        if (parsed.isEmpty()) return@withContext false
+
+        val new20Gains = IntArray(20) { idx ->
+            val freq = NovaDolbyPresetsData.BAND_FREQUENCIES_20[idx]
+            interpolateGainForFrequency(freq, parsed).coerceIn(-150, 150)
+        }
+        val presetName = "AutoEQ - ${entry.name}".take(50)
+        raw20BandGains = new20Gains
+        val serialized = raw20BandGains.joinToString(",") + "|${bandMode.value}"
+        presetsPrefs?.edit()?.putString(presetName, serialized)?.apply()
+        saveCurrent20BandGains()
+        withContext(Dispatchers.Main) {
+            rebuildPresetsAndGains()
+            currentPresetName = presetName
+            syncAllToEffects()
+        }
+        true
+    }
+
+    private fun parseAutoEqString(eqString: String): Map<Int, Int> {
+        val map = mutableMapOf<Int, Int>()
+        val clean = eqString.removePrefix("GraphicEQ:").trim()
+        for (pair in clean.split(";")) {
+            val parts = pair.trim().split(Regex("\\s+"))
+            if (parts.size == 2) {
+                val hz = parts[0].toIntOrNull()
+                val db = parts[1].toFloatOrNull()
+                if (hz != null && db != null) {
+                    map[hz] = (db * 10f).toInt()
+                }
+            }
+        }
+        return map
+    }
+
+    private fun interpolateGainForFrequency(targetHz: Int, autoEqData: Map<Int, Int>): Int {
+        autoEqData[targetHz]?.let { return it }
+        val sortedFreqs = autoEqData.keys.sorted()
+        val lowerHz = sortedFreqs.lastOrNull { it < targetHz }
+        val upperHz = sortedFreqs.firstOrNull { it > targetHz }
+        if (lowerHz == null) return autoEqData[upperHz] ?: 0
+        if (upperHz == null) return autoEqData[lowerHz] ?: 0
+        val lowerGain = autoEqData[lowerHz] ?: 0
+        val upperGain = autoEqData[upperHz] ?: 0
+        val ratio = (targetHz - lowerHz).toFloat() / (upperHz - lowerHz)
+        return (lowerGain + ratio * (upperGain - lowerGain)).toInt()
     }
 
     fun setBassLevel(level: Int) {
@@ -514,7 +780,6 @@ object NovaDolbyController {
                     val maxMb = range[1].toInt()
                     for (b in 0 until numBands) {
                         val mappedIdx = ((b.toFloat() / numBands.coerceAtLeast(1)) * 19).toInt().coerceIn(0, 19)
-                        // raw20BandGains is in 0.1 dB; millibels is 0.01 dB -> multiply by 10
                         val targetMb = (raw20BandGains[mappedIdx] * 10).coerceIn(minMb, maxMb).toShort()
                         eq.setBandLevel(b.toShort(), targetMb)
                     }
@@ -602,4 +867,71 @@ object NovaDolbyController {
         }
         return result
     }
+
+    private val BUILTIN_AUTOEQ_ENTRIES = listOf(
+        NovaAutoEqEntry(
+            id = "sony_wh_1000xm5",
+            name = "Sony WH-1000XM5",
+            source = "Oratory1990",
+            measurementRig = "HMS II.3",
+            searchKey = "sonywh1000xm5",
+            builtinGraphicEq = "GraphicEQ: 32 -2.4; 64 -3.1; 125 -2.8; 250 -1.4; 500 0.8; 1000 1.9; 2000 3.2; 4000 2.5; 8000 1.2; 16000 0.6",
+        ),
+        NovaAutoEqEntry(
+            id = "sony_wf_1000xm5",
+            name = "Sony WF-1000XM5",
+            source = "Crinacle",
+            measurementRig = "711",
+            searchKey = "sonywf1000xm5",
+            builtinGraphicEq = "GraphicEQ: 32 1.2; 64 0.4; 125 -1.2; 250 -1.6; 500 0.2; 1000 1.5; 2000 2.8; 4000 3.4; 8000 1.8; 16000 1.0",
+        ),
+        NovaAutoEqEntry(
+            id = "apple_airpods_pro_2",
+            name = "Apple AirPods Pro (2nd Gen)",
+            source = "Oratory1990",
+            measurementRig = "711",
+            searchKey = "appleairpodspro2ndgen",
+            builtinGraphicEq = "GraphicEQ: 32 1.8; 64 1.1; 125 -0.4; 250 -0.9; 500 0.4; 1000 1.1; 2000 1.9; 4000 2.2; 8000 1.4; 16000 1.8",
+        ),
+        NovaAutoEqEntry(
+            id = "samsung_galaxy_buds2_pro",
+            name = "Samsung Galaxy Buds2 Pro",
+            source = "Crinacle",
+            measurementRig = "711",
+            searchKey = "samsunggalaxybuds2pro",
+            builtinGraphicEq = "GraphicEQ: 32 0.8; 64 -0.3; 125 -1.1; 250 -0.8; 500 0.5; 1000 1.2; 2000 0.6; 4000 -1.2; 8000 -1.8; 16000 0.4",
+        ),
+        NovaAutoEqEntry(
+            id = "sennheiser_hd_650",
+            name = "Sennheiser HD 650 / HD 6XX",
+            source = "Oratory1990",
+            measurementRig = "GRAS 43AG-7",
+            searchKey = "sennheiserhd650hd6xx",
+            builtinGraphicEq = "GraphicEQ: 32 5.4; 64 2.8; 125 -1.2; 250 -1.9; 500 -0.4; 1000 0.6; 2000 1.8; 4000 2.4; 8000 1.6; 16000 1.9",
+        ),
+        NovaAutoEqEntry(
+            id = "moondrop_chu_2",
+            name = "Moondrop Chu II",
+            source = "Crinacle",
+            measurementRig = "B&K 5128",
+            searchKey = "moondropchuii2",
+            builtinGraphicEq = "GraphicEQ: 32 0.6; 64 -0.4; 125 -1.1; 250 -0.5; 500 0.8; 1000 1.4; 2000 1.1; 4000 -0.8; 8000 -1.4; 16000 0.8",
+        ),
+        NovaAutoEqEntry(
+            id = "truthear_hexa",
+            name = "Truthear HEXA",
+            source = "Super Review",
+            measurementRig = "711",
+            searchKey = "truthearhexa",
+            builtinGraphicEq = "GraphicEQ: 32 2.2; 64 1.5; 125 0.4; 250 -0.3; 500 0.2; 1000 0.6; 2000 0.8; 4000 0.4; 8000 -0.9; 16000 1.2",
+        ),
+        NovaAutoEqEntry(
+            id = "nothing_ear_2024",
+            name = "Nothing Ear (2024)",
+            source = "SoundGuys",
+            measurementRig = "B&K 5128",
+            searchKey = "nothingear2024",
+            builtinGraphicEq = "GraphicEQ: 32 -1.2; 64 -1.8; 125 -1.0; 250 -0.4; 500 0.9; 1000 1.6; 2000 2.1; 4000 1.5; 8000 0.8; 16000 1.1",
+        ),
+    )
 }

@@ -4,13 +4,15 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -19,6 +21,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -50,6 +53,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -61,7 +65,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Balance
-import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -72,12 +75,13 @@ import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FileDownload
+import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.LibraryMusic
-import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.MusicNote
@@ -85,11 +89,11 @@ import androidx.compose.material.icons.rounded.PowerOff
 import androidx.compose.material.icons.rounded.RecordVoiceOver
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.ShowChart
 import androidx.compose.material.icons.rounded.Speaker
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material.icons.rounded.Work
 import androidx.compose.material3.AlertDialog
@@ -97,6 +101,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -105,6 +110,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -125,11 +131,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -142,6 +149,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -154,9 +162,11 @@ import dev.xboyrex.novaplayer.core.ui.glass.LiquidNavTabItem
 import dev.xboyrex.novaplayer.core.ui.glass.NovaRoundedHeavy
 import dev.xboyrex.novaplayer.core.ui.glass.novaHaptic
 import dev.xboyrex.novaplayer.core.ui.glass.novaPressable
-import kotlin.math.abs
+import kotlin.math.exp
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.math.sqrt
 import kotlinx.coroutines.launch
 
 @Composable
@@ -185,44 +195,151 @@ fun NovaDolbyVectorLogo(
 }
 
 @Composable
+fun NovaAnimatedEqualizerIconDynamic(
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    size: Dp = 24.dp,
+    barCount: Int = 5,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "equalizer_dynamic")
+    val barHeights = List(barCount) { index ->
+        infiniteTransition.animateFloat(
+            initialValue = 0.2f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = 800 + (index * 50),
+                    easing = FastOutSlowInEasing,
+                ),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "bar_height_$index",
+        )
+    }
+
+    Canvas(modifier = modifier.size(size)) {
+        val canvasWidth = this.size.width
+        val canvasHeight = this.size.height
+        val barWidths = List(barCount) { index ->
+            val normalizedPosition = index.toFloat() / (barCount - 1).coerceAtLeast(1)
+            val centerOffset = (normalizedPosition - 0.5f) * 2f
+            val widthFactor = 1.0f - (centerOffset * centerOffset).pow(0.6f)
+            0.5f + (widthFactor * 0.5f)
+        }
+        val totalWidthFactor = barWidths.sum() + (barCount - 1) * 0.3f
+        val baseBarWidth = canvasWidth / totalWidthFactor
+        var currentX = 0f
+
+        barHeights.forEachIndexed { index, heightAnimation ->
+            val barWidth = baseBarWidth * barWidths[index]
+            val barHeight = canvasHeight * heightAnimation.value
+            val y = canvasHeight - barHeight
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(currentX, y),
+                size = Size(barWidth, barHeight),
+                cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f),
+            )
+            currentX += barWidth + (baseBarWidth * 0.3f)
+        }
+    }
+}
+
+private fun gaussian(x: Float, center: Float, sigma: Float): Float =
+    exp(-((x - center) * (x - center)) / (2f * sigma * sigma))
+
+private fun lerpDolbyColor(from: Color, to: Color, fraction: Float): Color {
+    val t = fraction.coerceIn(0f, 1f)
+    return Color(
+        red = from.red + (to.red - from.red) * t,
+        green = from.green + (to.green - from.green) * t,
+        blue = from.blue + (to.blue - from.blue) * t,
+        alpha = from.alpha + (to.alpha - from.alpha) * t,
+    )
+}
+
+@Composable
 fun NovaAnimatedWaveformBanner(
     modifier: Modifier = Modifier,
-    barColor: Color,
-    barCount: Int = 26,
+    barColor: Color = MaterialTheme.colorScheme.primary,
+    accentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    barCount: Int = 56,
     animated: Boolean = true,
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "dolbyWave")
+    val infiniteTransition = rememberInfiniteTransition(label = "waveform_banner")
+
     val phase by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = (2f * Math.PI).toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1600, easing = LinearEasing),
+            animation = tween(durationMillis = 2600, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
-        label = "wavePhase",
+        label = "waveform_phase",
+    )
+
+    val swell by infiniteTransition.animateFloat(
+        initialValue = 0.82f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "waveform_swell",
     )
 
     Canvas(modifier = modifier) {
-        val spacing = size.width / (barCount * 1.6f)
-        val barWidth = spacing * 0.85f
-        val centerY = size.height / 2f
-        for (i in 0 until barCount) {
-            val x = i * (size.width / barCount) + barWidth / 2f
-            val normalized = if (animated) {
-                val wave1 = sin(phase + i * 0.42f)
-                val wave2 = sin(phase * 1.5f - i * 0.25f)
-                ((wave1 + wave2) * 0.25f + 0.55f).coerceIn(0.18f, 0.95f)
+        val canvasWidth = size.width
+        val canvasHeight = size.height
+        if (canvasWidth <= 0f || canvasHeight <= 0f) return@Canvas
+
+        val centerY = canvasHeight / 2f
+        val slotWidth = canvasWidth / barCount
+        val barWidth = slotWidth * 0.42f
+        val radius = barWidth / 2f
+        val maxHalfHeight = centerY * 0.86f
+
+        for (index in 0 until barCount) {
+            val position = (index + 0.5f) / barCount
+            val centerX = position * canvasWidth
+
+            val envelope = (
+                gaussian(position, 0.34f, 0.13f) * 0.95f +
+                    gaussian(position, 0.62f, 0.11f) * 0.78f +
+                    gaussian(position, 0.48f, 0.05f) * 0.45f +
+                    gaussian(position, 0.82f, 0.09f) * 0.30f +
+                    gaussian(position, 0.14f, 0.10f) * 0.26f
+                ).coerceIn(0f, 1f)
+
+            val ripple = if (animated) {
+                0.72f + 0.28f * sin(phase + position * 14f)
             } else {
-                0.22f
+                0.85f
             }
-            val barH = size.height * normalized
-            drawLine(
-                color = barColor.copy(alpha = if (animated) 0.9f else 0.4f),
-                start = Offset(x, centerY - barH / 2f),
-                end = Offset(x, centerY + barH / 2f),
-                strokeWidth = barWidth,
-                cap = StrokeCap.Round,
-            )
+            val level = envelope * ripple * if (animated) swell else 0.9f
+            val halfHeight = maxHalfHeight * level
+
+            val alpha = (0.28f + envelope * 0.72f).coerceIn(0f, 1f)
+            val color = if (envelope > 0.55f) {
+                lerpDolbyColor(barColor, accentColor, (envelope - 0.55f) / 0.45f)
+            } else {
+                barColor
+            }
+
+            if (halfHeight <= radius * 1.15f) {
+                drawCircle(
+                    color = color.copy(alpha = alpha * 0.65f),
+                    radius = radius * 0.72f,
+                    center = Offset(centerX, centerY),
+                )
+            } else {
+                drawRoundRect(
+                    color = color.copy(alpha = alpha),
+                    topLeft = Offset(centerX - radius, centerY - halfHeight),
+                    size = Size(barWidth, halfHeight * 2f),
+                    cornerRadius = CornerRadius(radius, radius),
+                )
+            }
         }
     }
 }
@@ -261,6 +378,8 @@ fun NovaDolbyScreen(
     var showAboutDialog by remember { mutableStateOf(false) }
     var showResetConfirm by remember { mutableStateOf(false) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
+    var showAutoEqDialog by remember { mutableStateOf(false) }
+    var showPresetManagerDialog by remember { mutableStateOf(false) }
 
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -356,6 +475,8 @@ fun NovaDolbyScreen(
                     1 -> NovaDolbyEqualizerPage(
                         bottomPadding = navBottom + 88.dp,
                         onRequestSavePreset = { showSavePresetDialog = true },
+                        onOpenAutoEq = { showAutoEqDialog = true },
+                        onOpenPresetManager = { showPresetManagerDialog = true },
                     )
                     2 -> NovaDolbyAdvancedPage(
                         bottomPadding = navBottom + 88.dp,
@@ -402,6 +523,14 @@ fun NovaDolbyScreen(
 
     if (showAboutDialog) {
         NovaDolbyAboutDialog(onDismiss = { showAboutDialog = false })
+    }
+
+    if (showAutoEqDialog) {
+        NovaAutoEqDialog(onDismiss = { showAutoEqDialog = false })
+    }
+
+    if (showPresetManagerDialog) {
+        NovaPresetImportExportDialog(onDismiss = { showPresetManagerDialog = false })
     }
 
     if (showResetConfirm) {
@@ -479,7 +608,7 @@ fun NovaDolbyScreen(
 
 @Composable
 private fun NovaDolbyMainPage(
-    bottomPadding: androidx.compose.ui.unit.Dp,
+    bottomPadding: Dp,
     onOpenEqualizer: () -> Unit,
     onOpenAbout: () -> Unit,
 ) {
@@ -493,7 +622,7 @@ private fun NovaDolbyMainPage(
         contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 8.dp, bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Master Power Card with Dolby Logo & Animated Waveform
+        // Master Power Card with Dolby Logo & Animated 56-Bar Gaussian Waveform Banner
         item {
             val containerColor by animateColorAsState(
                 targetValue = if (enabled) c.primaryContainer else c.surfaceContainerHigh,
@@ -533,8 +662,9 @@ private fun NovaDolbyMainPage(
                         NovaAnimatedWaveformBanner(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(58.dp),
+                                .height(64.dp),
                             barColor = if (enabled) c.primary else c.outline,
+                            accentColor = if (enabled) c.onPrimaryContainer else c.onSurfaceVariant,
                             animated = enabled,
                         )
                     }
@@ -715,11 +845,9 @@ private fun NovaDolbyMainPage(
                     color = c.surfaceContainerHigh,
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Icon(
-                            imageVector = Icons.Rounded.GraphicEq,
-                            contentDescription = null,
-                            tint = c.primary,
-                            modifier = Modifier.size(24.dp),
+                        NovaAnimatedEqualizerIconDynamic(
+                            color = c.primary,
+                            size = 24.dp,
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -772,8 +900,10 @@ private fun NovaDolbyMainPage(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NovaDolbyEqualizerPage(
-    bottomPadding: androidx.compose.ui.unit.Dp,
+    bottomPadding: Dp,
     onRequestSavePreset: () -> Unit,
+    onOpenAutoEq: () -> Unit,
+    onOpenPresetManager: () -> Unit,
 ) {
     val c = MaterialTheme.colorScheme
     val context = LocalContext.current
@@ -868,6 +998,22 @@ private fun NovaDolbyEqualizerPage(
                         onDismissRequest = { menuExpanded = false },
                     ) {
                         DropdownMenuItem(
+                            text = { Text("AutoEQ Headphone Database") },
+                            leadingIcon = { Icon(Icons.Rounded.Headphones, null) },
+                            onClick = {
+                                menuExpanded = false
+                                onOpenAutoEq()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Import / Export Presets (.ldp)") },
+                            leadingIcon = { Icon(Icons.Rounded.FileDownload, null) },
+                            onClick = {
+                                menuExpanded = false
+                                onOpenPresetManager()
+                            },
+                        )
+                        DropdownMenuItem(
                             text = { Text("Reset Gains (0 dB)") },
                             leadingIcon = { Icon(Icons.Rounded.RestartAlt, null) },
                             onClick = {
@@ -911,6 +1057,31 @@ private fun NovaDolbyEqualizerPage(
                             )
                         }
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = onOpenAutoEq,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Icon(Icons.Rounded.Headphones, contentDescription = null, modifier = Modifier.size(17.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("AutoEQ Database", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+                OutlinedButton(
+                    onClick = onOpenPresetManager,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Icon(Icons.Rounded.FileDownload, contentDescription = null, modifier = Modifier.size(17.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Import / Export", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -1005,9 +1176,10 @@ private fun NovaDolbyEqualizerPage(
                             onBandGainChange = { index, gain ->
                                 NovaDolbyController.setBandGain(index, gain)
                             },
+                            isActive = NovaDolbyController.enabled,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(260.dp),
+                                .height(275.dp),
                         )
                     }
                 }
@@ -1045,127 +1217,682 @@ private fun NovaDolbyEqualizerPage(
     }
 }
 
+/**
+ * Exact InteractiveFrequencyResponseCurve implementation with:
+ * - Vertical & horizontal grid lines
+ * - Cubic Bézier curve + vertical gradient fill
+ * - Glowing dragged node + floating dB badge
+ * - Frequency axis labels and +15 / 0 / -15 dB axis labels
+ */
 @Composable
-private fun NovaInteractiveFrequencyCurve(
+fun NovaInteractiveFrequencyCurve(
     bandGains: List<NovaBandGain>,
-    onBandGainChange: (Int, Int) -> Unit,
+    onBandGainChange: (index: Int, newGain: Int) -> Unit,
     modifier: Modifier = Modifier,
+    isActive: Boolean = true,
+    isEditable: Boolean = true,
 ) {
     val c = MaterialTheme.colorScheme
     val view = LocalView.current
-    var activeBandIndex by remember { mutableIntStateOf(-1) }
+    val primaryColor = c.primary
+    val onSurfaceVariantColor = c.onSurfaceVariant
+    val secondaryColor = c.secondary
+    val primaryContainerColor = c.primaryContainer
+    val onPrimaryContainerColor = c.onPrimaryContainer
+    val surfaceContainerHighest = c.surfaceContainerHighest
 
-    Canvas(
-        modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(c.surfaceContainerHighest)
-            .pointerInput(bandGains.size) {
-                if (bandGains.isEmpty()) return@pointerInput
-                detectTapGestures { offset ->
-                    val stepX = size.width.toFloat() / (bandGains.size - 1).coerceAtLeast(1)
-                    val idx = ((offset.x / stepX).roundToInt()).coerceIn(0, bandGains.lastIndex)
-                    val centerY = size.height / 2f
-                    val norm = ((centerY - offset.y) / (centerY * 0.82f)).coerceIn(-1f, 1f)
-                    val newGain = (norm * 150f).roundToInt().coerceIn(-150, 150)
-                    view.novaHaptic(10L, 110)
-                    onBandGainChange(idx, newGain)
-                }
-            }
-            .pointerInput(bandGains.size) {
-                if (bandGains.isEmpty()) return@pointerInput
-                detectDragGestures(
-                    onDragStart = { startOffset ->
-                        val stepX = size.width.toFloat() / (bandGains.size - 1).coerceAtLeast(1)
-                        activeBandIndex = ((startOffset.x / stepX).roundToInt()).coerceIn(0, bandGains.lastIndex)
-                        view.novaHaptic(12L, 130)
-                    },
-                    onDragEnd = { activeBandIndex = -1 },
-                    onDragCancel = { activeBandIndex = -1 },
-                    onDrag = { change, _ ->
-                        change.consume()
-                        val stepX = size.width.toFloat() / (bandGains.size - 1).coerceAtLeast(1)
-                        val idx = ((change.position.x / stepX).roundToInt()).coerceIn(0, bandGains.lastIndex)
-                        activeBandIndex = idx
+    val plotInkColor = if (isActive) onPrimaryContainerColor else onSurfaceVariantColor
+    val curveColor = if (isActive) primaryColor else secondaryColor
+    val backgroundColor = if (isActive) primaryContainerColor.copy(alpha = 0.35f) else surfaceContainerHighest
+    val borderColor = if (isActive) primaryColor.copy(alpha = 0.65f) else c.outlineVariant
+    val borderWidth = if (isActive) 1.5.dp else 1.dp
+
+    var draggedIndex by remember { mutableStateOf<Int?>(null) }
+    var controlPoints by remember { mutableStateOf(bandGains.map { it.gain }) }
+
+    LaunchedEffect(bandGains) {
+        if (draggedIndex == null) {
+            controlPoints = bandGains.map { it.gain }
+        }
+    }
+
+    Box(modifier = modifier) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(18.dp))
+                .background(backgroundColor)
+                .border(
+                    width = borderWidth,
+                    color = borderColor,
+                    shape = RoundedCornerShape(18.dp),
+                )
+                .pointerInput(bandGains.size, isEditable) {
+                    if (!isEditable || bandGains.isEmpty()) return@pointerInput
+                    detectTapGestures { offset ->
+                        val stepX = size.width / (bandGains.size - 1).coerceAtLeast(1).toFloat()
+                        val idx = (offset.x / stepX).roundToInt().coerceIn(0, bandGains.lastIndex)
                         val centerY = size.height / 2f
-                        val norm = ((centerY - change.position.y) / (centerY * 0.82f)).coerceIn(-1f, 1f)
-                        val newGain = (norm * 150f).roundToInt().coerceIn(-150, 150)
+                        val normalizedGain = ((centerY - offset.y) / (centerY * 0.85f)).coerceIn(-1f, 1f)
+                        val newGain = (normalizedGain * 150f).roundToInt().coerceIn(-150, 150)
+                        view.novaHaptic(10L, 110)
+                        controlPoints = controlPoints.toMutableList().also {
+                            if (idx in it.indices) it[idx] = newGain
+                        }
                         onBandGainChange(idx, newGain)
-                    },
+                    }
+                }
+                .pointerInput(bandGains.size, isEditable) {
+                    if (!isEditable || bandGains.isEmpty()) return@pointerInput
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            val width = size.width
+                            val height = size.height
+                            val stepX = width / (bandGains.size - 1).coerceAtLeast(1).toFloat()
+
+                            var closestIndex = -1
+                            var closestDistance = Float.MAX_VALUE
+
+                            bandGains.forEachIndexed { index, _ ->
+                                val x = index * stepX
+                                val gainVal = controlPoints.getOrElse(index) { 0 }
+                                val normalizedGain = (gainVal / 150f).coerceIn(-1f, 1f)
+                                val y = height / 2f - (normalizedGain * height / 2f * 0.85f)
+                                val distance = sqrt(
+                                    (offset.x - x) * (offset.x - x) +
+                                        (offset.y - y) * (offset.y - y),
+                                )
+                                if (distance < closestDistance && distance < 140f) {
+                                    closestDistance = distance
+                                    closestIndex = index
+                                }
+                            }
+                            if (closestIndex == -1) {
+                                closestIndex = (offset.x / stepX).roundToInt().coerceIn(0, bandGains.lastIndex)
+                            }
+                            draggedIndex = closestIndex
+                            view.novaHaptic(12L, 125)
+                        },
+                        onDrag = { change, _ ->
+                            draggedIndex?.let { index ->
+                                val height = size.height
+                                val centerY = height / 2f
+                                val y = change.position.y
+                                val normalizedGain = ((centerY - y) / (height / 2f * 0.85f)).coerceIn(-1f, 1f)
+                                val newGain = (normalizedGain * 150f).toInt().coerceIn(-150, 150)
+                                if (index in controlPoints.indices && controlPoints[index] != newGain) {
+                                    controlPoints = controlPoints.toMutableList().apply {
+                                        this[index] = newGain
+                                    }
+                                    onBandGainChange(index, newGain)
+                                }
+                                change.consume()
+                            }
+                        },
+                        onDragEnd = {
+                            draggedIndex?.let { index ->
+                                if (index in controlPoints.indices) {
+                                    onBandGainChange(index, controlPoints[index])
+                                }
+                            }
+                            draggedIndex = null
+                        },
+                        onDragCancel = {
+                            draggedIndex = null
+                        },
+                    )
+                },
+        ) {
+            val width = size.width
+            val height = size.height
+            val centerY = height / 2f
+            val gridColor = plotInkColor.copy(alpha = 0.18f)
+            val gridVerticalColor = plotInkColor.copy(alpha = 0.12f)
+
+            drawLine(
+                color = plotInkColor.copy(alpha = 0.5f),
+                start = Offset(0f, centerY),
+                end = Offset(width, centerY),
+                strokeWidth = 3f,
+            )
+
+            for (i in 1..4) {
+                val y = (height / 5f) * i
+                drawLine(
+                    color = gridColor,
+                    start = Offset(0f, y),
+                    end = Offset(width, y),
+                    strokeWidth = 1f,
                 )
             }
-            .padding(horizontal = 14.dp, vertical = 14.dp),
-    ) {
-        val w = size.width
-        val h = size.height
-        val centerY = h / 2f
 
-        // Horizontal dB grid lines
-        for (i in 0..4) {
-            val y = (h / 4f) * i
-            drawLine(
-                color = c.onSurfaceVariant.copy(alpha = if (i == 2) 0.45f else 0.16f),
-                start = Offset(0f, y),
-                end = Offset(w, y),
-                strokeWidth = if (i == 2) 2f else 1f,
+            if (bandGains.size >= 2 && controlPoints.size == bandGains.size) {
+                val stepX = width / (bandGains.size - 1)
+                bandGains.forEachIndexed { index, _ ->
+                    val x = index * stepX
+                    drawLine(
+                        color = gridVerticalColor,
+                        start = Offset(x, 0f),
+                        end = Offset(x, height),
+                        strokeWidth = 1f,
+                    )
+                }
+
+                val path = Path()
+                controlPoints.forEachIndexed { index, gain ->
+                    val x = index * stepX
+                    val normalizedGain = (gain / 150f).coerceIn(-1f, 1f)
+                    val y = centerY - (normalizedGain * centerY * 0.85f)
+                    if (index == 0) {
+                        path.moveTo(x, y)
+                    } else {
+                        val prevX = (index - 1) * stepX
+                        val prevGain = controlPoints[index - 1]
+                        val prevNormalizedGain = (prevGain / 150f).coerceIn(-1f, 1f)
+                        val prevY = centerY - (prevNormalizedGain * centerY * 0.85f)
+                        val cpX1 = prevX + stepX * 0.4f
+                        val cpX2 = x - stepX * 0.4f
+                        path.cubicTo(cpX1, prevY, cpX2, y, x, y)
+                    }
+                }
+
+                val fillPath = Path().apply {
+                    addPath(path)
+                    lineTo(width, height)
+                    lineTo(0f, height)
+                    close()
+                }
+
+                drawPath(
+                    path = fillPath,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            curveColor.copy(alpha = if (isActive) 0.4f else 0.28f),
+                            curveColor.copy(alpha = 0.04f),
+                        ),
+                    ),
+                )
+
+                drawPath(
+                    path = path,
+                    color = curveColor,
+                    style = Stroke(width = if (isActive) 5f else 4f),
+                )
+
+                controlPoints.forEachIndexed { index, gain ->
+                    val x = index * stepX
+                    val normalizedGain = (gain / 150f).coerceIn(-1f, 1f)
+                    val y = centerY - (normalizedGain * centerY * 0.85f)
+                    val isBeingDragged = draggedIndex == index
+                    val pointRadius = if (isBeingDragged) 14f else 10f
+
+                    if (isBeingDragged) {
+                        drawCircle(
+                            color = curveColor.copy(alpha = 0.3f),
+                            radius = 24f,
+                            center = Offset(x, y),
+                        )
+                    }
+                    drawCircle(
+                        color = c.surface,
+                        radius = pointRadius,
+                        center = Offset(x, y),
+                    )
+                    drawCircle(
+                        color = curveColor,
+                        radius = pointRadius - 2.5f,
+                        center = Offset(x, y),
+                    )
+                }
+            }
+        }
+
+        // Bottom Frequency Labels Row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 6.dp, start = 8.dp, end = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            val step = if (bandGains.size > 12) 2 else 1
+            bandGains.filterIndexed { i, _ -> i % step == 0 || i == bandGains.lastIndex }.forEach { bandGain ->
+                Text(
+                    text = if (bandGain.frequency >= 1000) {
+                        "${bandGain.frequency / 1000}k"
+                    } else {
+                        "${bandGain.frequency}"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = plotInkColor,
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
+
+        // Left dB Axis Labels (+15, 0, -15)
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .align(Alignment.CenterStart)
+                .padding(start = 6.dp, top = 12.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = "+15",
+                style = MaterialTheme.typography.labelSmall,
+                color = plotInkColor,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "0",
+                style = MaterialTheme.typography.labelSmall,
+                color = plotInkColor,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "-15",
+                style = MaterialTheme.typography.labelSmall,
+                color = plotInkColor,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
             )
         }
 
-        if (bandGains.size >= 2) {
-            val stepX = w / (bandGains.size - 1)
-            val path = Path()
-            val points = bandGains.mapIndexed { index, bg ->
-                val x = index * stepX
-                val norm = (bg.gain / 150f).coerceIn(-1f, 1f)
-                val y = centerY - (norm * centerY * 0.82f)
-                Offset(x, y)
+        // Floating dB Tooltip Badge while dragging
+        draggedIndex?.let { index ->
+            val gain = controlPoints.getOrElse(index) { 0 }
+            val gainDb = gain / 10f
+            val freq = bandGains.getOrNull(index)?.frequency ?: 0
+            val freqLabel = if (freq >= 1000) "${freq / 1000f}kHz" else "${freq}Hz"
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 8.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = primaryColor,
+                shadowElevation = 4.dp,
+            ) {
+                Text(
+                    text = "$freqLabel · ${if (gainDb >= 0) "+" else ""}%.1f dB".format(gainDb),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.5.sp,
+                    color = c.onPrimary,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                )
             }
+        }
+    }
+}
 
-            points.forEachIndexed { index, pt ->
-                if (index == 0) {
-                    path.moveTo(pt.x, pt.y)
-                } else {
-                    val prev = points[index - 1]
-                    val cpX1 = prev.x + stepX * 0.4f
-                    val cpX2 = pt.x - stepX * 0.4f
-                    path.cubicTo(cpX1, prev.y, cpX2, pt.y, pt.x, pt.y)
+@Composable
+private fun NovaAutoEqDialog(
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val c = MaterialTheme.colorScheme
+    var searchQuery by remember { mutableStateOf("") }
+    val results = remember(searchQuery, NovaDolbyController.autoEqCatalog) {
+        NovaDolbyController.searchAutoEq(searchQuery)
+    }
+
+    LaunchedEffect(Unit) {
+        NovaDolbyController.refreshRemoteAutoEqIndex()
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .fillMaxHeight(0.84f),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = c.surfaceContainerLow),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "AutoEQ Headphone Database",
+                            fontFamily = NovaRoundedHeavy,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 19.sp,
+                            color = c.onSurface,
+                        )
+                        Text(
+                            text = "Harman target frequency response profiles (${NovaDolbyController.autoEqCatalog.size} models)",
+                            fontSize = 12.sp,
+                            color = c.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Rounded.Close, contentDescription = "Close")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                    placeholder = { Text("Search headphones or IEMs (e.g. Sony, AirPods, Moondrop)") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                if (NovaDolbyController.isAutoEqLoading) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Syncing online AutoEQ repository...", fontSize = 12.sp, color = c.onSurfaceVariant)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(results, key = { it.id }) { entry ->
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .clickable {
+                                    scope.launch {
+                                        val ok = NovaDolbyController.applyAutoEqEntry(entry)
+                                        Toast.makeText(
+                                            context,
+                                            if (ok) "Applied AutoEQ profile for ${entry.name}" else "Failed to apply ${entry.name}",
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                        if (ok) onDismiss()
+                                    }
+                                },
+                            shape = RoundedCornerShape(16.dp),
+                            color = c.surfaceContainerHigh,
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = entry.name,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = c.onSurface,
+                                    )
+                                    Text(
+                                        text = "${entry.source} · Rig: ${entry.measurementRig}",
+                                        fontSize = 11.5.sp,
+                                        color = c.onSurfaceVariant,
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Rounded.Headphones,
+                                    contentDescription = null,
+                                    tint = c.primary,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                    }
                 }
             }
+        }
+    }
+}
 
-            val fillPath = Path().apply {
-                addPath(path)
-                lineTo(w, h)
-                lineTo(0f, h)
-                close()
+@Composable
+private fun NovaPresetImportExportDialog(
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val c = MaterialTheme.colorScheme
+    val customPresets = NovaDolbyController.presets.filter { it.isUserDefined }
+    var selectedForExport by remember { mutableStateOf<NovaEqualizerPreset?>(null) }
+
+    val singleExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        val targetPreset = selectedForExport
+        if (uri != null && targetPreset != null) {
+            scope.launch {
+                NovaDolbyController.exportPresetToUri(context, targetPreset, uri).fold(
+                    onSuccess = { Toast.makeText(context, "Preset exported successfully!", Toast.LENGTH_SHORT).show() },
+                    onFailure = { Toast.makeText(context, "Export failed: ${it.message}", Toast.LENGTH_SHORT).show() },
+                )
             }
+        }
+    }
 
-            drawPath(
-                path = fillPath,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        c.primary.copy(alpha = 0.34f),
-                        c.primary.copy(alpha = 0.03f),
-                    ),
-                ),
-            )
-
-            drawPath(
-                path = path,
-                color = c.primary,
-                style = Stroke(width = 5f),
-            )
-
-            points.forEachIndexed { index, pt ->
-                val isSelected = index == activeBandIndex
-                drawCircle(
-                    color = if (isSelected) c.tertiary else c.primary,
-                    radius = if (isSelected) 15f else 10f,
-                    center = pt,
+    val batchExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                NovaDolbyController.exportAllCustomPresetsToUri(context, uri).fold(
+                    onSuccess = { count -> Toast.makeText(context, "Exported $count custom presets!", Toast.LENGTH_SHORT).show() },
+                    onFailure = { Toast.makeText(context, "Batch export failed: ${it.message}", Toast.LENGTH_SHORT).show() },
                 )
-                drawCircle(
-                    color = c.surface,
-                    radius = if (isSelected) 7f else 4.5f,
-                    center = pt,
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent(),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                NovaDolbyController.importPresetsFromUri(context, uri).fold(
+                    onSuccess = { count ->
+                        Toast.makeText(context, "Imported $count preset(s)!", Toast.LENGTH_SHORT).show()
+                    },
+                    onFailure = { Toast.makeText(context, "Import failed: ${it.message}", Toast.LENGTH_SHORT).show() },
                 )
+            }
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .fillMaxHeight(0.84f),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = c.surfaceContainerLow),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Preset Import & Export",
+                            fontFamily = NovaRoundedHeavy,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 19.sp,
+                            color = c.onSurface,
+                        )
+                        Text(
+                            text = "Import or back up .ldp / JSON multi-band equalizer presets",
+                            fontSize = 12.sp,
+                            color = c.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Rounded.Close, contentDescription = "Close")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Button(
+                        onClick = { importLauncher.launch("*/*") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Import File")
+                    }
+                    Button(
+                        onClick = { batchExportLauncher.launch("nova_dolby_presets_backup.ldp") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        enabled = customPresets.isNotEmpty(),
+                    ) {
+                        Icon(Icons.Rounded.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Backup All (${customPresets.size})")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                        val text = cm?.primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
+                        val ok = NovaDolbyController.importPresetJson(text)
+                        Toast.makeText(
+                            context,
+                            if (ok) "Preset imported from clipboard!" else "No valid preset in clipboard",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, c.outlineVariant),
+                ) {
+                    Icon(Icons.Rounded.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Import Preset from Clipboard")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Your Custom Presets (${customPresets.size})",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = c.onSurface,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (customPresets.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "No custom presets saved yet. Save a custom curve or apply an AutoEQ profile first.",
+                            fontSize = 13.sp,
+                            color = c.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(customPresets, key = { it.name }) { preset ->
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                color = c.surfaceContainerHigh,
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = preset.name,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = c.onSurface,
+                                        )
+                                        Text(
+                                            text = "${preset.bandMode.displayName} · ${preset.bandGains.size} bands",
+                                            fontSize = 11.5.sp,
+                                            color = c.onSurfaceVariant,
+                                        )
+                                    }
+                                    Row {
+                                        IconButton(
+                                            onClick = {
+                                                selectedForExport = preset
+                                                singleExportLauncher.launch("${preset.name.replace(" ", "_")}_${preset.bandMode.value}band.ldp")
+                                            },
+                                        ) {
+                                            Icon(Icons.Rounded.FileDownload, contentDescription = "Export file", tint = c.primary)
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                                val json = NovaDolbyController.exportPresetToJsonObject(preset).toString(2)
+                                                cm?.setPrimaryClip(ClipData.newPlainText("DolbyPreset", json))
+                                                Toast.makeText(context, "Copied '${preset.name}' to clipboard", Toast.LENGTH_SHORT).show()
+                                            },
+                                        ) {
+                                            Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy", tint = c.secondary)
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                NovaDolbyController.deleteUserPreset(preset)
+                                            },
+                                        ) {
+                                            Icon(Icons.Rounded.Delete, contentDescription = "Delete", tint = c.error)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -1318,7 +2045,7 @@ private fun NovaBandTunerCard(
 
 @Composable
 private fun NovaDolbyAdvancedPage(
-    bottomPadding: androidx.compose.ui.unit.Dp,
+    bottomPadding: Dp,
 ) {
     val c = MaterialTheme.colorScheme
     val ps = NovaDolbyController.profileSettings
