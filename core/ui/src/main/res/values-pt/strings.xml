@@ -214,6 +214,10 @@
     <string name="github">Github</string>
     <string name="donate">Doar</string>
     <string name="error_opening_link">Nenhuma app encontrada para aceder esta ligação</string>
+    <string name="support_the_developer_on">Apoie o programador em %1$s</string>
+    <string name="kofi">Ko-fi</string>
+    <string name="paypal">PayPal</string>
+    <string name="upi">UPI</string>
     <string name="media_layout">Layout de média</string>
     <string name="list">Lista</string>
     <string name="grid">Grade</string>

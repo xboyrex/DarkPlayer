@@ -215,6 +215,10 @@
     <string name="github">Github</string>
     <string name="donate">Dhuron</string>
     <string name="error_opening_link">Nuk u gjet asnjë aplikacion me trajtue ket lidhje</string>
+    <string name="support_the_developer_on">Mbështete zhvilluesin në %1$s</string>
+    <string name="kofi">Ko-fi</string>
+    <string name="paypal">PayPal</string>
+    <string name="upi">UPI</string>
     <string name="media_layout">Paraqitja e Medias</string>
     <string name="list">Listë</string>
     <string name="grid">Rrjet</string>

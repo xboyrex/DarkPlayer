@@ -4,7 +4,6 @@ import android.content.Context
 import coil3.ImageLoader
 import coil3.disk.DiskCache
 import coil3.disk.directory
-import coil3.memory.MemoryCache
 import coil3.request.CachePolicy
 import coil3.request.crossfade
 import dev.xboyrex.darkplayer.core.common.di.DispatchersModule
@@ -16,7 +15,6 @@ import dev.xboyrex.darkplayer.feature.player.PlayerModule
 import dev.xboyrex.darkplayer.feature.playlist.PlaylistModule
 import dev.xboyrex.darkplayer.feature.videopicker.VideoPickerModule
 import dev.xboyrex.darkplayer.settings.SettingsModule
-import kotlinx.coroutines.Dispatchers
 import okio.FileSystem
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.KoinViewModel
@@ -67,22 +65,14 @@ class AppModule {
                 ),
             )
         }
-        .fetcherCoroutineContext(Dispatchers.IO.limitedParallelism(8))
-        .decoderCoroutineContext(Dispatchers.IO.limitedParallelism(6))
-        .memoryCachePolicy(CachePolicy.ENABLED)
-        .memoryCache {
-            MemoryCache.Builder()
-                .maxSizePercent(context, 0.30)
-                .build()
-        }
         .diskCachePolicy(CachePolicy.ENABLED)
         .diskCache(
             DiskCache.Builder()
                 .fileSystem(FileSystem.SYSTEM)
                 .directory(context.filesDir.resolve(relative = "thumbnails"))
-                .maxSizeBytes(256L * 1024L * 1024L)
+                .maxSizePercent(percent = 1.0)
                 .build(),
         )
-        .crossfade(120)
+        .crossfade(enable = true)
         .build()
 }

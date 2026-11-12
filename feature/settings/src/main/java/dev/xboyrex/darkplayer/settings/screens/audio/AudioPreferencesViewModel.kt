@@ -54,6 +54,12 @@ class AudioPreferencesViewModel(
             is AudioPreferencesUiEvent.ToggleRequireAudioFocus -> toggleRequireAudioFocus()
 
             is AudioPreferencesUiEvent.ToggleVolumeBoost -> toggleVolumeBoost()
+
+            is AudioPreferencesUiEvent.UpdatePreferences -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences(action.transform)
+                }
+            }
         }
     }
 
@@ -121,4 +127,7 @@ sealed interface AudioPreferencesUiEvent {
     data object ToggleShowSystemVolumePanel : AudioPreferencesUiEvent
     data object ToggleRequireAudioFocus : AudioPreferencesUiEvent
     data object ToggleVolumeBoost : AudioPreferencesUiEvent
+    data class UpdatePreferences(
+        val transform: (PlayerPreferences) -> PlayerPreferences,
+    ) : AudioPreferencesUiEvent
 }

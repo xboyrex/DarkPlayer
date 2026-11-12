@@ -38,11 +38,15 @@ import dev.xboyrex.darkplayer.core.ui.base.DataState
 import dev.xboyrex.darkplayer.core.ui.base.MviViewModel
 import dev.xboyrex.darkplayer.feature.videopicker.state.SelectionItem
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.InjectedParam
@@ -194,16 +198,27 @@ class MediaPickerViewModel(
         }
         mediaCollectJob = viewModelScope.launch {
             launch {
-                getSortedMediaUseCase(folderPath).collect { media ->
-                    stateInternal.update {
-                        it.copy(mediaDataState = DataState.Success(value = media))
+                getSortedMediaUseCase(folderPath)
+                    .catch { throwable ->
+                        if (throwable is CancellationException) throw throwable
+                        stateInternal.update {
+                            it.copy(mediaDataState = DataState.Error(throwable = throwable))
+                        }
                     }
-                }
+                    .collect { media ->
+                        stateInternal.update {
+                            it.copy(mediaDataState = DataState.Success(value = media))
+                        }
+                    }
             }
             launch {
-                getRecentlyPlayedVideoUseCase(folderPath).collect { recentlyPlayed ->
-                    stateInternal.update { it.copy(recentlyPlayedVideo = recentlyPlayed) }
-                }
+                getRecentlyPlayedVideoUseCase(folderPath)
+                    .catch { throwable ->
+                        if (throwable is CancellationException) throw throwable
+                    }
+                    .collect { recentlyPlayed ->
+                        stateInternal.update { it.copy(recentlyPlayedVideo = recentlyPlayed) }
+                    }
             }
         }
     }
@@ -376,6 +391,7 @@ class MediaPickerViewModel(
 
     private fun transferSelectedItems(selectedItems: Set<SelectionItem>, mode: TransferMode) {
         transferJob = viewModelScope.launch {
+            val activeJob = currentCoroutineContext()[Job]
             val treeUri = systemService.pickFolder() ?: return@launch
             val videoUris = selectedItems.toVideoUris()
             if (videoUris.isEmpty()) return@launch
@@ -393,7 +409,20 @@ class MediaPickerViewModel(
                 uris = videoUris,
                 folderUri = treeUri,
                 mode = mode,
-            ).collect { event ->
+            ).catch { error ->
+                if (error is CancellationException) throw error
+                showTransferCompleteToast(
+                    mode = mode,
+                    result = TransferResult(
+                        succeeded = 0,
+                        failed = videoUris.size,
+                    ),
+                )
+            }.onCompletion {
+                if (transferJob === activeJob) {
+                    stateInternal.update { it.copy(transferFlow = TransferFlowState.Idle) }
+                }
+            }.collect { event ->
                 when (event) {
                     is TransferEvent.Progress -> stateInternal.update {
                         (it.transferFlow as? TransferFlowState.Processing)?.let { state ->

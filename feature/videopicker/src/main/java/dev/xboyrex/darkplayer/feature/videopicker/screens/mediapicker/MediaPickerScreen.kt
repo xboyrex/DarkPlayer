@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.horizontalScroll
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,7 +37,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.ZeroCornerSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.FolderSpecial
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.PlaylistPlay
+import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -64,6 +72,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -75,6 +85,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
@@ -113,6 +124,7 @@ import dev.xboyrex.darkplayer.core.ui.components.tvFocusRing
 import dev.xboyrex.darkplayer.core.ui.composables.PermissionMissingView
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
 import dev.xboyrex.darkplayer.core.ui.extensions.copy
+import dev.xboyrex.darkplayer.core.ui.glass.LocalNovaAccentColor
 import dev.xboyrex.darkplayer.core.ui.preview.DayNightPreview
 import dev.xboyrex.darkplayer.core.ui.preview.VideoPickerPreviewParameterProvider
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
@@ -163,8 +175,8 @@ internal fun MediaPickerScreenContent(
     val hasMedia = (state.mediaDataState as? DataState.Success)?.value
         ?.let { it.folders.isNotEmpty() || it.videos.isNotEmpty() } == true
     val navigationBottomPadding = LocalNavigationBottomPadding.current
+    val accent = LocalNovaAccentColor.current
 
-    // Re-enter the content region so its previously focused item is restored.
     val topBarDownModifier = if (isTv && hasMedia) {
         Modifier.focusProperties { down = focusState.requester }
     } else {
@@ -187,6 +199,7 @@ internal fun MediaPickerScreenContent(
     )
 
     var showQuickSettingsDialog by rememberSaveable { mutableStateOf(value = false) }
+    var showNetworkStreamDialog by rememberSaveable { mutableStateOf(value = false) }
     var showRenameActionFor: Video? by rememberSaveable { mutableStateOf(value = null) }
     var showDeleteVideosConfirmation by rememberSaveable { mutableStateOf(value = false) }
 
@@ -244,16 +257,17 @@ internal fun MediaPickerScreenContent(
                         Row(
                             modifier = Modifier
                                 .clip(shape = CircleShape)
-                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                .background(accent.copy(alpha = 0.20f))
+                                .border(1.dp, accent.copy(alpha = 0.45f), CircleShape)
                                 .clickable { selectionManager.exitSelectionMode() }
-                                .padding(8.dp)
-                                .padding(end = 8.dp),
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Icon(
                                 imageVector = NextIcons.Close,
                                 contentDescription = stringResource(id = R.string.navigate_up),
+                                tint = accent,
                             )
                             Text(
                                 text = stringResource(
@@ -261,7 +275,8 @@ internal fun MediaPickerScreenContent(
                                     selectedItemsSize,
                                     totalItemsSize,
                                 ),
-                                style = MaterialTheme.typography.labelLarge,
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White,
                             )
                         }
                     } else if (state.folderName != null) {
@@ -324,7 +339,7 @@ internal fun MediaPickerScreenContent(
                             modifier = topBarDownModifier.tvFocusRing(isTv = isTv),
                         ) {
                             Icon(
-                                imageVector = NextIcons.DashBoard,
+                                imageVector = Icons.Rounded.Tune,
                                 contentDescription = stringResource(id = R.string.menu),
                             )
                         }
@@ -395,13 +410,15 @@ internal fun MediaPickerScreenContent(
             )
         },
         floatingActionButton = {
-            if (state.folderName != null && !selectionManager.isInSelectionMode) {
+            if (state.folderName != null && !selectionManager.isInSelectionMode && state.preferences.showFloatingPlayFab) {
                 FloatingActionButton(
                     onClick = onFabClick,
                     modifier = Modifier
-                        .tvFocusRing(shape = MaterialTheme.shapes.large)
+                        .tvFocusRing(shape = CircleShape)
                         .focusProperties { if (isTv && hasMedia) up = focusState.requester },
-                    shape = MaterialTheme.shapes.large,
+                    shape = CircleShape,
+                    containerColor = accent,
+                    contentColor = Color.White,
                 ) {
                     Icon(
                         imageVector = NextIcons.Play,
@@ -410,76 +427,121 @@ internal fun MediaPickerScreenContent(
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = MaterialTheme.colorScheme.background,
     ) { scaffoldPadding ->
-        Box(
+        Column(
             Modifier
                 .fillMaxSize()
                 .padding(scaffoldPadding.copy(bottom = 0.dp))
-                .clip(
-                    shape = RoundedCornerShape(
-                        topStart = 24.dp,
-                        topEnd = 24.dp,
-                    ),
-                )
                 .background(MaterialTheme.colorScheme.background),
         ) {
-            if (!permissionState.status.isGranted) {
-                PermissionMissingView(
-                    isGranted = permissionState.status.isGranted,
-                    showRationale = permissionState.status.shouldShowRationale,
-                    permission = permissionState.permission,
-                    launchPermissionRequest = { permissionState.launchPermissionRequest() },
-                ) {}
-                return@Scaffold
-            }
-            when (state.mediaDataState) {
-                is DataState.Error -> {
-                }
-
-                is DataState.Loading -> {
-                    CenterCircularProgressBar()
-                }
-
-                is DataState.Success -> {
-                    val successContent: @Composable () -> Unit = {
-                        val updatedScaffoldPadding = scaffoldPadding.copy(
-                            top = 12.dp,
-                            start = 0.dp,
-                            bottom =
-                                scaffoldPadding.calculateBottomPadding() + navigationBottomPadding,
-                        )
-                        val mediaHolder = state.mediaDataState.value
-                        if (mediaHolder == null ||
-                            (mediaHolder.folders.isEmpty() && mediaHolder.videos.isEmpty())
-                        ) {
-                            NoVideosFound(contentPadding = updatedScaffoldPadding)
+            // MX Player Pro Top Quick Category Chips Bar (Screenshot #1 155332_MX Player Pro.png)
+            if (state.folderName == null && !selectionManager.isInSelectionMode && state.preferences.showMxTopCategoryChips) {
+                MxTopCategoryBar(
+                    currentViewMode = state.preferences.mediaViewMode,
+                    onToggleFilesView = {
+                        val nextMode = if (state.preferences.mediaViewMode == MediaViewMode.VIDEOS) {
+                            MediaViewMode.FOLDERS
                         } else {
-                            MediaView(
-                                recentlyPlayedVideo = state.recentlyPlayedVideo,
-                                recentlyPlayedFolder = state.recentlyPlayedFolder,
-                                mediaHolder = mediaHolder,
-                                preferences = state.preferences,
-                                onFolderClick = {
-                                    onAction(MediaPickerAction.OnFolderClick(folderPath = it))
-                                },
-                                onVideoClick = {
-                                    onAction(MediaPickerAction.OnPlayVideo(uri = it))
-                                },
-                                selectionManager = selectionManager,
-                                lazyGridState = lazyGridState,
-                                focusState = focusState,
-                                contentPadding = updatedScaffoldPadding,
+                            MediaViewMode.VIDEOS
+                        }
+                        onAction(
+                            MediaPickerAction.UpdateMenu(
+                                state.preferences.copy(mediaViewMode = nextMode),
+                            ),
+                        )
+                    },
+                    onOpenVault = { onAction(MediaPickerAction.OnVaultClick) },
+                    onPickFile = { selectVideoFileLauncher.launch("video/*") },
+                    onOpenStreamDialog = { showNetworkStreamDialog = true },
+                    onOpenViewModeSheet = { showQuickSettingsDialog = true },
+                )
+            }
+
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                if (!permissionState.status.isGranted) {
+                    PermissionMissingView(
+                        isGranted = permissionState.status.isGranted,
+                        showRationale = permissionState.status.shouldShowRationale,
+                        permission = permissionState.permission,
+                        launchPermissionRequest = { permissionState.launchPermissionRequest() },
+                    ) {}
+                    return@Scaffold
+                }
+                when (state.mediaDataState) {
+                    is DataState.Error -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                text = "Unable to load media library",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = state.mediaDataState.throwable?.localizedMessage
+                                    ?: "Check storage permissions or refresh your media library.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            TextButton(onClick = { onAction(MediaPickerAction.Refresh) }) {
+                                Text("Retry", fontWeight = FontWeight.Bold, color = accent)
+                            }
                         }
                     }
-                    if (isTv) {
-                        successContent()
-                    } else {
-                        PullToRefreshBox(
-                            isRefreshing = state.refreshing,
-                            onRefresh = { onAction(MediaPickerAction.Refresh) },
-                        ) { successContent() }
+
+                    is DataState.Loading -> {
+                        CenterCircularProgressBar()
+                    }
+
+                    is DataState.Success -> {
+                        val successContent: @Composable () -> Unit = {
+                            val updatedScaffoldPadding = scaffoldPadding.copy(
+                                top = 0.dp,
+                                start = 0.dp,
+                                bottom =
+                                    scaffoldPadding.calculateBottomPadding() + navigationBottomPadding + 24.dp,
+                            )
+                            val mediaHolder = state.mediaDataState.value
+                            if (mediaHolder == null ||
+                                (mediaHolder.folders.isEmpty() && mediaHolder.videos.isEmpty())
+                            ) {
+                                NoVideosFound(contentPadding = updatedScaffoldPadding)
+                            } else {
+                                MediaView(
+                                    recentlyPlayedVideo = state.recentlyPlayedVideo,
+                                    recentlyPlayedFolder = state.recentlyPlayedFolder,
+                                    mediaHolder = mediaHolder,
+                                    preferences = state.preferences,
+                                    onFolderClick = {
+                                        onAction(MediaPickerAction.OnFolderClick(folderPath = it))
+                                    },
+                                    onVideoClick = {
+                                        onAction(MediaPickerAction.OnPlayVideo(uri = it))
+                                    },
+                                    selectionManager = selectionManager,
+                                    lazyGridState = lazyGridState,
+                                    focusState = focusState,
+                                    contentPadding = updatedScaffoldPadding,
+                                )
+                            }
+                        }
+                        if (isTv) {
+                            successContent()
+                        } else {
+                            PullToRefreshBox(
+                                isRefreshing = state.refreshing,
+                                onRefresh = { onAction(MediaPickerAction.Refresh) },
+                            ) { successContent() }
+                        }
                     }
                 }
             }
@@ -495,6 +557,47 @@ internal fun MediaPickerScreenContent(
             applicationPreferences = state.preferences,
             onDismiss = { showQuickSettingsDialog = false },
             updatePreferences = { onAction(MediaPickerAction.UpdateMenu(preferences = it)) },
+        )
+    }
+
+    if (showNetworkStreamDialog) {
+        var streamUrl by rememberSaveable { mutableStateOf("") }
+        NextDialog(
+            onDismissRequest = { showNetworkStreamDialog = false },
+            title = { Text("Network Stream") },
+            content = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Enter a network URL (HTTP, HTTPS, M3U8, DASH, RTSP):",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    NextOutlinedTextField(
+                        value = streamUrl,
+                        onValueChange = { streamUrl = it },
+                        label = { Text("https://example.com/stream.m3u8") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = streamUrl.isNotBlank(),
+                    onClick = {
+                        val trimmed = streamUrl.trim()
+                        if (trimmed.isNotEmpty()) {
+                            showNetworkStreamDialog = false
+                            onAction(MediaPickerAction.OnPlayVideo(trimmed.toUri()))
+                        }
+                    },
+                ) {
+                    Text("Play Stream")
+                }
+            },
+            dismissButton = {
+                CancelButton(onClick = { showNetworkStreamDialog = false })
+            },
         )
     }
 
@@ -575,6 +678,105 @@ internal fun MediaPickerScreenContent(
     }
 }
 
+/**
+ * MX Player Pro Top Quick Category Chips Bar (`Music / All Videos`, `Privacy`, `File Transfer`, `Network Stream`, `View Mode`)
+ * Matches Screenshot_20261110-155332_MX Player Pro.png (#1 in mx_screenshots).
+ */
+@Composable
+private fun MxTopCategoryBar(
+    currentViewMode: MediaViewMode,
+    onToggleFilesView: () -> Unit,
+    onOpenVault: () -> Unit,
+    onPickFile: () -> Unit,
+    onOpenStreamDialog: () -> Unit,
+    onOpenViewModeSheet: () -> Unit,
+) {
+    val accent = LocalNovaAccentColor.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MxCategoryPill(
+            icon = Icons.Rounded.MusicNote,
+            label = if (currentViewMode == MediaViewMode.VIDEOS) "All Videos ✓" else "All Videos",
+            active = currentViewMode == MediaViewMode.VIDEOS,
+            accent = accent,
+            onClick = onToggleFilesView,
+        )
+        MxCategoryPill(
+            icon = Icons.Rounded.FolderSpecial,
+            label = "Privacy",
+            active = false,
+            accent = accent,
+            onClick = onOpenVault,
+        )
+        MxCategoryPill(
+            icon = Icons.Rounded.SwapHoriz,
+            label = "Pick File",
+            active = false,
+            accent = accent,
+            onClick = onPickFile,
+        )
+        MxCategoryPill(
+            icon = Icons.Rounded.Language,
+            label = "Network Stream",
+            active = false,
+            accent = accent,
+            onClick = onOpenStreamDialog,
+        )
+        MxCategoryPill(
+            icon = Icons.Rounded.PlaylistPlay,
+            label = "View & Sort",
+            active = false,
+            accent = accent,
+            onClick = onOpenViewModeSheet,
+        )
+    }
+}
+
+@Composable
+private fun MxCategoryPill(
+    icon: ImageVector,
+    label: String,
+    active: Boolean,
+    accent: Color,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(
+                if (active) accent.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+            )
+            .border(
+                width = 1.dp,
+                color = if (active) accent else Color.White.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(10.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (active) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (active) accent else MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
 @Composable
 private fun TransferProgressDialog(
     mode: TransferMode,
@@ -632,9 +834,6 @@ private fun TransferProgressDialog(
     }
 }
 
-/**
- * A labelled progress bar. A null [fraction] renders an indeterminate bar with no percentage.
- */
 @Composable
 private fun ProgressSection(label: String, fraction: Float?) {
     val animatedFraction by animateFloatAsState(
@@ -870,7 +1069,6 @@ private fun SetupVaultPinDialog(onDismiss: () -> Unit, onPinConfirmed: (String) 
             color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             if (isTv) {
-                // Landscape TV: info on the left, keypad on the right so it fits a short screen.
                 Row(
                     modifier = Modifier.padding(24.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -934,7 +1132,6 @@ private fun SetupPinHeader(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Lock icon — matches the vault PIN screen's icon box
         Box(
             modifier = Modifier
                 .clip(MaterialTheme.shapes.large)
@@ -1142,6 +1339,10 @@ private fun PlaylistTargetDialog(
     )
 }
 
+/**
+ * Floating Liquid Glass / MX Pro Selection Action Bar (Fixes Bug #18 `154019_Nova Player.png`).
+ * Lifted above the footer with rounded capsule/pill styling and full action set.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SelectionActionsSheet(
@@ -1164,6 +1365,7 @@ private fun SelectionActionsSheet(
     val context = LocalContext.current
     val isTv = remember { context.isTelevision }
     val firstActionFocusRequester = remember { FocusRequester() }
+    val accent = LocalNovaAccentColor.current
     AnimatedVisibility(
         modifier = modifier.windowInsetsPadding(
             WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
@@ -1173,20 +1375,24 @@ private fun SelectionActionsSheet(
         exit = slideOutVertically { it },
     ) {
         val shape = RoundedCornerShape(28.dp)
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 14.dp)
-                .padding(top = 8.dp, bottom = 24.dp),
+                .padding(horizontal = 14.dp, vertical = 18.dp),
+            contentAlignment = Alignment.BottomCenter,
         ) {
             Row(
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
                     .fillMaxWidth()
                     .clip(shape = shape)
                     .background(
-                        color = androidx.compose.ui.graphics.Color(0xFF181A20),
+                        color = Color(0xFF1A1E29).copy(alpha = 0.96f),
+                        shape = shape,
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = accent.copy(alpha = 0.35f),
                         shape = shape,
                     )
                     .horizontalScroll(state = rememberScrollState())
@@ -1196,10 +1402,10 @@ private fun SelectionActionsSheet(
                     }
                     .padding(
                         horizontal = 10.dp,
-                        vertical = 8.dp,
+                        vertical = 10.dp,
                     ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+                horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 SelectionAction(
                     modifier = Modifier.thenIf(condition = isTv) {
@@ -1224,6 +1430,14 @@ private fun SelectionActionsSheet(
                         onClick = onRenameAction,
                     )
                 }
+                if (showHideAction) {
+                    SelectionAction(
+                        isTv = isTv,
+                        imageVector = NextIcons.Lock,
+                        title = "Lock",
+                        onClick = onHideAction,
+                    )
+                }
                 SelectionAction(
                     isTv = isTv,
                     imageVector = NextIcons.Share,
@@ -1246,16 +1460,8 @@ private fun SelectionActionsSheet(
                     SelectionAction(
                         isTv = isTv,
                         imageVector = NextIcons.Info,
-                        title = stringResource(id = R.string.info),
+                        title = "Properties",
                         onClick = onInfoAction,
-                    )
-                }
-                if (showHideAction) {
-                    SelectionAction(
-                        isTv = isTv,
-                        imageVector = NextIcons.HideSource,
-                        title = stringResource(id = R.string.hide),
-                        onClick = onHideAction,
                     )
                 }
                 SelectionAction(

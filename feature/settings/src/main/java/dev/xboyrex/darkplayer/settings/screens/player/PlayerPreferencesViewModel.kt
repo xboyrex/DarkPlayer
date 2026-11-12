@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import dev.xboyrex.darkplayer.core.common.extensions.round
 import dev.xboyrex.darkplayer.core.data.repository.PreferencesRepository
 import dev.xboyrex.darkplayer.core.model.ControlButtonsPosition
-import dev.xboyrex.darkplayer.core.model.LoopMode
 import dev.xboyrex.darkplayer.core.model.PlayerPreferences
 import dev.xboyrex.darkplayer.core.model.Resume
 import dev.xboyrex.darkplayer.core.model.ScreenOrientation
@@ -84,14 +83,11 @@ class PlayerPreferencesViewModel(
             is PlayerPreferencesUiEvent.ToggleUseMaterialYouControls ->
                 toggleUseMaterialYouControls()
 
-            is PlayerPreferencesUiEvent.ToggleShowRemainingTime ->
-                toggleShowRemainingTime()
-
-            is PlayerPreferencesUiEvent.ToggleHidePlayerButtonsBackground ->
-                toggleHidePlayerButtonsBackground()
-
-            is PlayerPreferencesUiEvent.CycleLoopMode ->
-                cycleLoopMode()
+            is PlayerPreferencesUiEvent.UpdatePreferences -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences(action.transform)
+                }
+            }
         }
     }
 
@@ -192,35 +188,6 @@ class PlayerPreferencesViewModel(
             }
         }
     }
-
-    private fun toggleShowRemainingTime() {
-        viewModelScope.launch {
-            preferencesRepository.updatePlayerPreferences {
-                it.copy(showRemainingTime = !it.showRemainingTime)
-            }
-        }
-    }
-
-    private fun toggleHidePlayerButtonsBackground() {
-        viewModelScope.launch {
-            preferencesRepository.updatePlayerPreferences {
-                it.copy(hidePlayerButtonsBackground = !it.hidePlayerButtonsBackground)
-            }
-        }
-    }
-
-    private fun cycleLoopMode() {
-        viewModelScope.launch {
-            preferencesRepository.updatePlayerPreferences {
-                val nextMode = when (it.loopMode) {
-                    LoopMode.OFF -> LoopMode.ALL
-                    LoopMode.ALL -> LoopMode.ONE
-                    LoopMode.ONE -> LoopMode.OFF
-                }
-                it.copy(loopMode = nextMode)
-            }
-        }
-    }
 }
 
 @Stable
@@ -233,6 +200,10 @@ sealed interface PlayerPreferenceDialog {
     data object ResumeDialog : PlayerPreferenceDialog
     data object PlayerScreenOrientationDialog : PlayerPreferenceDialog
     data object ControlButtonsDialog : PlayerPreferenceDialog
+    data object MxPlayerThemeDialog : PlayerPreferenceDialog
+    data object MxScreenDialog : PlayerPreferenceDialog
+    data object MxControlsDialog : PlayerPreferenceDialog
+    data object MxNavigationDialog : PlayerPreferenceDialog
 }
 
 sealed interface PlayerPreferencesUiEvent {
@@ -253,7 +224,7 @@ sealed interface PlayerPreferencesUiEvent {
     data class UpdateDefaultPlaybackSpeed(val value: Float) : PlayerPreferencesUiEvent
     data class UpdateControlAutoHideTimeout(val value: Int) : PlayerPreferencesUiEvent
     data object ToggleUseMaterialYouControls : PlayerPreferencesUiEvent
-    data object ToggleShowRemainingTime : PlayerPreferencesUiEvent
-    data object ToggleHidePlayerButtonsBackground : PlayerPreferencesUiEvent
-    data object CycleLoopMode : PlayerPreferencesUiEvent
+    data class UpdatePreferences(
+        val transform: (PlayerPreferences) -> PlayerPreferences,
+    ) : PlayerPreferencesUiEvent
 }

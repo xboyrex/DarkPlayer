@@ -1,114 +1,59 @@
 package dev.xboyrex.darkplayer.settings
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.NavigateNext
-import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Equalizer
-import androidx.compose.material.icons.rounded.FileDownload
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.PlayCircleOutline
-import androidx.compose.material.icons.rounded.Subtitles
-import androidx.compose.material.icons.rounded.Swipe
-import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material.icons.rounded.VideoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.xboyrex.darkplayer.core.ui.R
-import dev.xboyrex.darkplayer.core.ui.audio.EqualizerAndDolbyStudioContent
-import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
+import dev.xboyrex.darkplayer.core.ui.components.ClickablePreferenceItem
+import dev.xboyrex.darkplayer.core.ui.components.ListSectionTitle
+import dev.xboyrex.darkplayer.core.ui.components.NextTopAppBar
 import dev.xboyrex.darkplayer.core.ui.components.rememberRestorableFocusState
 import dev.xboyrex.darkplayer.core.ui.components.restorableFocusGroup
 import dev.xboyrex.darkplayer.core.ui.components.restorableFocusItem
-import dev.xboyrex.darkplayer.core.ui.glass.GlasmioSwitch
-import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
-import dev.xboyrex.darkplayer.core.ui.glass.Motion
-import dev.xboyrex.darkplayer.core.ui.glass.NavBarStyle
-import dev.xboyrex.darkplayer.core.ui.glass.SwitchStyle
-import dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences
-import dev.xboyrex.darkplayer.core.ui.glass.VolumeHudStyle
-import dev.xboyrex.darkplayer.core.ui.glass.pressable
-import dev.xboyrex.darkplayer.core.ui.updater.UpdateOverlayDialog
-import dev.xboyrex.darkplayer.core.ui.updater.rememberUpdateState
-import kotlin.math.roundToInt
+import dev.xboyrex.darkplayer.core.ui.components.tvFocusDown
+import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
+import dev.xboyrex.darkplayer.core.ui.designsystem.NovaLogoBlue
+import dev.xboyrex.darkplayer.core.ui.designsystem.NovaLogoPink
+import dev.xboyrex.darkplayer.core.ui.designsystem.NovaLogoViolet
 
 data class SettingsOutput(val navigateUp: () -> Unit, val openSetting: (Setting) -> Unit)
 
 private sealed interface SettingsAction {
     data object NavigateUp : SettingsAction
     data class OpenSetting(val setting: Setting) : SettingsAction
-}
-
-private enum class YtxFloatingPanel {
-    AUDIO_DOLBY_STUDIO,
 }
 
 @Composable
@@ -121,831 +66,179 @@ fun SettingsScreen(output: SettingsOutput) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+)
 @Composable
 private fun SettingsScreenContent(onAction: (SettingsAction) -> Unit) {
-    val context = LocalContext.current
-    val c = MaterialTheme.colorScheme
+    val settingRows = remember { SettingRow.entries }
     val focusState = rememberRestorableFocusState()
-    val navBottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val statusTopInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val updateState = rememberUpdateState()
-    val installedVersion = remember(context) { updateState.currentVersionName(context) }
 
-    LaunchedEffect(context) {
-        HardwareDolbyAndEqualizerEngine.init(context)
-        GlassSettings.init(context)
-        UiStylePreferences.init(context)
-    }
-
-    var activeFloatingPanel by rememberSaveable { mutableStateOf<YtxFloatingPanel?>(null) }
-    var engineCardExpanded by rememberSaveable { mutableStateOf(true) }
-    var uiCustomizerExpanded by rememberSaveable { mutableStateOf(true) }
-    var playbackSectionExpanded by rememberSaveable { mutableStateOf(true) }
-    var interfaceSectionExpanded by rememberSaveable { mutableStateOf(true) }
-    var systemSectionExpanded by rememberSaveable { mutableStateOf(true) }
-
-    BackHandler(enabled = activeFloatingPanel != null) {
-        activeFloatingPanel = null
-    }
-
-    var entered by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { entered = true }
-    val enterAlpha by animateFloatAsState(
-        targetValue = if (entered) 1f else 0f,
-        animationSpec = tween(durationMillis = 160, easing = Motion.Emphasized),
-        label = "settingsEnterAlpha",
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(c.background),
-    ) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            containerColor = c.background,
-            topBar = {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = statusTopInset + 8.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(c.surfaceContainer)
-                            .border(0.75.dp, c.outlineVariant, CircleShape)
-                            .pressable(pressedScale = 0.90f) { onAction(SettingsAction.NavigateUp) },
-                        contentAlignment = Alignment.Center,
+    Scaffold(
+        topBar = {
+            NextTopAppBar(
+                title = stringResource(id = R.string.settings),
+                navigationIcon = {
+                    FilledTonalIconButton(
+                        onClick = { onAction(SettingsAction.NavigateUp) },
+                        modifier = Modifier.tvFocusDown(focusState.requester),
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            imageVector = NextIcons.ArrowBack,
                             contentDescription = stringResource(id = R.string.navigate_up),
-                            tint = c.onSurface,
-                            modifier = Modifier.size(20.dp),
                         )
                     }
-                    Spacer(Modifier.width(14.dp))
-                    Text(
-                        text = stringResource(id = R.string.settings),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp,
-                        letterSpacing = (-0.5).sp,
-                        color = c.onSurface,
-                    )
-                }
-            },
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .graphicsLayer { alpha = enterAlpha }
-                    .verticalScroll(rememberScrollState())
-                    .restorableFocusGroup(state = focusState)
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 4.dp, bottom = navBottomInset + 36.dp),
-            ) {
-                // ── 1. YTX Expandable Nova Studio & Dolby Quick Hub Card ──
-                YtxSettingsCard {
-                    val chevronRotation by animateFloatAsState(
-                        targetValue = if (engineCardExpanded) 90f else 0f,
-                        animationSpec = spring(dampingRatio = 0.72f, stiffness = 1200f),
-                        label = "engineChevron",
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                            ) { engineCardExpanded = !engineCardExpanded }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(c.primary.copy(alpha = 0.16f))
-                                .border(1.dp, c.primary.copy(alpha = 0.38f), CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.AutoAwesome,
-                                contentDescription = null,
-                                tint = c.primary,
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = "Nova Player Audio & Navigation Hub",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.5.sp,
-                                color = c.onSurface,
-                            )
-                            Spacer(Modifier.height(1.dp))
-                            Text(
-                                text = "Dolby ${if (HardwareDolbyAndEqualizerEngine.dolbyEnabled) "ON (${HardwareDolbyAndEqualizerEngine.dolbyProfile.title})" else "OFF"} • ${UiStylePreferences.navBarStyle.title}",
-                                fontSize = 12.sp,
-                                color = c.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
-                            contentDescription = null,
-                            tint = c.onSurfaceVariant,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .graphicsLayer { rotationZ = chevronRotation },
-                        )
-                    }
-
-                    AnimatedVisibility(
-                        visible = engineCardExpanded,
-                        enter = fadeIn(tween(140)) + expandVertically(spring(dampingRatio = 0.82f, stiffness = 1200f)),
-                        exit = fadeOut(tween(110)) + shrinkVertically(spring(dampingRatio = 0.85f, stiffness = 1200f)),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                                .padding(bottom = 12.dp),
-                        ) {
-                            HorizontalDivider(
-                                color = c.outlineVariant,
-                                modifier = Modifier.padding(bottom = 8.dp),
-                            )
-                            YtxSwitchRow(
-                                title = "Dolby Atmos & Dialogue Enhancer",
-                                subtitle = "Spatial surround sound & vocal clarity across all videos",
-                                checked = HardwareDolbyAndEqualizerEngine.dolbyEnabled,
-                                onCheckedChange = { HardwareDolbyAndEqualizerEngine.setDolbyMasterEnabled(it) },
-                            )
-                            YtxSwitchRow(
-                                title = "5-Band Studio Equalizer",
-                                subtitle = "Active preset: ${HardwareDolbyAndEqualizerEngine.selectedPresetName}",
-                                checked = HardwareDolbyAndEqualizerEngine.equalizerEnabled,
-                                onCheckedChange = { HardwareDolbyAndEqualizerEngine.setEqualizerMasterEnabled(it) },
-                            )
-                            YtxSwitchRow(
-                                title = "Liquid Glass Navigation Bar",
-                                subtitle = "YTX Liquid Glass bottom bar raised above footer",
-                                checked = GlassSettings.enabled,
-                                onCheckedChange = { GlassSettings.updateEnabled(it) },
-                            )
-                        }
-                    }
-                }
-
-                // ── 1B. Interactive UI/UX Style, Nav Bar, Volume HUD & Switch Toggle Switcher ──
-                YtxSectionHeader(
-                    title = "UI / UX STYLE, NAV BAR & VOLUME HUD SWITCHER",
-                    expanded = uiCustomizerExpanded,
-                    onClick = { uiCustomizerExpanded = !uiCustomizerExpanded },
-                )
-                AnimatedVisibility(
-                    visible = uiCustomizerExpanded,
-                    enter = fadeIn(tween(140)) + expandVertically(spring(dampingRatio = 0.82f, stiffness = 1200f)),
-                    exit = fadeOut(tween(110)) + shrinkVertically(spring(dampingRatio = 0.85f, stiffness = 1200f)),
-                ) {
-                    YtxSettingsCard {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                        ) {
-                            Text(
-                                text = "Navigation Bar Style",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.5.sp,
-                                color = c.onSurface,
-                            )
-                            Text(
-                                text = "Switch between YTX Liquid Glass, Cutout Floating Circle, Expandable Pill, Cradle & Glasmio",
-                                fontSize = 11.5.sp,
-                                color = c.onSurfaceVariant,
-                            )
-                            Spacer(Modifier.height(10.dp))
-                            Row(
-                                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                NavBarStyle.entries.forEach { style ->
-                                    val selected = UiStylePreferences.navBarStyle == style
-                                    StyleChipButton(
-                                        title = style.title,
-                                        subtitle = style.subtitle,
-                                        selected = selected,
-                                        onClick = { UiStylePreferences.updateNavBarStyle(style) },
-                                    )
-                                }
-                            }
-
-                            Spacer(Modifier.height(12.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = "Navigation Bar Lift from Footer",
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.5.sp,
-                                    color = c.onSurface,
-                                )
-                                Text(
-                                    text = "${UiStylePreferences.navBarBottomOffsetDp} dp",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = c.primary,
-                                )
-                            }
-                            Slider(
-                                value = UiStylePreferences.navBarBottomOffsetDp.toFloat(),
-                                onValueChange = { UiStylePreferences.updateNavBarBottomOffsetDp(it.roundToInt()) },
-                                valueRange = 6f..48f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = c.primary,
-                                    activeTrackColor = c.primary,
-                                ),
-                            )
-
-                            HorizontalDivider(
-                                color = c.outlineVariant,
-                                modifier = Modifier.padding(vertical = 8.dp),
-                            )
-
-                            Text(
-                                text = "Volume & Brightness HUD Style",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.5.sp,
-                                color = c.onSurface,
-                            )
-                            Text(
-                                text = "Choose in-player vertical volume & brightness bar design",
-                                fontSize = 11.5.sp,
-                                color = c.onSurfaceVariant,
-                            )
-                            Spacer(Modifier.height(10.dp))
-                            Row(
-                                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                VolumeHudStyle.entries.forEach { style ->
-                                    val selected = UiStylePreferences.volumeHudStyle == style
-                                    StyleChipButton(
-                                        title = style.title,
-                                        subtitle = style.subtitle,
-                                        selected = selected,
-                                        onClick = { UiStylePreferences.updateVolumeHudStyle(style) },
-                                    )
-                                }
-                            }
-
-                            HorizontalDivider(
-                                color = c.outlineVariant,
-                                modifier = Modifier.padding(vertical = 10.dp),
-                            )
-
-                            Text(
-                                text = "Toggle Switch UI Style",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.5.sp,
-                                color = c.onSurface,
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                SwitchStyle.entries.forEach { style ->
-                                    val selected = UiStylePreferences.switchStyle == style
-                                    StyleChipButton(
-                                        title = style.title,
-                                        subtitle = style.subtitle,
-                                        selected = selected,
-                                        onClick = { UiStylePreferences.updateSwitchStyle(style) },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ── 2. Dolby Atmos & Equalizer Studio ──
-                YtxSectionHeader(
-                    title = "AUDIO & DOLBY ATMOS STUDIO",
-                    expanded = true,
-                    onClick = null,
-                )
-                YtxSettingsCard {
-                    YtxSettingsRow(
-                        icon = Icons.Rounded.Equalizer,
-                        title = "Dolby Atmos & Equalizer Studio",
-                        subtitle = "Configure 5-band EQ, Bass Boost, Virtualizer & Dolby Atmos profiles",
-                        onClick = { activeFloatingPanel = YtxFloatingPanel.AUDIO_DOLBY_STUDIO },
-                        trailing = {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(50))
-                                    .background(c.primary.copy(alpha = 0.16f))
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                            ) {
-                                Text(
-                                    text = if (HardwareDolbyAndEqualizerEngine.dolbyEnabled) "Dolby ON" else "Studio",
-                                    color = c.primary,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-                        },
-                    )
-                }
-
-                // ── 3. Playback, Decoders & Gestures ──
-                YtxSectionHeader(
-                    title = "PLAYBACK, DECODERS & GESTURES",
-                    expanded = playbackSectionExpanded,
-                    onClick = { playbackSectionExpanded = !playbackSectionExpanded },
-                )
-                AnimatedVisibility(
-                    visible = playbackSectionExpanded,
-                    enter = fadeIn(tween(140)) + expandVertically(spring(dampingRatio = 0.82f, stiffness = 1200f)),
-                    exit = fadeOut(tween(110)) + shrinkVertically(spring(dampingRatio = 0.85f, stiffness = 1200f)),
-                ) {
-                    YtxSettingsCard {
-                        YtxSettingsRow(
-                            modifier = Modifier.restorableFocusItem(focusState, SettingRow.PLAYER.name),
-                            icon = Icons.Rounded.PlayCircleOutline,
-                            title = stringResource(id = R.string.player_name),
-                            subtitle = stringResource(id = R.string.player_description),
-                            onClick = { onAction(SettingsAction.OpenSetting(Setting.PLAYER)) },
-                        )
-                        YtxDivider()
-                        YtxSettingsRow(
-                            modifier = Modifier.restorableFocusItem(focusState, SettingRow.GESTURES.name),
-                            icon = Icons.Rounded.Swipe,
-                            title = stringResource(id = R.string.gestures_name),
-                            subtitle = stringResource(id = R.string.gestures_description),
-                            onClick = { onAction(SettingsAction.OpenSetting(Setting.GESTURES)) },
-                        )
-                        YtxDivider()
-                        YtxSettingsRow(
-                            modifier = Modifier.restorableFocusItem(focusState, SettingRow.AUDIO.name),
-                            icon = Icons.AutoMirrored.Rounded.VolumeUp,
-                            title = stringResource(id = R.string.audio),
-                            subtitle = stringResource(id = R.string.audio_desc),
-                            onClick = { onAction(SettingsAction.OpenSetting(Setting.AUDIO)) },
-                        )
-                        YtxDivider()
-                        YtxSettingsRow(
-                            modifier = Modifier.restorableFocusItem(focusState, SettingRow.SUBTITLE.name),
-                            icon = Icons.Rounded.Subtitles,
-                            title = stringResource(id = R.string.subtitle),
-                            subtitle = stringResource(id = R.string.subtitle_desc),
-                            onClick = { onAction(SettingsAction.OpenSetting(Setting.SUBTITLE)) },
-                        )
-                    }
-                }
-
-                // ── 4. Interface & Media Library ──
-                YtxSectionHeader(
-                    title = "INTERFACE & MEDIA LIBRARY",
-                    expanded = interfaceSectionExpanded,
-                    onClick = { interfaceSectionExpanded = !interfaceSectionExpanded },
-                )
-                AnimatedVisibility(
-                    visible = interfaceSectionExpanded,
-                    enter = fadeIn(tween(140)) + expandVertically(spring(dampingRatio = 0.82f, stiffness = 1200f)),
-                    exit = fadeOut(tween(110)) + shrinkVertically(spring(dampingRatio = 0.85f, stiffness = 1200f)),
-                ) {
-                    YtxSettingsCard {
-                        YtxSettingsRow(
-                            modifier = Modifier.restorableFocusItem(focusState, SettingRow.APPEARANCE.name),
-                            icon = Icons.Rounded.Palette,
-                            title = stringResource(id = R.string.appearance_name),
-                            subtitle = stringResource(id = R.string.appearance_description),
-                            onClick = { onAction(SettingsAction.OpenSetting(Setting.APPEARANCE)) },
-                        )
-                        YtxDivider()
-                        YtxSettingsRow(
-                            modifier = Modifier.restorableFocusItem(focusState, SettingRow.MEDIA_LIBRARY.name),
-                            icon = Icons.Rounded.VideoLibrary,
-                            title = stringResource(id = R.string.media_library),
-                            subtitle = stringResource(id = R.string.media_library_description),
-                            onClick = { onAction(SettingsAction.OpenSetting(Setting.MEDIA_LIBRARY)) },
-                        )
-                    }
-                }
-
-                // ── 5. General, Updates & About ──
-                YtxSectionHeader(
-                    title = "GENERAL & ABOUT NOVA PLAYER",
-                    expanded = systemSectionExpanded,
-                    onClick = { systemSectionExpanded = !systemSectionExpanded },
-                )
-                AnimatedVisibility(
-                    visible = systemSectionExpanded,
-                    enter = fadeIn(tween(140)) + expandVertically(spring(dampingRatio = 0.82f, stiffness = 1200f)),
-                    exit = fadeOut(tween(110)) + shrinkVertically(spring(dampingRatio = 0.85f, stiffness = 1200f)),
-                ) {
-                    YtxSettingsCard {
-                        YtxSettingsRow(
-                            modifier = Modifier.restorableFocusItem(focusState, SettingRow.GENERAL.name),
-                            icon = Icons.Rounded.Tune,
-                            title = stringResource(id = R.string.general_name),
-                            subtitle = stringResource(id = R.string.general_description),
-                            onClick = { onAction(SettingsAction.OpenSetting(Setting.GENERAL)) },
-                        )
-                        YtxDivider()
-                        YtxSettingsRow(
-                            icon = Icons.Rounded.Info,
-                            title = "Version",
-                            subtitle = "Nova Player v$installedVersion",
-                            onClick = { onAction(SettingsAction.OpenSetting(Setting.ABOUT)) },
-                            trailing = {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(50))
-                                        .background(Color(0xFF30D158).copy(alpha = 0.16f))
-                                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(0xFF30D158)),
-                                        )
-                                        Spacer(Modifier.width(5.dp))
-                                        Text(
-                                            text = "Up to date",
-                                            color = Color(0xFF30D158),
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 11.sp,
-                                        )
-                                    }
-                                }
-                            },
-                        )
-                        YtxDivider()
-                        YtxSettingsRow(
-                            modifier = Modifier.restorableFocusItem(focusState, "CHECK_UPDATES"),
-                            icon = Icons.Rounded.FileDownload,
-                            title = "Check for updates",
-                            subtitle = "New GitHub releases install from inside Nova Player",
-                            onClick = { updateState.check(context = context, manual = true) },
-                        )
-                        YtxDivider()
-                        YtxSettingsRow(
-                            modifier = Modifier.restorableFocusItem(focusState, SettingRow.ABOUT.name),
-                            icon = Icons.Rounded.Info,
-                            title = stringResource(id = R.string.about_name),
-                            subtitle = "Nova Player architecture, open-source licenses & developer links",
-                            onClick = { onAction(SettingsAction.OpenSetting(Setting.ABOUT)) },
-                        )
-                    }
-                }
-            }
-        }
-
-        if (activeFloatingPanel != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.65f)),
-            )
-        }
-
-        // Fast Solid Floating Modal Sheet for Equalizer & Dolby Studio
-        AnimatedContent(
-            targetState = activeFloatingPanel,
-            transitionSpec = {
-                (scaleIn(spring(dampingRatio = 0.78f, stiffness = 1200f), initialScale = 0.92f) + fadeIn(tween(140))) togetherWith
-                    (scaleOut(tween(110), targetScale = 0.94f) + fadeOut(tween(110)))
-            },
-            label = "ytxFloatingPanel",
-        ) { panel ->
-            when (panel) {
-                YtxFloatingPanel.AUDIO_DOLBY_STUDIO -> {
-                    YtxFloatingModal(
-                        title = "Dolby Atmos & Equalizer",
-                        subtitle = "5-Band Studio EQ, Bass Boost & Dolby Atmos Profiles",
-                        onDismiss = { activeFloatingPanel = null },
-                    ) {
-                        Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                            EqualizerAndDolbyStudioContent()
-                        }
-                    }
-                }
-                null -> {}
-            }
-        }
-
-        UpdateOverlayDialog(state = updateState)
-    }
-}
-
-@Composable
-private fun StyleChipButton(
-    title: String,
-    subtitle: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val c = MaterialTheme.colorScheme
-    Column(
-        modifier = Modifier
-            .widthIn(min = 132.dp, max = 185.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (selected) c.primary.copy(alpha = 0.16f) else c.surfaceContainerHigh)
-            .border(
-                width = if (selected) 1.4.dp else 0.75.dp,
-                color = if (selected) c.primary else c.outlineVariant,
-                shape = RoundedCornerShape(16.dp),
-            )
-            .pressable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-    ) {
-        Text(
-            text = title,
-            fontWeight = FontWeight.Bold,
-            fontSize = 12.5.sp,
-            color = if (selected) c.primary else c.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = subtitle,
-            fontSize = 10.5.sp,
-            color = c.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun YtxSectionHeader(
-    title: String,
-    expanded: Boolean,
-    onClick: (() -> Unit)?,
-) {
-    val c = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onClick,
-                    )
-                } else {
-                    Modifier
                 },
             )
-            .padding(start = 10.dp, end = 10.dp, top = 20.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = c.onSurfaceVariant,
-            letterSpacing = 0.6.sp,
-        )
-        if (onClick != null) {
-            val rot by animateFloatAsState(
-                targetValue = if (expanded) 90f else 0f,
-                animationSpec = spring(dampingRatio = 0.75f, stiffness = 1200f),
-                label = "secHeaderRot",
-            )
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
-                contentDescription = null,
-                tint = c.onSurfaceVariant,
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(state = rememberScrollState())
+                .restorableFocusGroup(state = focusState)
+                .padding(paddingValues = innerPadding)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+        ) {
+            // Nova Header Card with Circular Logo & Quick Studio Pills
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = BorderStroke(
+                    width = 1.dp,
+                    brush = Brush.linearGradient(
+                        listOf(
+                            NovaLogoBlue.copy(alpha = 0.40f),
+                            NovaLogoViolet.copy(alpha = 0.40f),
+                            NovaLogoPink.copy(alpha = 0.35f),
+                        ),
+                    ),
+                ),
                 modifier = Modifier
-                    .size(16.dp)
-                    .graphicsLayer { rotationZ = rot },
-            )
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    NovaLogoBlue.copy(alpha = 0.10f),
+                                    NovaLogoViolet.copy(alpha = 0.10f),
+                                    NovaLogoPink.copy(alpha = 0.08f),
+                                ),
+                            ),
+                        )
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_nova_launcher),
+                            contentDescription = "Nova Player Logo",
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(CircleShape),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Nova Player Studio",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                            )
+                            Text(
+                                text = "AMOLED Black & Pure White • Smart Gestures • HW+/SW Engine",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        QuickStudioPill(
+                            title = "UI Switcher",
+                            icon = NextIcons.Style,
+                            onClick = { onAction(SettingsAction.OpenSetting(Setting.APPEARANCE)) },
+                            modifier = Modifier.weight(1f),
+                        )
+                        QuickStudioPill(
+                            title = "Player & HW+",
+                            icon = NextIcons.Cpu,
+                            onClick = { onAction(SettingsAction.OpenSetting(Setting.PLAYER)) },
+                            modifier = Modifier.weight(1f),
+                        )
+                        QuickStudioPill(
+                            title = "Audio & EQ",
+                            icon = NextIcons.Equalizer,
+                            onClick = { onAction(SettingsAction.OpenSetting(Setting.AUDIO)) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+
+            ListSectionTitle(text = "Preferences")
+
+            settingRows.forEachIndexed { index, row ->
+                key(row) {
+                    ClickablePreferenceItem(
+                        modifier = Modifier.restorableFocusItem(
+                            state = focusState,
+                            row.name,
+                        ),
+                        title = row.customTitle ?: stringResource(id = row.titleResId),
+                        description = row.customDescription ?: stringResource(id = row.descriptionResId),
+                        icon = row.icon,
+                        onClick = { onAction(SettingsAction.OpenSetting(row.setting)) },
+                        isFirstItem = index == 0,
+                        isLastItem = index == settingRows.lastIndex,
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun YtxSettingsCard(
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    val c = MaterialTheme.colorScheme
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(26.dp))
-            .background(c.surfaceContainer)
-            .border(0.75.dp, c.outlineVariant, RoundedCornerShape(26.dp)),
-        content = content,
-    )
-}
-
-@Composable
-private fun YtxDivider() {
-    HorizontalDivider(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        color = MaterialTheme.colorScheme.outlineVariant,
-        thickness = 0.6.dp,
-    )
-}
-
-@Composable
-private fun YtxSettingsRow(
-    icon: ImageVector,
+private fun QuickStudioPill(
     title: String,
-    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
-    trailing: (@Composable () -> Unit)? = null,
 ) {
-    val c = MaterialTheme.colorScheme
-    Row(
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
         modifier = modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.pressable(onClick = onClick) else Modifier)
-            .padding(horizontal = 16.dp, vertical = 13.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(c.surfaceContainerHigh)
-                .border(0.6.dp, c.outlineVariant, CircleShape),
-            contentAlignment = Alignment.Center,
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = c.primary,
-                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp),
             )
-        }
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
             Text(
                 text = title,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 15.5.sp,
-                color = c.onSurface,
+                maxLines = 1,
             )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = subtitle,
-                fontSize = 12.5.sp,
-                lineHeight = 16.sp,
-                color = c.onSurfaceVariant,
-            )
-        }
-        if (trailing != null) {
-            Spacer(Modifier.width(8.dp))
-            trailing()
-        } else if (onClick != null) {
-            Spacer(Modifier.width(8.dp))
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
-                contentDescription = null,
-                tint = c.onSurfaceVariant.copy(alpha = 0.65f),
-                modifier = Modifier.size(20.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun YtxSwitchRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    val c = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-            ) { onCheckedChange(!checked) }
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(end = 12.dp),
-        ) {
-            Text(
-                text = title,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.5.sp,
-                color = c.onSurface,
-            )
-            Text(
-                text = subtitle,
-                fontSize = 12.sp,
-                lineHeight = 15.sp,
-                color = c.onSurfaceVariant,
-            )
-        }
-        GlasmioSwitch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-        )
-    }
-}
-
-@Composable
-private fun YtxFloatingModal(
-    title: String,
-    subtitle: String,
-    onDismiss: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onDismiss,
-            )
-            .padding(horizontal = 14.dp, vertical = 32.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 440.dp)
-                .fillMaxWidth()
-                .heightIn(max = 680.dp)
-                .clip(RoundedCornerShape(38.dp))
-                .background(Color(0xFF141416))
-                .border(0.8.dp, Color(0x2BFFFFFF), RoundedCornerShape(38.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                ) {}
-                .padding(top = 18.dp, bottom = 10.dp),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = Color.White,
-                    )
-                    Text(
-                        text = subtitle,
-                        fontSize = 12.sp,
-                        color = Color(0xB2EBEBF5),
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF2C2C2E))
-                        .pressable(pressedScale = 0.90f, onClick = onDismiss),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = Color(0x2BFFFFFF), thickness = 0.6.dp)
-            content()
         }
     }
 }
@@ -962,14 +255,75 @@ enum class Setting {
 }
 
 private enum class SettingRow(
+    val titleResId: Int,
+    val descriptionResId: Int,
+    val icon: ImageVector,
     val setting: Setting,
+    val customTitle: String? = null,
+    val customDescription: String? = null,
 ) {
-    PLAYER(Setting.PLAYER),
-    GESTURES(Setting.GESTURES),
-    AUDIO(Setting.AUDIO),
-    SUBTITLE(Setting.SUBTITLE),
-    APPEARANCE(Setting.APPEARANCE),
-    MEDIA_LIBRARY(Setting.MEDIA_LIBRARY),
-    GENERAL(Setting.GENERAL),
-    ABOUT(Setting.ABOUT),
+    APPEARANCE(
+        titleResId = R.string.appearance_name,
+        descriptionResId = R.string.appearance_description,
+        icon = NextIcons.Appearance,
+        setting = Setting.APPEARANCE,
+        customTitle = "Theme & Interface Switcher",
+        customDescription = "AMOLED Pitch Black & Pure White modes, Logo Gradient, Device Accent & Dock",
+    ),
+    PLAYER(
+        titleResId = R.string.player_name,
+        descriptionResId = R.string.player_description,
+        icon = NextIcons.Player,
+        setting = Setting.PLAYER,
+        customTitle = "Player & Decoder (HW+ / SW)",
+        customDescription = "Playback controls, orientation, fast seek, speed & HW+/SW decoder",
+    ),
+    GESTURES(
+        titleResId = R.string.gestures_name,
+        descriptionResId = R.string.gestures_description,
+        icon = NextIcons.SwipeHorizontal,
+        setting = Setting.GESTURES,
+        customTitle = "Smart Gestures & HUD",
+        customDescription = "Axis-locked horizontal seek, instant 10s skip, Volume & Brightness HUD",
+    ),
+    AUDIO(
+        titleResId = R.string.audio,
+        descriptionResId = R.string.audio_desc,
+        icon = NextIcons.Audio,
+        setting = Setting.AUDIO,
+        customTitle = "Audio & Equalizer",
+        customDescription = "Smooth play/pause fade, 5-Band EQ, bass boost, reverb & 200% boost",
+    ),
+    SUBTITLE(
+        titleResId = R.string.subtitle,
+        descriptionResId = R.string.subtitle_desc,
+        icon = NextIcons.Subtitle,
+        setting = Setting.SUBTITLE,
+        customTitle = "Subtitles",
+        customDescription = "Alignment, font size, scale, border, shadow & encoding",
+    ),
+    MEDIA_LIBRARY(
+        titleResId = R.string.media_library,
+        descriptionResId = R.string.media_library_description,
+        icon = NextIcons.Folder,
+        setting = Setting.MEDIA_LIBRARY,
+        customTitle = "Media Library & Folders",
+        customDescription = "Folder layout, displayed fields, sort order & hidden media",
+    ),
+    GENERAL(
+        titleResId = R.string.general_name,
+        descriptionResId = R.string.general_description,
+        icon = NextIcons.ExtraSettings,
+        setting = Setting.GENERAL,
+        customTitle = "General",
+        customDescription = "Storage access, watch history, backup & reset defaults",
+    ),
+    ABOUT(
+        titleResId = R.string.about_name,
+        descriptionResId = R.string.about_description,
+        icon = NextIcons.Info,
+        setting = Setting.ABOUT,
+        customTitle = "About Nova Player",
+        customDescription = "Version info, background updater & open-source licenses",
+    ),
 }

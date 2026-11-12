@@ -211,10 +211,14 @@
     <string name="libraries">Thư viện</string>
     <string name="donate">Quyên tặng</string>
     <string name="error_opening_link">Không tìm thấy ứng dụng nào có thể xử lý liên kết này</string>
+    <string name="support_the_developer_on">Hỗ trợ nhà phát triển trên %1$s</string>
     <string name="media_layout">Bố cục phương tiện</string>
     <string name="list">Danh sách</string>
     <string name="grid">Lưới</string>
     <string name="tree">Cây</string>
     <string name="played_progress">Tiến trình chơi</string>
     <string name="github">Github</string>
+    <string name="kofi">Ko-fi</string>
+    <string name="paypal">PayPal</string>
+    <string name="upi">UPI</string>
 </resources>

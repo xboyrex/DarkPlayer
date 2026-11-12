@@ -8,8 +8,35 @@ plugins {
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.koin.compiler) apply false
     alias(libs.plugins.kotlinJvm) apply false
-    alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.ktlint) apply false
+}
+
+allprojects {
+    apply(plugin = rootProject.libs.plugins.ktlint.get().pluginId)
+
+    configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+        version.set(rootProject.libs.versions.ktlintCli.get())
+        android.set(true)
+        outputColorName.set("RED")
+        ignoreFailures.set(true)
+    }
+
+    dependencies.add(
+        "ktlintRuleset",
+        project(":ktlint-rules"),
+    )
+}
+
+subprojects {
+    apply(plugin = rootProject.libs.plugins.aboutLibraries.get().pluginId)
+
+    configure<com.mikepenz.aboutlibraries.plugin.AboutLibrariesExtension> {
+        offlineMode.set(true)
+        export {
+            excludeFields.addAll("generated")
+        }
+    }
 }
 
 allprojects {
@@ -28,6 +55,6 @@ allprojects {
             showCauses = true
             showStackTraces = true
         }
-        ignoreFailures = true
+        ignoreFailures = false
     }
 }

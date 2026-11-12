@@ -1,14 +1,21 @@
 package dev.xboyrex.darkplayer.core.ui.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
@@ -17,14 +24,15 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
-import dev.xboyrex.darkplayer.core.ui.glass.GlasmioSlider
-import kotlin.math.roundToInt
+import dev.xboyrex.darkplayer.core.model.NovaSwitchStyle
+import dev.xboyrex.darkplayer.core.ui.glass.LocalNovaSwitchStyle
+import dev.xboyrex.darkplayer.core.ui.designsystem.NovaFluidSlider
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PreferenceSlider(
-    modifier: Modifier = Modifier,
     title: String,
+    modifier: Modifier = Modifier,
     description: String? = null,
     icon: ImageVector? = null,
     enabled: Boolean = true,
@@ -32,80 +40,100 @@ fun PreferenceSlider(
     isLastItem: Boolean = false,
     value: Float,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-    @Suppress("UNUSED_PARAMETER") steps: Int = 0,
+    steps: Int = 0,
+    trailingContent: @Composable (() -> Unit)? = null,
     onValueChange: (Float) -> Unit,
-    onValueChangeFinished: () -> Unit = {},
     onReset: (() -> Unit)? = null,
-    trailingContent: @Composable () -> Unit = {},
 ) {
-    val span = valueRange.endInclusive - valueRange.start
-    val keyStep = if (span <= 5f) 0.1f else 1f
-
-    fun nudged(direction: Int): Float {
-        val raw = (value + direction * keyStep).coerceIn(
-            valueRange.start,
-            valueRange.endInclusive,
-        )
-        return if (keyStep < 1f) (raw * 10).roundToInt() / 10f else raw.roundToInt().toFloat()
-    }
+    val stepSize = (valueRange.endInclusive - valueRange.start) / 20f
+    val switchStyle = LocalNovaSwitchStyle.current
 
     NextSegmentedListItem(
         modifier = modifier.onPreviewKeyEvent { event ->
             if (!enabled || event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
             when (event.key) {
                 Key.DirectionLeft -> {
-                    onValueChange(nudged(direction = -1))
-                    onValueChangeFinished()
+                    onValueChange((value - stepSize).coerceIn(valueRange))
                     true
                 }
 
                 Key.DirectionRight -> {
-                    onValueChange(nudged(direction = 1))
-                    onValueChangeFinished()
+                    onValueChange((value + stepSize).coerceIn(valueRange))
                     true
                 }
 
-                Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
-                    onReset?.let {
-                        it()
+                Key.Enter, Key.DirectionCenter -> {
+                    if (onReset != null) {
+                        onReset()
                         true
-                    } ?: false
+                    } else {
+                        false
+                    }
                 }
 
                 else -> false
             }
         },
-        onClick = {},
-        onLongClick = null,
         enabled = enabled,
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
-        leadingContent = icon?.let {
-            {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-        },
-        supportingContent = {
-            Column {
-                description?.let {
-                    Text(text = description)
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
-                GlasmioSlider(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        content = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = enabled,
-                    value = value,
-                    valueRange = valueRange,
-                    onValueChange = onValueChange,
-                    onValueChangeFinished = onValueChangeFinished,
-                )
+                ) {
+                    if (icon != null) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                        )
+                        Spacer(modifier = Modifier.width(14.dp))
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        if (description != null) {
+                            Text(
+                                text = description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    if (trailingContent != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        trailingContent()
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                if (switchStyle == NovaSwitchStyle.GLASMIO_LIQUID && steps == 0) {
+                    NovaFluidSlider(
+                        value = value.coerceIn(valueRange),
+                        onValueChange = onValueChange,
+                        valueRange = valueRange,
+                        enabled = enabled,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
+                    )
+                } else {
+                    Slider(
+                        value = value.coerceIn(valueRange),
+                        valueRange = valueRange,
+                        steps = steps,
+                        enabled = enabled,
+                        onValueChange = onValueChange,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
+                    )
+                }
             }
         },
-        content = { Text(text = title) },
-        trailingContent = trailingContent,
     )
 }

@@ -11,8 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.unit.IntSize
-import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -31,10 +30,6 @@ fun rememberVolumeAndBrightnessGestureState(
     val volumeAndBrightnessGestureState = remember(
         volumeState,
         brightnessState,
-        enableVolumeGesture,
-        enableBrightnessGesture,
-        volumeGestureSensitivity,
-        brightnessGestureSensitivity,
     ) {
         VolumeAndBrightnessGestureState(
             volumeState = volumeState,
@@ -62,55 +57,41 @@ class VolumeAndBrightnessGestureState(
     var activeGesture: VerticalGesture? by mutableStateOf(value = null)
         private set
 
-    var isDragging: Boolean by mutableStateOf(value = false)
-        private set
-
     var volumeChangePercentage: Int by mutableIntStateOf(value = 0)
         private set
 
     var brightnessChangePercentage: Int by mutableIntStateOf(value = 0)
         private set
 
+    private var startingY = 0f
     private var startVolumePercentage = 0
     private var startBrightnessPercentage = 0
-    private var currentVolumeFloat = 0f
-    private var currentBrightnessFloat = 0f
-    private var viewHeightPx = 1080f
     private var job: Job? = null
 
     fun onDragStart(offset: Offset, size: IntSize) {
         val viewCenterX = size.width / 2
         job?.cancel()
-        val targetGesture = when {
+        activeGesture = when {
             offset.x < viewCenterX -> VerticalGesture.BRIGHTNESS.takeIf { enableBrightnessGesture }
             else -> VerticalGesture.VOLUME.takeIf { enableVolumeGesture }
         }
-        activeGesture = targetGesture
-        isDragging = targetGesture != null
-        viewHeightPx = size.height.coerceAtLeast(300).toFloat()
+        startingY = offset.y
         volumeState.syncWithSystem()
         startVolumePercentage = volumeState.volumePercentage
         startBrightnessPercentage = brightnessState.brightnessPercentage
-        currentVolumeFloat = startVolumePercentage.toFloat()
-        currentBrightnessFloat = startBrightnessPercentage.toFloat()
     }
 
     fun onDrag(change: PointerInputChange, dragAmount: Float) {
-        val gesture = activeGesture ?: return
+        val activeGesture = activeGesture ?: return
         if (change.isConsumed) return
 
-        // Normalized full-swipe sensitivity so dragging across ~55% of screen height spans 0..100%
-        val baseMultiplier = 180f / viewHeightPx
-
-        when (gesture) {
+        when (activeGesture) {
             VerticalGesture.VOLUME -> {
                 val maxVolumePercentage = volumeState.maxVolumePercentage
-                val sens = (0.6f + volumeGestureSensitivity * 1.4f).coerceIn(0.4f, 2.5f)
-                val deltaPct = -dragAmount * baseMultiplier * sens
-                currentVolumeFloat = (currentVolumeFloat + deltaPct).coerceIn(0f, maxVolumePercentage.toFloat())
-                val newVolume = currentVolumeFloat.roundToInt()
+                val volumeChange = (startingY - change.position.y) * (volumeGestureSensitivity / 10)
+                val newVolume = startVolumePercentage + volumeChange.toInt()
                 volumeChangePercentage = (newVolume - startVolumePercentage).coerceIn(
-                    minimumValue = -startVolumePercentage,
+                    minimumValue = 0 - startVolumePercentage,
                     maximumValue = maxVolumePercentage - startVolumePercentage,
                 )
                 brightnessChangePercentage = 0
@@ -118,12 +99,11 @@ class VolumeAndBrightnessGestureState(
             }
 
             VerticalGesture.BRIGHTNESS -> {
-                val sens = (0.6f + brightnessGestureSensitivity * 1.4f).coerceIn(0.4f, 2.5f)
-                val deltaPct = -dragAmount * baseMultiplier * sens
-                currentBrightnessFloat = (currentBrightnessFloat + deltaPct).coerceIn(0f, MAX_BRIGHTNESS_PERCENTAGE.toFloat())
-                val newBrightness = currentBrightnessFloat.roundToInt()
+                val brightnessChange =
+                    (startingY - change.position.y) * (brightnessGestureSensitivity / 10)
+                val newBrightness = startBrightnessPercentage + brightnessChange.toInt()
                 brightnessChangePercentage = (newBrightness - startBrightnessPercentage).coerceIn(
-                    minimumValue = -startBrightnessPercentage,
+                    minimumValue = 0 - startBrightnessPercentage,
                     maximumValue = MAX_BRIGHTNESS_PERCENTAGE - startBrightnessPercentage,
                 )
                 volumeChangePercentage = 0
@@ -133,13 +113,13 @@ class VolumeAndBrightnessGestureState(
     }
 
     fun onDragEnd() {
-        isDragging = false
+        startingY = 0f
         startVolumePercentage = 0
         startBrightnessPercentage = 0
 
         job?.cancel()
         job = coroutineScope.launch {
-            delay(850.milliseconds)
+            delay(1.seconds)
             activeGesture = null
             volumeChangePercentage = 0
             brightnessChangePercentage = 0

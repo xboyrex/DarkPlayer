@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import dev.xboyrex.darkplayer.core.data.repository.MediaRepository
 import dev.xboyrex.darkplayer.core.data.repository.PreferencesRepository
 import dev.xboyrex.darkplayer.core.model.ApplicationPreferences
+import dev.xboyrex.darkplayer.core.model.PlayerPreferences
 import dev.xboyrex.darkplayer.core.model.Video
 import dev.xboyrex.darkplayer.core.ui.base.DataState
 import dev.xboyrex.darkplayer.core.ui.base.MviViewModel
@@ -18,7 +19,7 @@ import org.koin.core.annotation.KoinViewModel
 
 @KoinViewModel
 class MoreViewModel(
-    private val mediaRepository: MediaRepository,
+    mediaRepository: MediaRepository,
     private val preferencesRepository: PreferencesRepository,
     @InjectedParam internal var output: Output,
 ) : MviViewModel<MoreUiState, MoreAction>() {
@@ -41,6 +42,11 @@ class MoreViewModel(
                 stateInternal.update { it.copy(preferences = preferences) }
             }
         }
+        viewModelScope.launch {
+            preferencesRepository.playerPreferences.collect { playerPrefs ->
+                stateInternal.update { it.copy(playerPreferences = playerPrefs) }
+            }
+        }
     }
 
     override fun onAction(action: MoreAction) {
@@ -50,6 +56,16 @@ class MoreViewModel(
             is MoreAction.OpenSettings -> output.openSettings()
             is MoreAction.OpenTrash -> output.openTrash()
             is MoreAction.OpenVault -> output.openVault()
+            is MoreAction.UpdateAppPreferences -> {
+                viewModelScope.launch {
+                    preferencesRepository.updateApplicationPreferences(action.transform)
+                }
+            }
+            is MoreAction.UpdatePlayerPreferences -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences(action.transform)
+                }
+            }
         }
     }
 
@@ -65,6 +81,7 @@ class MoreViewModel(
 data class MoreUiState(
     val history: DataState<List<Video>> = DataState.Loading,
     val preferences: ApplicationPreferences = ApplicationPreferences(),
+    val playerPreferences: PlayerPreferences = PlayerPreferences(),
 )
 
 sealed interface MoreAction {
@@ -73,4 +90,10 @@ sealed interface MoreAction {
     data object OpenSettings : MoreAction
     data object OpenTrash : MoreAction
     data object OpenVault : MoreAction
+    data class UpdateAppPreferences(
+        val transform: (ApplicationPreferences) -> ApplicationPreferences,
+    ) : MoreAction
+    data class UpdatePlayerPreferences(
+        val transform: (PlayerPreferences) -> PlayerPreferences,
+    ) : MoreAction
 }

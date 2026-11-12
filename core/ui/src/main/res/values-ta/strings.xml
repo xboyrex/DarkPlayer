@@ -214,6 +214,10 @@
     <string name="libraries">நூலகங்கள்</string>
     <string name="donate">நன்கொடை</string>
     <string name="error_opening_link">இந்த இணைப்பைக் கையாள எந்த பயன்பாடும் கிடைக்கவில்லை</string>
+    <string name="support_the_developer_on">டெவலப்பரை %1$s இல் ஆதரிக்கவும்</string>
+    <string name="kofi">காபி</string>
+    <string name="paypal">பேபால்</string>
+    <string name="upi">யுபிஐ</string>
     <string name="media_layout">மீடியா தளவமைப்பு</string>
     <string name="list">பட்டியல்</string>
     <string name="grid">வலைவாய்</string>

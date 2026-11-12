@@ -18,13 +18,15 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import dev.xboyrex.darkplayer.feature.player.extensions.detectCustomHorizontalDragGestures
+import dev.xboyrex.darkplayer.core.ui.glass.LocalNovaHapticsEnabled
+import dev.xboyrex.darkplayer.core.ui.glass.novaHaptic
 import dev.xboyrex.darkplayer.feature.player.extensions.detectCustomTransformGestures
-import dev.xboyrex.darkplayer.feature.player.extensions.detectCustomVerticalDragGestures
+import dev.xboyrex.darkplayer.feature.player.extensions.detectSmartPlayerDragGestures
 import dev.xboyrex.darkplayer.feature.player.extensions.detectSubtitleDragGestures
 import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
 import dev.xboyrex.darkplayer.feature.player.state.PictureInPictureState
@@ -34,7 +36,6 @@ import dev.xboyrex.darkplayer.feature.player.state.TapGestureState
 import dev.xboyrex.darkplayer.feature.player.state.VideoZoomAndContentScaleState
 import dev.xboyrex.darkplayer.feature.player.state.VolumeAndBrightnessGestureState
 
-// Extra reach around the drawn subtitle text so a fingertip does not have to be pixel-exact.
 private val SUBTITLE_TOUCH_PADDING = 16.dp
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -51,11 +52,11 @@ fun PlayerGestures(
     hasSubtitles: Boolean,
     canRepositionSubtitles: Boolean,
 ) {
-    // Read lazily: the cue can end mid-drag and must not restart the gesture handlers.
     val currentHasSubtitles by rememberUpdatedState(hasSubtitles)
     val currentCanReposition by rememberUpdatedState(canRepositionSubtitles)
+    val view = LocalView.current
+    val hapticsEnabled = LocalNovaHapticsEnabled.current
 
-    // Keep the system's swipe-to-reveal areas reserved even while the bars are hidden.
     val gestureInsets = WindowInsets.systemGestures.union(WindowInsets.systemBarsIgnoringVisibility)
     val density = LocalDensity.current
     val subtitleTouchPaddingPx = with(density) { SUBTITLE_TOUCH_PADDING.toPx() }
@@ -90,61 +91,46 @@ fun PlayerGestures(
                     )
                 }
                 .pointerInput(
-                    tapGestureState,
-                    controlsVisibilityState.controlsLocked,
                     pictureInPictureState.isInPictureInPictureMode,
+                    controlsVisibilityState.controlsLocked,
                 ) {
                     if (pictureInPictureState.isInPictureInPictureMode) return@pointerInput
 
                     detectTapGestures(
-                        onTap = {
-                            if (tapGestureState.seekMillis != 0L) return@detectTapGestures
+                        onTap = { offset ->
+                            if (!controlsVisibilityState.controlsLocked &&
+                                tapGestureState.tryHandleContinuationTap(offset = offset, size = size)
+                            ) {
+                                view.novaHaptic(10L, 140, hapticsEnabled)
+                                return@detectTapGestures
+                            }
                             controlsVisibilityState.toggleControlsVisibility()
                         },
-                        onDoubleTap = {
+                        onDoubleTap = { offset ->
                             if (controlsVisibilityState.controlsLocked) return@detectTapGestures
+                            view.novaHaptic(12L, 150, hapticsEnabled)
                             tapGestureState.handleDoubleTap(
-                                offset = it,
+                                offset = offset,
                                 size = size,
                             )
                         },
                         onPress = {
                             tryAwaitRelease()
+                            if (tapGestureState.isLongPressGestureInAction) {
+                                view.novaHaptic(10L, 110, hapticsEnabled)
+                            }
                             tapGestureState.handleOnLongPressRelease()
                         },
-                        onLongPress = {
+                        onLongPress = { offset ->
                             if (controlsVisibilityState.controlsLocked) return@detectTapGestures
-                            tapGestureState.handleLongPress(offset = it)
+                            if (isOnSubtitle(offset)) return@detectTapGestures
+                            view.novaHaptic(16L, 165, hapticsEnabled)
+                            tapGestureState.handleLongPress(offset = offset)
                         },
                     )
                 }
                 .pointerInput(
                     seekGestureState,
-                    gestureInsets,
-                    density,
-                    layoutDirection,
-                    controlsVisibilityState.controlsLocked,
-                    pictureInPictureState.isInPictureInPictureMode,
-                ) {
-                    if (controlsVisibilityState.controlsLocked) return@pointerInput
-                    if (pictureInPictureState.isInPictureInPictureMode) return@pointerInput
-
-                    detectCustomHorizontalDragGestures(
-                        shouldStartGesture = {
-                            gestureInsets.isPlayerGestureStart(
-                                it,
-                                size,
-                                density,
-                                layoutDirection,
-                            )
-                        },
-                        onDragStart = seekGestureState::onDragStart,
-                        onHorizontalDrag = seekGestureState::onDrag,
-                        onDragCancel = seekGestureState::onDragEnd,
-                        onDragEnd = seekGestureState::onDragEnd,
-                    )
-                }
-                .pointerInput(
                     volumeAndBrightnessGestureState,
                     gestureInsets,
                     density,
@@ -155,7 +141,7 @@ fun PlayerGestures(
                     if (controlsVisibilityState.controlsLocked) return@pointerInput
                     if (pictureInPictureState.isInPictureInPictureMode) return@pointerInput
 
-                    detectCustomVerticalDragGestures(
+                    detectSmartPlayerDragGestures(
                         shouldStartGesture = {
                             gestureInsets.isPlayerGestureStart(
                                 it,
@@ -164,15 +150,20 @@ fun PlayerGestures(
                                 layoutDirection,
                             )
                         },
-                        onDragStart = {
+                        isSkipActive = { tapGestureState.seekMillis != 0L },
+                        onHorizontalDragStart = seekGestureState::onDragStart,
+                        onHorizontalDrag = seekGestureState::onDrag,
+                        onHorizontalDragEnd = seekGestureState::onDragEnd,
+                        onHorizontalDragCancel = seekGestureState::onDragEnd,
+                        onVerticalDragStart = {
                             volumeAndBrightnessGestureState.onDragStart(
                                 offset = it,
                                 size = size,
                             )
                         },
                         onVerticalDrag = volumeAndBrightnessGestureState::onDrag,
-                        onDragCancel = volumeAndBrightnessGestureState::onDragEnd,
-                        onDragEnd = volumeAndBrightnessGestureState::onDragEnd,
+                        onVerticalDragEnd = volumeAndBrightnessGestureState::onDragEnd,
+                        onVerticalDragCancel = volumeAndBrightnessGestureState::onDragEnd,
                     )
                 }
                 .pointerInput(

@@ -1,5 +1,6 @@
 package dev.xboyrex.darkplayer.core.data.repository
 
+import dev.xboyrex.darkplayer.core.data.security.SecureCredentialStore
 import dev.xboyrex.darkplayer.core.database.dao.NetworkConnectionDao
 import dev.xboyrex.darkplayer.core.database.entities.NetworkConnectionEntity
 import dev.xboyrex.darkplayer.core.model.NetworkAuthentication
@@ -34,12 +35,12 @@ class LocalNetworkConnectionRepository(private val networkConnectionDao: Network
         port = port,
         path = path,
         username = username,
-        password = password,
+        password = SecureCredentialStore.decrypt(password),
         useHttps = useHttps,
         authentication = runCatching { NetworkAuthentication.valueOf(value = authentication) }
             .getOrDefault(NetworkAuthentication.PASSWORD),
         privateKeyFileName = privateKeyFileName,
-        privateKeyPassphrase = privateKeyPassphrase,
+        privateKeyPassphrase = SecureCredentialStore.decrypt(privateKeyPassphrase),
         hostKeyFingerprint = hostKeyFingerprint,
     )
 
@@ -51,11 +52,11 @@ class LocalNetworkConnectionRepository(private val networkConnectionDao: Network
         port = port,
         path = path,
         username = username,
-        password = password,
+        password = SecureCredentialStore.encrypt(password),
         useHttps = useHttps,
         authentication = authentication.name,
         privateKeyFileName = privateKeyFileName,
-        privateKeyPassphrase = privateKeyPassphrase,
+        privateKeyPassphrase = SecureCredentialStore.encrypt(privateKeyPassphrase),
         hostKeyFingerprint = hostKeyFingerprint,
     )
 }

@@ -11,34 +11,21 @@ import dev.xboyrex.darkplayer.feature.network.navigation.networkBrowseEntry
 import dev.xboyrex.darkplayer.feature.network.navigation.networkEntry
 import dev.xboyrex.darkplayer.settings.navigation.navigateToSettings
 
-fun EntryProviderScope<NavKey>.networkNavGraph(
-    context: Context,
-    backStack: NavBackStack<NavKey>,
-) {
-    networkNavGraph(
-        context = context,
-        backStackProvider = { backStack },
-    )
-}
-
-fun EntryProviderScope<NavKey>.networkNavGraph(
-    context: Context,
-    backStackProvider: () -> NavBackStack<NavKey>,
-) {
+fun EntryProviderScope<NavKey>.networkNavGraph(context: Context, backStack: NavBackStack<NavKey>) {
     networkEntry(
-        onAddConnection = { backStackProvider().navigateToAddConnection() },
-        onEditConnection = { id -> backStackProvider().navigateToAddConnection(connectionId = id) },
-        onOpenConnection = { id -> backStackProvider().navigateToNetworkBrowse(connectionId = id) },
-        onSettingsClick = { backStackProvider().navigateToSettings() },
+        onAddConnection = { backStack.navigateToAddConnection() },
+        onEditConnection = { id -> backStack.navigateToAddConnection(connectionId = id) },
+        onOpenConnection = { id -> backStack.navigateToNetworkBrowse(connectionId = id) },
+        onSettingsClick = backStack::navigateToSettings,
         onOpenStream = { uri -> context.startPlayback(uri = uri) },
     )
 
     addConnectionEntry(
-        onNavigateUp = { backStackProvider().removeLastIfNotRoot() },
+        onNavigateUp = { backStack.removeLastIfNotRoot() },
     )
 
     networkBrowseEntry(
-        onNavigateUp = { backStackProvider().removeLastIfNotRoot() },
+        onNavigateUp = { backStack.removeLastIfNotRoot() },
         onPlayVideos = { uris, startUri ->
             context.startPlayback(
                 uris = uris,
@@ -46,7 +33,7 @@ fun EntryProviderScope<NavKey>.networkNavGraph(
             )
         },
         onNavigateToFolder = { id, path ->
-            backStackProvider().navigateToNetworkBrowse(
+            backStack.navigateToNetworkBrowse(
                 connectionId = id,
                 path = path,
             )

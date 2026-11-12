@@ -3,15 +3,13 @@ package dev.xboyrex.darkplayer.core.media.sync
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import coil3.ImageLoader
 import dev.xboyrex.darkplayer.core.common.di.DiQualifiers
 import dev.xboyrex.darkplayer.core.common.extensions.getStorageVolumes
 import dev.xboyrex.darkplayer.core.common.extensions.scanPaths
 import dev.xboyrex.darkplayer.core.common.extensions.scanStorage
-import dev.xboyrex.darkplayer.core.common.storagePermission
+import dev.xboyrex.darkplayer.core.common.hasFullMediaAccess
 import dev.xboyrex.darkplayer.core.database.converter.UriListConverter
 import dev.xboyrex.darkplayer.core.database.dao.MediumStateDao
 import dev.xboyrex.darkplayer.core.database.dao.PlaylistDao
@@ -51,8 +49,7 @@ class LocalMediaSynchronizer(
         mediaSyncingJob = mediaService.observeVideos()
             .onEach { media -> updateMedia(media = media) }
             .catch {
-                // A failed MediaStore query is not a complete snapshot. Leave stored state alone;
-                // startSync can retry after storage permission or the provider becomes available.
+                // A failed MediaStore query is not a complete snapshot. Leave stored state alone.
             }
             .launchIn(scope = applicationScope)
     }
@@ -61,14 +58,12 @@ class LocalMediaSynchronizer(
         mediaSyncingJob?.cancel()
     }
 
-    private fun Context.hasStoragePermission(): Boolean = ContextCompat.checkSelfPermission(
-        this,
-        storagePermission,
-    ) ==
-        PackageManager.PERMISSION_GRANTED
-
     private suspend fun updateMedia(media: List<MediaVideo>) = withContext(Dispatchers.Default) {
-        if (!context.hasStoragePermission()) return@withContext
+        // NP-02 Fix: Never run destructive playlist/state cleanup when the user has only granted
+        // Android 14+ partial/selected-video access (READ_MEDIA_VISUAL_USER_SELECTED) or when
+        // full library access is absent.
+        if (!context.hasFullMediaAccess()) return@withContext
+        if (media.isEmpty()) return@withContext
 
         val currentMediaUris = media.mapTo(destination = mutableSetOf()) { it.uri.toString() }
 
@@ -84,7 +79,6 @@ class LocalMediaSynchronizer(
 
         mediumStateDao.delete(unwantedMediaStates.map { it.uriString })
 
-        // Delete unwanted thumbnails
         unwantedMediaStates.forEach { mediaState ->
             try {
                 imageLoader.diskCache?.remove(mediaState.uriString)
@@ -93,7 +87,6 @@ class LocalMediaSynchronizer(
             }
         }
 
-        // Release external subtitle uri permission if not used by any other media
         launch {
             val currentMediaExternalSubs = wantedMediaStates.flatMap {
                 UriListConverter.fromStringToList(it.externalSubs)

@@ -1,9 +1,8 @@
 package dev.xboyrex.darkplayer.feature.videopicker.composables
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,23 +19,18 @@ fun InfoChip(
     modifier: Modifier = Modifier,
     backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
-    shape: Shape = RoundedCornerShape(6.dp),
+    shape: Shape = MaterialTheme.shapes.extraSmall.copy(all = CornerSize(2.dp)),
 ) {
     Text(
         text = text,
-        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Normal),
         color = contentColor,
         modifier = modifier
             .clip(shape = shape)
             .background(color = backgroundColor)
-            .border(
-                width = 0.6.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                shape = shape,
-            )
             .padding(
-                vertical = 2.dp,
-                horizontal = 6.dp,
+                vertical = 1.dp,
+                horizontal = 3.dp,
             ),
     )
 }

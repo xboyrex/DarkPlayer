@@ -91,6 +91,12 @@ class PlayerViewModel(
             is PlayerAction.OnVideoZoomEvent -> onVideoZoomEvent(action.event)
 
             is PlayerAction.OnSubtitleOptionEvent -> onSubtitleOptionEvent(action.event)
+
+            is PlayerAction.UpdatePreferences -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences(action.transform)
+                }
+            }
         }
     }
 
@@ -214,4 +220,7 @@ sealed interface PlayerAction {
     data object ToggleTimeDisplay : PlayerAction
     data class OnVideoZoomEvent(val event: VideoZoomEvent) : PlayerAction
     data class OnSubtitleOptionEvent(val event: SubtitleOptionsEvent) : PlayerAction
+    data class UpdatePreferences(
+        val transform: (PlayerPreferences) -> PlayerPreferences,
+    ) : PlayerAction
 }

@@ -214,6 +214,10 @@
     <string name="github">گیت‌هاب</string>
     <string name="donate">حمایت مالی</string>
     <string name="error_opening_link">هیچ برنامه‌ای ندارید که این پیوند را باز کند</string>
+    <string name="support_the_developer_on">از توسعه دهنده در %1$s حمایت کنید</string>
+    <string name="kofi">Ko-fi</string>
+    <string name="paypal">پی پال</string>
+    <string name="upi">UPI</string>
     <string name="media_layout">چیدمان رسانه</string>
     <string name="list">فهرست</string>
     <string name="grid">شبکه</string>

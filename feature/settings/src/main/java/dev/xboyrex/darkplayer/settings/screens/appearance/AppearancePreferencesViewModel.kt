@@ -6,7 +6,6 @@ import dev.xboyrex.darkplayer.core.data.repository.PreferencesRepository
 import dev.xboyrex.darkplayer.core.model.ApplicationPreferences
 import dev.xboyrex.darkplayer.core.model.ThemeConfig
 import dev.xboyrex.darkplayer.core.ui.base.MviViewModel
-import dev.xboyrex.darkplayer.core.ui.glass.GlassSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,14 +52,11 @@ class AppearancePreferencesViewModel(
             is AppearancePreferencesEvent.ToggleUseHighContrastDarkTheme ->
                 toggleUseHighContrastDarkTheme()
 
-            is AppearancePreferencesEvent.ToggleUseLiquidGlass ->
-                toggleUseLiquidGlass()
-
-            is AppearancePreferencesEvent.UpdateThemeAccentSeed ->
-                updateThemeAccentSeed(action.seedHex)
-
-            is AppearancePreferencesEvent.ToggleUseSystemFont ->
-                toggleUseSystemFont()
+            is AppearancePreferencesEvent.UpdatePreferences -> {
+                viewModelScope.launch {
+                    preferencesRepository.updateApplicationPreferences(action.transform)
+                }
+            }
         }
     }
 
@@ -105,35 +101,6 @@ class AppearancePreferencesViewModel(
             }
         }
     }
-
-    private fun toggleUseLiquidGlass() {
-        viewModelScope.launch {
-            preferencesRepository.updateApplicationPreferences {
-                val next = !it.useLiquidGlass
-                GlassSettings.updateEnabled(next)
-                it.copy(useLiquidGlass = next)
-            }
-        }
-    }
-
-    private fun updateThemeAccentSeed(seedHex: String) {
-        viewModelScope.launch {
-            preferencesRepository.updateApplicationPreferences {
-                it.copy(
-                    useDynamicColors = false,
-                    themeAccentSeed = seedHex,
-                )
-            }
-        }
-    }
-
-    private fun toggleUseSystemFont() {
-        viewModelScope.launch {
-            preferencesRepository.updateApplicationPreferences {
-                it.copy(useSystemFont = !it.useSystemFont)
-            }
-        }
-    }
 }
 
 @Stable
@@ -150,9 +117,9 @@ sealed interface AppearancePreferencesEvent {
     data class UpdateThemeConfig(val themeConfig: ThemeConfig) : AppearancePreferencesEvent
     data object ToggleUseDynamicColors : AppearancePreferencesEvent
     data object ToggleUseHighContrastDarkTheme : AppearancePreferencesEvent
-    data object ToggleUseLiquidGlass : AppearancePreferencesEvent
-    data class UpdateThemeAccentSeed(val seedHex: String) : AppearancePreferencesEvent
-    data object ToggleUseSystemFont : AppearancePreferencesEvent
+    data class UpdatePreferences(
+        val transform: (ApplicationPreferences) -> ApplicationPreferences,
+    ) : AppearancePreferencesEvent
 }
 
 sealed interface AppearancePreferenceDialog {

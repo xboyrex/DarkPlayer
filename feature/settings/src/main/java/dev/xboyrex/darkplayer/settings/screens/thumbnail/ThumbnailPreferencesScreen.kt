@@ -15,7 +15,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import dev.xboyrex.darkplayer.core.ui.glass.popupBackgroundBlur
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -83,7 +82,6 @@ private fun ThumbnailPreferencesScreenContent(
 
     val listFocusRequester = rememberTvListFocusRequester()
     Scaffold(
-        modifier = Modifier.popupBackgroundBlur(),
         topBar = {
             NextTopAppBar(
                 title = stringResource(id = R.string.thumbnail_generation),
@@ -107,9 +105,9 @@ private fun ThumbnailPreferencesScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues = innerPadding)
                 .verticalScroll(state = rememberScrollState())
                 .tvListFocus(focusRequester = listFocusRequester)
+                .padding(paddingValues = innerPadding)
                 .padding(horizontal = 16.dp),
         ) {
             ListSectionTitle(text = stringResource(id = R.string.thumbnail_generation_strategy))

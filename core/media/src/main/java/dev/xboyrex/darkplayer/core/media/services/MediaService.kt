@@ -1,7 +1,6 @@
 package dev.xboyrex.darkplayer.core.media.services
 
 import android.net.Uri
-import androidx.activity.ComponentActivity
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -12,7 +11,6 @@ import kotlinx.coroutines.flow.Flow
  * the underlying media changes (e.g., files added/removed).
  */
 interface MediaService {
-    fun initialize(activity: ComponentActivity) = Unit
 
     /**
      * Observes all unique folders containing videos under the given path.

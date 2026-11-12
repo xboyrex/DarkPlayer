@@ -1,551 +1,297 @@
 package dev.xboyrex.darkplayer.core.ui.theme
 
-import android.app.Activity
-import android.content.Context
-import android.graphics.drawable.ColorDrawable
 import android.os.Build
-import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
-import androidx.activity.enableEdgeToEdge
 import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
-import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
-import dev.xboyrex.darkplayer.core.ui.glass.ProvideGlasmioTheme
-import kotlin.math.abs
 
-val ExpressiveShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(16.dp),
-    medium = RoundedCornerShape(26.dp),
-    large = RoundedCornerShape(38.dp),
-    extraLarge = RoundedCornerShape(44.dp),
+private val lightScheme = lightColorScheme(
+    primary = primaryLight,
+    onPrimary = onPrimaryLight,
+    primaryContainer = primaryContainerLight,
+    onPrimaryContainer = onPrimaryContainerLight,
+    secondary = secondaryLight,
+    onSecondary = onSecondaryLight,
+    secondaryContainer = secondaryContainerLight,
+    onSecondaryContainer = onSecondaryContainerLight,
+    tertiary = tertiaryLight,
+    onTertiary = onTertiaryLight,
+    tertiaryContainer = tertiaryContainerLight,
+    onTertiaryContainer = onTertiaryContainerLight,
+    error = errorLight,
+    onError = onErrorLight,
+    errorContainer = errorContainerLight,
+    onErrorContainer = onErrorContainerLight,
+    background = backgroundLight,
+    onBackground = onBackgroundLight,
+    surface = surfaceLight,
+    onSurface = onSurfaceLight,
+    surfaceVariant = surfaceVariantLight,
+    onSurfaceVariant = onSurfaceVariantLight,
+    outline = outlineLight,
+    outlineVariant = outlineVariantLight,
+    scrim = scrimLight,
+    inverseSurface = inverseSurfaceLight,
+    inverseOnSurface = inverseOnSurfaceLight,
+    inversePrimary = inversePrimaryLight,
+    surfaceDim = surfaceDimLight,
+    surfaceBright = surfaceBrightLight,
+    surfaceContainerLowest = surfaceContainerLowestLight,
+    surfaceContainerLow = surfaceContainerLowLight,
+    surfaceContainer = surfaceContainerLight,
+    surfaceContainerHigh = surfaceContainerHighLight,
+    surfaceContainerHighest = surfaceContainerHighestLight,
 )
 
-data class ThemePaletteChoice(
-    val name: String,
-    val hex: String,
+private val darkScheme = darkColorScheme(
+    primary = primaryDark,
+    onPrimary = onPrimaryDark,
+    primaryContainer = primaryContainerDark,
+    onPrimaryContainer = onPrimaryContainerDark,
+    secondary = secondaryDark,
+    onSecondary = onSecondaryDark,
+    secondaryContainer = secondaryContainerDark,
+    onSecondaryContainer = onSecondaryContainerDark,
+    tertiary = tertiaryDark,
+    onTertiary = onTertiaryDark,
+    tertiaryContainer = tertiaryContainerDark,
+    onTertiaryContainer = onTertiaryContainerDark,
+    error = errorDark,
+    onError = onErrorDark,
+    errorContainer = errorContainerDark,
+    onErrorContainer = onErrorContainerDark,
+    background = backgroundDark,
+    onBackground = onBackgroundDark,
+    surface = surfaceDark,
+    onSurface = onSurfaceDark,
+    surfaceVariant = surfaceVariantDark,
+    onSurfaceVariant = onSurfaceVariantDark,
+    outline = outlineDark,
+    outlineVariant = outlineVariantDark,
+    scrim = scrimDark,
+    inverseSurface = inverseSurfaceDark,
+    inverseOnSurface = inverseOnSurfaceDark,
+    inversePrimary = inversePrimaryDark,
+    surfaceDim = surfaceDimDark,
+    surfaceBright = surfaceBrightDark,
+    surfaceContainerLowest = surfaceContainerLowestDark,
+    surfaceContainerLow = surfaceContainerLowDark,
+    surfaceContainer = surfaceContainerDark,
+    surfaceContainerHigh = surfaceContainerHighDark,
+    surfaceContainerHighest = surfaceContainerHighestDark,
 )
 
-const val SEED_PURE_WHITE = "#FFFFFF"
-const val SEED_SOLAR_GOLD = "#FACC15"
-const val SEED_CRIMSON = "#FF0033"
-const val SEED_CREAM_ROSE = "#833761"
-const val SEED_AURORA = "#6C2BD9"
-const val SEED_LILAC_AIR = "#7454CE"
-const val SEED_JAI = "#D6005C"
-const val SEED_HARBOR = "#3B5BDB"
-const val SEED_CYBER_CYAN = "#00E5FF"
-const val SEED_EMERALD = "#10B981"
-const val SEED_PUMPKIN = "#B0714A"
-const val SEED_MOONSTONE = "#8A8F98"
-const val SEED_ELECTRIC_BLUE = "#0284C7"
-
-// Curated Studio Color Combinations: Yellow, Red, Pure White, and more
-val DARK_PLAYER_PALETTES = listOf(
-    ThemePaletteChoice("Solar Yellow", SEED_SOLAR_GOLD),
-    ThemePaletteChoice("Crimson Red", SEED_CRIMSON),
-    ThemePaletteChoice("Pure White", SEED_PURE_WHITE),
-    ThemePaletteChoice("Cream Rose", SEED_CREAM_ROSE),
-    ThemePaletteChoice("Erica", SEED_AURORA),
-    ThemePaletteChoice("Lilac Air", SEED_LILAC_AIR),
-    ThemePaletteChoice("Jai Ruby", SEED_JAI),
-    ThemePaletteChoice("Harbor", SEED_HARBOR),
-    ThemePaletteChoice("Cyber Cyan", SEED_CYBER_CYAN),
-    ThemePaletteChoice("Emerald", SEED_EMERALD),
-    ThemePaletteChoice("Pumpkin", SEED_PUMPKIN),
+private val mediumContrastLightColorScheme = lightColorScheme(
+    primary = primaryLightMediumContrast,
+    onPrimary = onPrimaryLightMediumContrast,
+    primaryContainer = primaryContainerLightMediumContrast,
+    onPrimaryContainer = onPrimaryContainerLightMediumContrast,
+    secondary = secondaryLightMediumContrast,
+    onSecondary = onSecondaryLightMediumContrast,
+    secondaryContainer = secondaryContainerLightMediumContrast,
+    onSecondaryContainer = onSecondaryContainerLightMediumContrast,
+    tertiary = tertiaryLightMediumContrast,
+    onTertiary = onTertiaryLightMediumContrast,
+    tertiaryContainer = tertiaryContainerLightMediumContrast,
+    onTertiaryContainer = onTertiaryContainerLightMediumContrast,
+    error = errorLightMediumContrast,
+    onError = onErrorLightMediumContrast,
+    errorContainer = errorContainerLightMediumContrast,
+    onErrorContainer = onErrorContainerLightMediumContrast,
+    background = backgroundLightMediumContrast,
+    onBackground = onBackgroundLightMediumContrast,
+    surface = surfaceLightMediumContrast,
+    onSurface = onSurfaceLightMediumContrast,
+    surfaceVariant = surfaceVariantLightMediumContrast,
+    onSurfaceVariant = onSurfaceVariantLightMediumContrast,
+    outline = outlineLightMediumContrast,
+    outlineVariant = outlineVariantLightMediumContrast,
+    scrim = scrimLightMediumContrast,
+    inverseSurface = inverseSurfaceLightMediumContrast,
+    inverseOnSurface = inverseOnSurfaceLightMediumContrast,
+    inversePrimary = inversePrimaryLightMediumContrast,
+    surfaceDim = surfaceDimLightMediumContrast,
+    surfaceBright = surfaceBrightLightMediumContrast,
+    surfaceContainerLowest = surfaceContainerLowestLightMediumContrast,
+    surfaceContainerLow = surfaceContainerLowLightMediumContrast,
+    surfaceContainer = surfaceContainerLightMediumContrast,
+    surfaceContainerHigh = surfaceContainerHighLightMediumContrast,
+    surfaceContainerHighest = surfaceContainerHighestLightMediumContrast,
 )
 
-object ThemeState {
-    var accentSeed by mutableStateOf(SEED_SOLAR_GOLD)
-    var useSystemFont by mutableStateOf(false)
-}
+private val highContrastLightColorScheme = lightColorScheme(
+    primary = primaryLightHighContrast,
+    onPrimary = onPrimaryLightHighContrast,
+    primaryContainer = primaryContainerLightHighContrast,
+    onPrimaryContainer = onPrimaryContainerLightHighContrast,
+    secondary = secondaryLightHighContrast,
+    onSecondary = onSecondaryLightHighContrast,
+    secondaryContainer = secondaryContainerLightHighContrast,
+    onSecondaryContainer = onSecondaryContainerLightHighContrast,
+    tertiary = tertiaryLightHighContrast,
+    onTertiary = onTertiaryLightHighContrast,
+    tertiaryContainer = tertiaryContainerLightHighContrast,
+    onTertiaryContainer = onTertiaryContainerLightHighContrast,
+    error = errorLightHighContrast,
+    onError = onErrorLightHighContrast,
+    errorContainer = errorContainerLightHighContrast,
+    onErrorContainer = onErrorContainerLightHighContrast,
+    background = backgroundLightHighContrast,
+    onBackground = onBackgroundLightHighContrast,
+    surface = surfaceLightHighContrast,
+    onSurface = onSurfaceLightHighContrast,
+    surfaceVariant = surfaceVariantLightHighContrast,
+    onSurfaceVariant = onSurfaceVariantLightHighContrast,
+    outline = outlineLightHighContrast,
+    outlineVariant = outlineVariantLightHighContrast,
+    scrim = scrimLightHighContrast,
+    inverseSurface = inverseSurfaceLightHighContrast,
+    inverseOnSurface = inverseOnSurfaceLightHighContrast,
+    inversePrimary = inversePrimaryLightHighContrast,
+    surfaceDim = surfaceDimLightHighContrast,
+    surfaceBright = surfaceBrightLightHighContrast,
+    surfaceContainerLowest = surfaceContainerLowestLightHighContrast,
+    surfaceContainerLow = surfaceContainerLowLightHighContrast,
+    surfaceContainer = surfaceContainerLightHighContrast,
+    surfaceContainerHigh = surfaceContainerHighLightHighContrast,
+    surfaceContainerHighest = surfaceContainerHighestLightHighContrast,
+)
 
-val RoundedHeavy: FontFamily
-    get() = if (ThemeState.useSystemFont) FontFamily.Default else FontFamily.SansSerif
+private val mediumContrastDarkColorScheme = darkColorScheme(
+    primary = primaryDarkMediumContrast,
+    onPrimary = onPrimaryDarkMediumContrast,
+    primaryContainer = primaryContainerDarkMediumContrast,
+    onPrimaryContainer = onPrimaryContainerDarkMediumContrast,
+    secondary = secondaryDarkMediumContrast,
+    onSecondary = onSecondaryDarkMediumContrast,
+    secondaryContainer = secondaryContainerDarkMediumContrast,
+    onSecondaryContainer = onSecondaryContainerDarkMediumContrast,
+    tertiary = tertiaryDarkMediumContrast,
+    onTertiary = onTertiaryDarkMediumContrast,
+    tertiaryContainer = tertiaryContainerDarkMediumContrast,
+    onTertiaryContainer = onTertiaryContainerDarkMediumContrast,
+    error = errorDarkMediumContrast,
+    onError = onErrorDarkMediumContrast,
+    errorContainer = errorContainerDarkMediumContrast,
+    onErrorContainer = onErrorContainerDarkMediumContrast,
+    background = backgroundDarkMediumContrast,
+    onBackground = onBackgroundDarkMediumContrast,
+    surface = surfaceDarkMediumContrast,
+    onSurface = onSurfaceDarkMediumContrast,
+    surfaceVariant = surfaceVariantDarkMediumContrast,
+    onSurfaceVariant = onSurfaceVariantDarkMediumContrast,
+    outline = outlineDarkMediumContrast,
+    outlineVariant = outlineVariantDarkMediumContrast,
+    scrim = scrimDarkMediumContrast,
+    inverseSurface = inverseSurfaceDarkMediumContrast,
+    inverseOnSurface = inverseOnSurfaceDarkMediumContrast,
+    inversePrimary = inversePrimaryDarkMediumContrast,
+    surfaceDim = surfaceDimDarkMediumContrast,
+    surfaceBright = surfaceBrightDarkMediumContrast,
+    surfaceContainerLowest = surfaceContainerLowestDarkMediumContrast,
+    surfaceContainerLow = surfaceContainerLowDarkMediumContrast,
+    surfaceContainer = surfaceContainerDarkMediumContrast,
+    surfaceContainerHigh = surfaceContainerHighDarkMediumContrast,
+    surfaceContainerHighest = surfaceContainerHighestDarkMediumContrast,
+)
 
-private fun hexToHsl(hex: String): Triple<Float, Float, Float> {
-    var h2 = hex.removePrefix("#")
-    if (h2.length == 3) h2 = h2.map { "$it$it" }.joinToString("")
-    val r = h2.substring(0, 2).toInt(16) / 255f
-    val g = h2.substring(2, 4).toInt(16) / 255f
-    val b = h2.substring(4, 6).toInt(16) / 255f
-    val mx = maxOf(r, g, b)
-    val mn = minOf(r, g, b)
-    val l = (mx + mn) / 2f
-    var h = 0f
-    var s = 0f
-    val d = mx - mn
-    if (d != 0f) {
-        s = d / (1 - abs(2 * l - 1))
-        h = when (mx) {
-            r -> (((g - b) / d) % 6)
-            g -> ((b - r) / d + 2)
-            else -> ((r - g) / d + 4)
-        } * 60f
-        if (h < 0) h += 360f
-    }
-    return Triple(h, s * 100f, l * 100f)
-}
-
-private fun hsl(h: Float, s: Float, l: Float): Color {
-    val sN = s.coerceIn(0f, 100f) / 100f
-    val lN = l.coerceIn(0f, 100f) / 100f
-    val c = (1 - abs(2 * lN - 1)) * sN
-    val x = c * (1 - abs(((h / 60f) % 2) - 1))
-    val m = lN - c / 2
-    val (r, g, b) = when {
-        h < 60 -> Triple(c, x, 0f)
-        h < 120 -> Triple(x, c, 0f)
-        h < 180 -> Triple(0f, c, x)
-        h < 240 -> Triple(0f, x, c)
-        h < 300 -> Triple(x, 0f, c)
-        else -> Triple(c, 0f, x)
-    }
-    return Color((r + m).coerceIn(0f, 1f), (g + m).coerceIn(0f, 1f), (b + m).coerceIn(0f, 1f))
-}
-
-private fun pureWhiteScheme(dark: Boolean): ColorScheme = if (!dark) {
-    lightColorScheme(
-        primary = Color(0xFF111114), onPrimary = Color.White,
-        primaryContainer = Color(0xFFE5E5EA), onPrimaryContainer = Color(0xFF111114),
-        secondary = Color(0xFF3A3A3C), onSecondary = Color.White,
-        secondaryContainer = Color(0xFFE5E5EA), onSecondaryContainer = Color(0xFF111114),
-        tertiary = Color(0xFF007AFF), tertiaryContainer = Color(0xFFE5F1FF), onTertiaryContainer = Color(0xFF003A75),
-        background = Color(0xFFFFFFFF), onBackground = Color(0xFF090D16),
-        surface = Color(0xFFFFFFFF), onSurface = Color(0xFF090D16),
-        surfaceVariant = Color(0xFFF2F2F7), onSurfaceVariant = Color(0xFF3C3C43),
-        surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF9F9FB),
-        surfaceContainer = Color(0xFFF2F2F7), surfaceContainerHigh = Color(0xFFE5E5EA),
-        surfaceContainerHighest = Color(0xFFD1D1D6),
-        outline = Color(0xFF8E8E93), outlineVariant = Color(0xFFE5E5EA),
-    )
-} else {
-    darkColorScheme(
-        primary = Color(0xFFFFFFFF), onPrimary = Color(0xFF090D16),
-        primaryContainer = Color(0xFF2C2C2E), onPrimaryContainer = Color(0xFFFFFFFF),
-        secondary = Color(0xFFE5E5EA), onSecondary = Color(0xFF090D16),
-        secondaryContainer = Color(0xFF1C1C1E), onSecondaryContainer = Color(0xFFFFFFFF),
-        tertiary = Color(0xFF38BDF8), tertiaryContainer = Color(0xFF1C1C1E), onTertiaryContainer = Color(0xFFFFFFFF),
-        background = Color(0xFF000000), onBackground = Color(0xFFFFFFFF),
-        surface = Color(0xFF000000), onSurface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFF1C1C1E), onSurfaceVariant = Color(0xB2EBEBF5),
-        surfaceContainerLowest = Color(0xFF000000), surfaceContainerLow = Color(0xFF121214),
-        surfaceContainer = Color(0xFF1C1C1E), surfaceContainerHigh = Color(0xFF2C2C2E),
-        surfaceContainerHighest = Color(0xFF3A3A3C),
-        outline = Color(0xFF636366), outlineVariant = Color(0x2BFFFFFF),
-    )
-}
-
-private fun solarGoldScheme(dark: Boolean): ColorScheme = if (!dark) {
-    lightColorScheme(
-        primary = Color(0xFFD97706), onPrimary = Color.White,
-        primaryContainer = Color(0xFFFEF3C7), onPrimaryContainer = Color(0xFF451A03),
-        secondary = Color(0xFF475569), onSecondary = Color.White,
-        secondaryContainer = Color(0xFFE2E8F0), onSecondaryContainer = Color(0xFF0F172A),
-        tertiary = Color(0xFF0284C7), tertiaryContainer = Color(0xFFE0F2FE), onTertiaryContainer = Color(0xFF082F49),
-        background = Color(0xFFF2F2F7), onBackground = Color(0xFF090D16),
-        surface = Color(0xFFFFFFFF), onSurface = Color(0xFF090D16),
-        surfaceVariant = Color(0xFFE5E5EA), onSurfaceVariant = Color(0xFF3C3C43),
-        surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF2F2F7),
-        surfaceContainer = Color(0xFFFFFFFF), surfaceContainerHigh = Color(0xFFE5E5EA),
-        surfaceContainerHighest = Color(0xFFD1D1D6),
-        outline = Color(0xFF8E8E93), outlineVariant = Color(0xFFE6E6E6),
-    )
-} else {
-    darkColorScheme(
-        primary = Color(0xFFFACC15), onPrimary = Color(0xFF090D16),
-        primaryContainer = Color(0xFF3F3005), onPrimaryContainer = Color(0xFFFEF08A),
-        secondary = Color(0xFF94A3B8), onSecondary = Color(0xFF090D16),
-        secondaryContainer = Color(0xFF1C1C1E), onSecondaryContainer = Color(0xFFF8FAFC),
-        tertiary = Color(0xFF38BDF8), tertiaryContainer = Color(0xFF1C1C1E), onTertiaryContainer = Color(0xFFF8FAFC),
-        background = Color(0xFF000000), onBackground = Color(0xFFFFFFFF),
-        surface = Color(0xFF000000), onSurface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFF1C1C1E), onSurfaceVariant = Color(0xB2EBEBF5),
-        surfaceContainerLowest = Color(0xFF000000), surfaceContainerLow = Color(0xFF0E0E10),
-        surfaceContainer = Color(0xFF1C1C1E), surfaceContainerHigh = Color(0xFF2C2C2E),
-        surfaceContainerHighest = Color(0xFF3A3A3C),
-        outline = Color(0xFF636366), outlineVariant = Color(0x2BFFFFFF),
-    )
-}
-
-private fun crimsonScheme(dark: Boolean): ColorScheme = if (!dark) {
-    lightColorScheme(
-        primary = Color(0xFFE6002E), onPrimary = Color.White,
-        primaryContainer = Color(0xFFFFE3E8), onPrimaryContainer = Color(0xFF5C0012),
-        secondary = Color(0xFF606060), onSecondary = Color.White,
-        secondaryContainer = Color(0xFFE0E0E0), onSecondaryContainer = Color(0xFF0F0F0F),
-        tertiary = Color(0xFFE6002E), tertiaryContainer = Color(0xFFF2F2F2), onTertiaryContainer = Color(0xFF0F0F0F),
-        background = Color.White, onBackground = Color(0xFF0F0F0F),
-        surface = Color.White, onSurface = Color(0xFF0F0F0F),
-        surfaceVariant = Color(0xFFE5E5E5), onSurfaceVariant = Color(0xFF606060),
-        surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF9F9F9),
-        surfaceContainer = Color(0xFFF2F2F2), surfaceContainerHigh = Color(0xFFEAEAEA),
-        surfaceContainerHighest = Color(0xFFE0E0E0),
-        outline = Color(0xFF909090), outlineVariant = Color(0xFFE5E5E5),
-    )
-} else {
-    darkColorScheme(
-        primary = Color(0xFFFF0033), onPrimary = Color.White,
-        primaryContainer = Color(0xFF4A0010), onPrimaryContainer = Color(0xFFFFD9DF),
-        secondary = Color(0xFFAAAAAA), onSecondary = Color(0xFF0F0F0F),
-        secondaryContainer = Color(0xFF3F3F3F), onSecondaryContainer = Color(0xFFF1F1F1),
-        tertiary = Color(0xFFFF4E45), tertiaryContainer = Color(0xFF272727), onTertiaryContainer = Color(0xFFF1F1F1),
-        background = Color(0xFF000000), onBackground = Color(0xFFF1F1F1),
-        surface = Color(0xFF000000), onSurface = Color(0xFFF1F1F1),
-        surfaceVariant = Color(0xFF1C1C1E), onSurfaceVariant = Color(0xFFAAAAAA),
-        surfaceContainerLowest = Color(0xFF000000), surfaceContainerLow = Color(0xFF141416),
-        surfaceContainer = Color(0xFF1C1C1E), surfaceContainerHigh = Color(0xFF2C2C2E),
-        surfaceContainerHighest = Color(0xFF3A3A3C),
-        outline = Color(0xFF717171), outlineVariant = Color(0x2BFFFFFF),
-    )
-}
-
-private fun completeScheme(seedHex: String, cs: ColorScheme): ColorScheme {
-    val sparse = seedHex.lowercase() in setOf(
-        SEED_CREAM_ROSE.lowercase(),
-        SEED_AURORA.lowercase(),
-        SEED_LILAC_AIR.lowercase(),
-    )
-    val filled = cs.copy(
-        tertiaryContainer = cs.secondaryContainer,
-        onTertiaryContainer = cs.onSecondaryContainer,
-    )
-    return if (!sparse) filled else filled.copy(
-        secondary = cs.primary,
-        tertiary = cs.primary,
-        surfaceVariant = cs.surfaceContainerHigh,
-        surfaceContainerLow = lerp(cs.surface, cs.surfaceContainer, 0.5f),
-        surfaceContainerLowest = cs.surface,
-    )
-}
-
-fun schemeForSeed(
-    hex: String,
-    darkTheme: Boolean,
-    highContrast: Boolean = false,
-): ColorScheme {
-    val base = schemeForSeed(context = null, seedHex = hex, dark = darkTheme)
-    return if (darkTheme && highContrast) {
-        base.copy(
-            background = Color.Black,
-            surface = Color.Black,
-            surfaceVariant = Color(0xFF1C1C1E),
-            surfaceContainerLowest = Color.Black,
-            surfaceContainerLow = Color(0xFF121214),
-            surfaceContainer = Color(0xFF1C1C1E),
-            surfaceContainerHigh = Color(0xFF2C2C2E),
-            surfaceContainerHighest = Color(0xFF3A3A3C),
-            onBackground = Color.White,
-            onSurface = Color.White,
-            outlineVariant = Color(0x2BFFFFFF),
-        )
-    } else {
-        base
-    }
-}
-
-fun schemeForSeed(context: Context?, seedHex: String?, dark: Boolean): ColorScheme {
-    if (seedHex == null && context != null && supportsDynamicTheming()) {
-        return if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-    }
-    val hex = seedHex ?: SEED_SOLAR_GOLD
-    if (hex.equals(SEED_PURE_WHITE, ignoreCase = true)) {
-        return pureWhiteScheme(dark)
-    }
-    if (hex.equals(SEED_SOLAR_GOLD, ignoreCase = true)) {
-        return solarGoldScheme(dark)
-    }
-    if (hex.equals(SEED_CRIMSON, ignoreCase = true)) {
-        return crimsonScheme(dark)
-    }
-    if (hex.equals(SEED_CREAM_ROSE, ignoreCase = true)) {
-        val cs = if (!dark) lightColorScheme(
-            primary = Color(0xFF833761), onPrimary = Color(0xFFFFF3FC),
-            primaryContainer = Color(0xFFEED6DF), onPrimaryContainer = Color(0xFF54233F),
-            secondaryContainer = Color(0xFFE8DBEF), onSecondaryContainer = Color(0xFF513568),
-            surface = Color(0xFFFCF4EE), surfaceContainer = Color(0xFFFFF6F7),
-            surfaceContainerHigh = Color(0xFFEED6DF), surfaceContainerHighest = Color(0xFFE8DBEF),
-            onSurface = Color(0xFF422334), onSurfaceVariant = Color(0xFF735165),
-            outline = Color(0xFFA88098), outlineVariant = Color.Transparent,
-            background = Color(0xFFFCF4EE), onBackground = Color(0xFF422334),
-        ) else darkColorScheme(
-            primary = Color(0xFFF0B4CC), onPrimary = Color(0xFF3A1628),
-            primaryContainer = Color(0xFF4A2A3C), onPrimaryContainer = Color(0xFFFBE3EE),
-            secondaryContainer = Color(0xFF30242B), onSecondaryContainer = Color(0xFFEDDEE6),
-            surface = Color(0xFF0E0A0D), surfaceContainer = Color(0xFF1F181C),
-            surfaceContainerHigh = Color(0xFF2A2126), surfaceContainerHighest = Color(0xFF3A2E35),
-            onSurface = Color(0xFFFBEFF2), onSurfaceVariant = Color(0xFFCDB8C3),
-            outline = Color(0xFF9A858F), outlineVariant = Color.Transparent,
-            background = Color(0xFF0E0A0D), onBackground = Color(0xFFFBEFF2),
-        )
-        return completeScheme(hex, cs)
-    }
-    if (hex.equals(SEED_AURORA, ignoreCase = true)) {
-        val cs = if (!dark) lightColorScheme(
-            primary = Color(0xFF6C2BD9), onPrimary = Color.White,
-            primaryContainer = Color(0xFFE7DCFF), onPrimaryContainer = Color(0xFF2A1064),
-            secondaryContainer = Color(0xFFD5F0F6), onSecondaryContainer = Color(0xFF0A3A45),
-            surface = Color(0xFFF6F4FE), surfaceContainer = Color(0xFFFCFBFF),
-            surfaceContainerHigh = Color(0xFFEDE9FA), surfaceContainerHighest = Color(0xFFE1DBF3),
-            onSurface = Color(0xFF191340), onSurfaceVariant = Color(0xFF544D80),
-            outline = Color(0xFF8B84B0), outlineVariant = Color(0xFFDCD5F1),
-            background = Color(0xFFF6F4FE), onBackground = Color(0xFF191340),
-        ) else darkColorScheme(
-            primary = Color(0xFFD4C0FF), onPrimary = Color(0xFF23104F),
-            primaryContainer = Color(0xFF33206B), onPrimaryContainer = Color(0xFFE6DBFF),
-            secondaryContainer = Color(0xFF12303A), onSecondaryContainer = Color(0xFFC9EDF5),
-            surface = Color(0xFF0A0817), surfaceContainer = Color(0xFF1D1B29),
-            surfaceContainerHigh = Color(0xFF1F1A3B), surfaceContainerHighest = Color(0xFF2A2350),
-            onSurface = Color(0xFFF1EDFF), onSurfaceVariant = Color(0xFFC9C2E0),
-            outline = Color(0xFF7E76A8), outlineVariant = Color(0xFF2D2B38),
-            background = Color(0xFF0A0817), onBackground = Color(0xFFF1EDFF),
-        )
-        return completeScheme(hex, cs)
-    }
-    if (hex.equals(SEED_LILAC_AIR, ignoreCase = true)) {
-        val cs = if (!dark) lightColorScheme(
-            primary = Color(0xFF7454CE), onPrimary = Color.White,
-            primaryContainer = Color(0xFFEFE7FB), onPrimaryContainer = Color(0xFF59408C),
-            secondaryContainer = Color(0xFFF7EFF9), onSecondaryContainer = Color(0xFF49345E),
-            surface = Color(0xFFF6F2FF), surfaceContainer = Color(0xFFFAF7FF),
-            surfaceContainerHigh = Color(0xFFEEE5F8), surfaceContainerHighest = Color(0xFFE6DAF4),
-            onSurface = Color(0xFF30224E), onSurfaceVariant = Color(0xFF78648F),
-            outline = Color(0xFF9580AC), outlineVariant = Color(0xFFE2D5EE),
-            background = Color(0xFFF6F2FF), onBackground = Color(0xFF30224E),
-        ) else darkColorScheme(
-            primary = Color(0xFFC5B1F0), onPrimary = Color(0xFF291744),
-            primaryContainer = Color(0xFF392954), onPrimaryContainer = Color(0xFFEADDFB),
-            secondaryContainer = Color(0xFF292131), onSecondaryContainer = Color(0xFFDFD0EA),
-            surface = Color(0xFF17121F), surfaceContainer = Color(0xFF261E33),
-            surfaceContainerHigh = Color(0xFF322641), surfaceContainerHighest = Color(0xFF40304F),
-            onSurface = Color(0xFFF1E9FA), onSurfaceVariant = Color(0xFFC7B6D7),
-            outline = Color(0xFF9A85AE), outlineVariant = Color(0xFF514060),
-            background = Color(0xFF17121F), onBackground = Color(0xFFF1E9FA),
-        )
-        return completeScheme(hex, cs)
-    }
-    if (hex.equals(SEED_JAI, ignoreCase = true)) {
-        return if (!dark) lightColorScheme(
-            primary = Color(0xFFD6005C), onPrimary = Color.White,
-            primaryContainer = Color(0xFFFFD3E4), onPrimaryContainer = Color(0xFF4D0020),
-            secondary = Color(0xFF8C5069), onSecondary = Color.White,
-            secondaryContainer = Color(0xFFFBE4EC), onSecondaryContainer = Color(0xFF452029),
-            tertiary = Color(0xFF94304F),
-            background = Color(0xFFFFF7FA), onBackground = Color(0xFF2B0F1A),
-            surface = Color(0xFFFFF7FA), onSurface = Color(0xFF2B0F1A),
-            surfaceVariant = Color(0xFFF7D6E4), onSurfaceVariant = Color(0xFF77455A),
-            surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFFFFAFC),
-            surfaceContainer = Color(0xFFFFEDF4), surfaceContainerHigh = Color(0xFFFCE3ED),
-            surfaceContainerHighest = Color(0xFFF7D6E4),
-            outline = Color(0xFFAC7189), outlineVariant = Color(0xFFEFCFDE),
-        ) else darkColorScheme(
-            primary = Color(0xFFFF6BA0), onPrimary = Color(0xFF3D0016),
-            primaryContainer = Color(0xFF8F0F45), onPrimaryContainer = Color(0xFFFFD8E7),
-            secondary = Color(0xFFE2BCC9), onSecondary = Color(0xFF332028),
-            secondaryContainer = Color(0xFF332028), onSecondaryContainer = Color(0xFFF2DCE4),
-            tertiary = Color(0xFFE7A0B8),
-            background = Color(0xFF150A10), onBackground = Color(0xFFF8EBF0),
-            surface = Color(0xFF150A10), onSurface = Color(0xFFF8EBF0),
-            surfaceVariant = Color(0xFF4A2E3B), onSurfaceVariant = Color(0xFFD5B3C1),
-            surfaceContainerLowest = Color(0xFF0D0509), surfaceContainerLow = Color(0xFF1B0F15),
-            surfaceContainer = Color(0xFF22131A), surfaceContainerHigh = Color(0xFF2F1B25),
-            surfaceContainerHighest = Color(0xFF3D2430),
-            outline = Color(0xFF9C7382), outlineVariant = Color(0xFF4C333D),
-        )
-    }
-    if (hex.equals(SEED_PUMPKIN, ignoreCase = true)) {
-        return if (!dark) lightColorScheme(
-            primary = Color(0xFFBC5628), onPrimary = Color.White,
-            primaryContainer = Color(0xFFFBE2CE), onPrimaryContainer = Color(0xFF4A2110),
-            secondary = Color(0xFF7A6248), onSecondary = Color.White,
-            secondaryContainer = Color(0xFFF2E7D6), onSecondaryContainer = Color(0xFF4A3A28),
-            tertiary = Color(0xFF9A6B2F),
-            background = Color(0xFFFDFAF6), onBackground = Color(0xFF2A211A),
-            surface = Color(0xFFFDFAF6), onSurface = Color(0xFF2A211A),
-            surfaceVariant = Color(0xFFEADCC9), onSurfaceVariant = Color(0xFF6F5F4F),
-            surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFFBF6EF),
-            surfaceContainer = Color(0xFFF8F1E7), surfaceContainerHigh = Color(0xFFF3E9DB),
-            surfaceContainerHighest = Color(0xFFEADCC9),
-            outline = Color(0xFF97866F), outlineVariant = Color(0xFFE2D6C4),
-        ) else darkColorScheme(
-            primary = Color(0xFFE97A3A), onPrimary = Color(0xFF2A1200),
-            primaryContainer = Color(0xFF63300F), onPrimaryContainer = Color(0xFFFFD9BE),
-            secondary = Color(0xFFCFC4BB), onSecondary = Color(0xFF2E2A27),
-            secondaryContainer = Color(0xFF2E2A27), onSecondaryContainer = Color(0xFFE3DBD4),
-            tertiary = Color(0xFFE0A472),
-            background = Color(0xFF121110), onBackground = Color(0xFFF4F1EE),
-            surface = Color(0xFF121110), onSurface = Color(0xFFF4F1EE),
-            surfaceVariant = Color(0xFF3F3A36), onSurfaceVariant = Color(0xFFB4ABA4),
-            surfaceContainerLowest = Color(0xFF0B0A0A), surfaceContainerLow = Color(0xFF171615),
-            surfaceContainer = Color(0xFF1C1A19), surfaceContainerHigh = Color(0xFF262322),
-            surfaceContainerHighest = Color(0xFF322E2C),
-            outline = Color(0xFF7C736C), outlineVariant = Color(0xFF3A3532),
-        )
-    }
-
-    val (h, s, _) = hexToHsl(hex)
-    val isMoonstone = hex.equals(SEED_MOONSTONE, ignoreCase = true)
-    val accent = if (isMoonstone) 7f else maxOf(s, 52f)
-    val surf = if (isMoonstone) 3f else if (dark) 12f else 14f
-
-    return if (!dark) {
-        lightColorScheme(
-            primary = hsl(h, accent, 42f), onPrimary = Color.White,
-            primaryContainer = hsl(h, minOf(accent, 68f), 90f), onPrimaryContainer = hsl(h, accent, 16f),
-            secondary = hsl(h, 26f, 40f), onSecondary = Color.White,
-            secondaryContainer = hsl(h, 22f, 88f), onSecondaryContainer = hsl(h, 26f, 20f),
-            tertiary = hsl((h + 40f) % 360f, 40f, 45f),
-            background = hsl(h, surf, 98f), onBackground = hsl(h, 10f, 12f),
-            surface = hsl(h, surf, 98f), onSurface = hsl(h, 10f, 12f),
-            surfaceVariant = hsl(h, surf, 90f), onSurfaceVariant = hsl(h, minOf(12f, surf), 36f),
-            surfaceContainerLowest = hsl(h, surf, 100f),
-            surfaceContainerLow = hsl(h, surf, 96f),
-            surfaceContainer = hsl(h, surf, 95f),
-            surfaceContainerHigh = hsl(h, surf, 93f),
-            surfaceContainerHighest = hsl(h, surf, 90f),
-            outline = hsl(h, minOf(10f, surf), 54f),
-            outlineVariant = hsl(h, minOf(10f, surf), 84f),
-            error = Color(0xFFB3261E), onError = Color.White,
-            errorContainer = Color(0xFFFFDAD5), onErrorContainer = Color(0xFF410E0B),
-        )
-    } else {
-        darkColorScheme(
-            primary = hsl(h, minOf(accent, 75f), 78f), onPrimary = hsl(h, accent, 16f),
-            primaryContainer = hsl(h, minOf(accent, 58f), 30f), onPrimaryContainer = hsl(h, 60f, 92f),
-            secondary = hsl(h, 20f, 80f), onSecondary = hsl(h, 20f, 18f),
-            secondaryContainer = hsl(h, 18f, 28f), onSecondaryContainer = hsl(h, 18f, 90f),
-            tertiary = hsl((h + 40f) % 360f, 38f, 80f),
-            background = hsl(h, surf, 7f), onBackground = hsl(h, 8f, 92f),
-            surface = hsl(h, surf, 7f), onSurface = hsl(h, 8f, 92f),
-            surfaceVariant = hsl(h, surf, 28f), onSurfaceVariant = hsl(h, minOf(10f, surf), 80f),
-            surfaceContainerLowest = hsl(h, surf, 4f),
-            surfaceContainerLow = hsl(h, surf, 10f),
-            surfaceContainer = hsl(h, surf, 12f),
-            surfaceContainerHigh = hsl(h, surf, 17f),
-            surfaceContainerHighest = hsl(h, surf, 22f),
-            outline = hsl(h, minOf(8f, surf), 60f),
-            outlineVariant = hsl(h, minOf(8f, surf), 30f),
-            error = Color(0xFFFFB4AB), onError = Color(0xFF690005),
-            errorContainer = Color(0xFF93000A), onErrorContainer = Color(0xFFFFDAD6),
-        )
-    }
-}
-
-@Composable
-private fun SystemBars(dark: Boolean, windowBg: Color) {
-    val view = LocalView.current
-    if (view.isInEditMode) return
-    val activity = view.context as? ComponentActivity
-    SideEffect {
-        val window = activity?.window ?: (view.context as? Activity)?.window ?: return@SideEffect
-        val controller = WindowCompat.getInsetsController(window, view)
-        controller.isAppearanceLightStatusBars = !dark
-        controller.isAppearanceLightNavigationBars = !dark
-        if (activity != null) {
-            val barStyle = if (dark) {
-                SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-            } else {
-                SystemBarStyle.light(
-                    android.graphics.Color.TRANSPARENT,
-                    android.graphics.Color.TRANSPARENT,
-                )
-            }
-            runCatching {
-                activity.enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
-                controller.isAppearanceLightStatusBars = !dark
-                controller.isAppearanceLightNavigationBars = !dark
-            }
-        }
-    }
-    DisposableEffect(windowBg) {
-        (view.context as? Activity)?.window?.setBackgroundDrawable(ColorDrawable(windowBg.toArgb()))
-        onDispose { }
-    }
-}
-
-@Composable
-fun DarkPlayerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    highContrastDarkTheme: Boolean = true,
-    dynamicColor: Boolean = false,
-    accentSeed: String = ThemeState.accentSeed,
-    content: @Composable () -> Unit,
-) {
-    val context = LocalContext.current
-    val baseScheme = when {
-        dynamicColor && supportsDynamicTheming() -> {
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        else -> schemeForSeed(context, accentSeed, darkTheme)
-    }
-
-    val colorScheme = if (darkTheme && highContrastDarkTheme) {
-        baseScheme.copy(
-            background = Color.Black,
-            surface = Color.Black,
-            surfaceVariant = Color(0xFF1C1C1E),
-            surfaceContainerLowest = Color.Black,
-            surfaceContainerLow = Color(0xFF121214),
-            surfaceContainer = Color(0xFF1C1C1E),
-            surfaceContainerHigh = Color(0xFF2C2C2E),
-            surfaceContainerHighest = Color(0xFF3A3A3C),
-            onBackground = Color.White,
-            onSurface = Color.White,
-            outlineVariant = Color(0x2BFFFFFF),
-        )
-    } else {
-        baseScheme
-    }
-
-    SystemBars(dark = darkTheme, windowBg = colorScheme.surface)
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        shapes = ExpressiveShapes,
-        typography = Typography,
-        motionScheme = MotionScheme.expressive(),
-    ) {
-        ProvideGlasmioTheme(
-            isDark = darkTheme,
-            accent = colorScheme.primary,
-            content = content,
-        )
-    }
-}
+private val highContrastDarkColorScheme = darkColorScheme(
+    primary = primaryDarkHighContrast,
+    onPrimary = onPrimaryDarkHighContrast,
+    primaryContainer = primaryContainerDarkHighContrast,
+    onPrimaryContainer = onPrimaryContainerDarkHighContrast,
+    secondary = secondaryDarkHighContrast,
+    onSecondary = onSecondaryDarkHighContrast,
+    secondaryContainer = secondaryContainerDarkHighContrast,
+    onSecondaryContainer = onSecondaryContainerDarkHighContrast,
+    tertiary = tertiaryDarkHighContrast,
+    onTertiary = onTertiaryDarkHighContrast,
+    tertiaryContainer = tertiaryContainerDarkHighContrast,
+    onTertiaryContainer = onTertiaryContainerDarkHighContrast,
+    error = errorDarkHighContrast,
+    onError = onErrorDarkHighContrast,
+    errorContainer = errorContainerDarkHighContrast,
+    onErrorContainer = onErrorContainerDarkHighContrast,
+    background = backgroundDarkHighContrast,
+    onBackground = onBackgroundDarkHighContrast,
+    surface = surfaceDarkHighContrast,
+    onSurface = onSurfaceDarkHighContrast,
+    surfaceVariant = surfaceVariantDarkHighContrast,
+    onSurfaceVariant = onSurfaceVariantDarkHighContrast,
+    outline = outlineDarkHighContrast,
+    outlineVariant = outlineVariantDarkHighContrast,
+    scrim = scrimDarkHighContrast,
+    inverseSurface = inverseSurfaceDarkHighContrast,
+    inverseOnSurface = inverseOnSurfaceDarkHighContrast,
+    inversePrimary = inversePrimaryDarkHighContrast,
+    surfaceDim = surfaceDimDarkHighContrast,
+    surfaceBright = surfaceBrightDarkHighContrast,
+    surfaceContainerLowest = surfaceContainerLowestDarkHighContrast,
+    surfaceContainerLow = surfaceContainerLowDarkHighContrast,
+    surfaceContainer = surfaceContainerDarkHighContrast,
+    surfaceContainerHigh = surfaceContainerHighDarkHighContrast,
+    surfaceContainerHighest = surfaceContainerHighestDarkHighContrast,
+)
 
 @Composable
 fun NextPlayerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    highContrastDarkTheme: Boolean = true,
-    dynamicColor: Boolean = false,
+    highContrastDarkTheme: Boolean = false,
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    DarkPlayerTheme(
-        darkTheme = darkTheme,
-        highContrastDarkTheme = highContrastDarkTheme,
-        dynamicColor = dynamicColor,
+    val colorScheme = when {
+        dynamicColor && supportsDynamicTheming() -> {
+            val context = LocalContext.current
+            when {
+                darkTheme && highContrastDarkTheme -> dynamicDarkColorScheme(
+                    context = context,
+                ).copy(
+                    background = backgroundPureBlack,
+                    surface = surfacePureBlack,
+                    surfaceDim = surfaceDimPureBlack,
+                    surfaceBright = surfaceBrightPureBlack,
+                    surfaceContainerLowest = surfaceContainerLowestPureBlack,
+                    surfaceContainerLow = surfaceContainerLowPureBlack,
+                    surfaceContainer = surfaceContainerPureBlack,
+                    surfaceContainerHigh = surfaceContainerHighPureBlack,
+                    surfaceContainerHighest = surfaceContainerHighestPureBlack,
+                )
+
+                darkTheme -> dynamicDarkColorScheme(context = context)
+
+                else -> dynamicLightColorScheme(context = context)
+            }
+        }
+
+        darkTheme && highContrastDarkTheme -> darkScheme.copy(
+            background = backgroundPureBlack,
+            surface = surfacePureBlack,
+            surfaceDim = surfaceDimPureBlack,
+            surfaceBright = surfaceBrightPureBlack,
+            surfaceContainerLowest = surfaceContainerLowestPureBlack,
+            surfaceContainerLow = surfaceContainerLowPureBlack,
+            surfaceContainer = surfaceContainerPureBlack,
+            surfaceContainerHigh = surfaceContainerHighPureBlack,
+            surfaceContainerHighest = surfaceContainerHighestPureBlack,
+        )
+
+        darkTheme -> darkScheme
+
+        else -> lightScheme
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = Typography,
+        motionScheme = MotionScheme.expressive(),
         content = content,
     )
 }

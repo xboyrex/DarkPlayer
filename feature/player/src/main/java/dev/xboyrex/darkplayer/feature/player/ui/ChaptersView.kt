@@ -8,14 +8,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.media3.extractor.metadata.Chapter
@@ -52,33 +49,21 @@ fun BoxScope.ChaptersView(
                     chapter.startTimeMs
                 },
             ) { index, chapter ->
-                val isCurrent = index == currentChapterIndex
                 NextSegmentedListItem(
-                    selected = isCurrent,
+                    selected = index == currentChapterIndex,
                     isFirstItem = index == 0,
                     isLastItem = index == chapters.lastIndex,
-                    colors = ListItemDefaults.segmentedColors(
-                        containerColor = Color.White.copy(alpha = 0.06f),
-                        contentColor = Color.White,
-                        supportingContentColor = Color.White.copy(alpha = 0.65f),
-                        selectedContainerColor = Color.White.copy(alpha = 0.16f),
-                        selectedContentColor = Color.White,
-                        selectedSupportingContentColor = Color.White.copy(alpha = 0.85f),
-                    ),
                     onClick = { onChapterSelected(chapter) },
                     content = {
                         Text(
                             text = chapter.titleOrDefault(index = index),
+                            style = MaterialTheme.typography.titleSmall,
                             maxLines = 2,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                             overflow = TextOverflow.Ellipsis,
                         )
                     },
                     supportingContent = {
-                        Text(
-                            text = chapter.startTimeMs.milliseconds.formatted(),
-                        )
+                        Text(text = chapter.startTimeMs.milliseconds.formatted())
                     },
                 )
             }
@@ -86,15 +71,9 @@ fun BoxScope.ChaptersView(
     }
 }
 
-/**
- * Media3 [Chapter.title] is a [androidx.media3.common.Label]?, not a String.
- * Extract [androidx.media3.common.Label.value] for display; fall back to "Chapter N".
- */
 @Composable
-internal fun Chapter.titleOrDefault(index: Int): String {
-    val labelValue = title?.value
-    if (!labelValue.isNullOrBlank()) {
-        return labelValue
-    }
-    return stringResource(R.string.chapter_number, index + 1)
-}
+internal fun Chapter.titleOrDefault(index: Int): String =
+    title?.value?.takeIf { it.isNotBlank() } ?: stringResource(
+        R.string.chapter_number,
+        index + 1,
+    )

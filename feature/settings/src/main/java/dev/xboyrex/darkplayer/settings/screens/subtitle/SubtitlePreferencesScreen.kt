@@ -17,11 +17,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import dev.xboyrex.darkplayer.core.ui.glass.popupBackgroundBlur
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
@@ -31,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.xboyrex.darkplayer.core.model.Font
 import dev.xboyrex.darkplayer.core.model.PlayerPreferences
+import dev.xboyrex.darkplayer.core.model.SubtitleAlignment
 import dev.xboyrex.darkplayer.core.ui.R
 import dev.xboyrex.darkplayer.core.ui.components.ClickablePreferenceItem
 import dev.xboyrex.darkplayer.core.ui.components.ListSectionTitle
@@ -48,6 +47,7 @@ import dev.xboyrex.darkplayer.settings.composables.OptionsDialog
 import dev.xboyrex.darkplayer.settings.extensions.name
 import dev.xboyrex.darkplayer.settings.utils.LocalesHelper
 import java.nio.charset.Charset
+import kotlin.math.roundToInt
 
 @Composable
 fun SubtitlePreferencesScreen(viewModel: SubtitlePreferencesViewModel) {
@@ -82,7 +82,6 @@ private fun SubtitlePreferencesScreenContent(
 
     val listFocusRequester = rememberTvListFocusRequester()
     Scaffold(
-        modifier = Modifier.popupBackgroundBlur(),
         topBar = {
             NextTopAppBar(
                 title = stringResource(id = R.string.subtitle),
@@ -106,10 +105,11 @@ private fun SubtitlePreferencesScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues = innerPadding)
                 .verticalScroll(state = rememberScrollState())
                 .tvListFocus(focusRequester = listFocusRequester)
-                .padding(horizontal = 16.dp),
+                .padding(paddingValues = innerPadding)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
         ) {
             ListSectionTitle(text = stringResource(id = R.string.playback))
             Column(
@@ -146,10 +146,16 @@ private fun SubtitlePreferencesScreenContent(
                             ),
                         )
                     },
+                )
+                ClickablePreferenceItem(
+                    title = "Subtitle Folder",
+                    description = state.preferences.subtitleFolder,
+                    icon = NextIcons.Folder,
+                    onClick = {},
                     isLastItem = true,
                 )
             }
-            ListSectionTitle(text = stringResource(id = R.string.appearance_name))
+            ListSectionTitle(text = "Nova Subtitle Appearance")
             Column(
                 verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
             ) {
@@ -165,6 +171,23 @@ private fun SubtitlePreferencesScreenContent(
                         context.startActivity(Intent(Settings.ACTION_CAPTIONING_SETTINGS))
                     },
                     isFirstItem = true,
+                )
+                ClickablePreferenceItem(
+                    title = "Alignment",
+                    description = when (state.preferences.subtitleAlignment) {
+                        SubtitleAlignment.LEFT -> "Left"
+                        SubtitleAlignment.CENTER -> "Center (Default)"
+                        SubtitleAlignment.RIGHT -> "Right"
+                    },
+                    icon = NextIcons.Style,
+                    enabled = state.preferences.useSystemCaptionStyle.not(),
+                    onClick = {
+                        onAction(
+                            SubtitlePreferencesUiEvent.ShowDialog(
+                                value = SubtitlePreferenceDialog.SubtitleAlignmentDialog,
+                            ),
+                        )
+                    },
                 )
                 ClickablePreferenceItem(
                     title = stringResource(id = R.string.subtitle_font),
@@ -217,6 +240,41 @@ private fun SubtitlePreferencesScreenContent(
                         }
                     },
                 )
+                PreferenceSlider(
+                    title = "Scale",
+                    description = "${(state.preferences.subtitleScale * 100).roundToInt()}%",
+                    icon = NextIcons.ZoomIn,
+                    enabled = state.preferences.useSystemCaptionStyle.not(),
+                    value = state.preferences.subtitleScale * 100f,
+                    valueRange = 50f..200f,
+                    onValueChange = {
+                        onAction(SubtitlePreferencesUiEvent.UpdateSubtitleScale(it / 100f))
+                    },
+                )
+                PreferenceSwitch(
+                    title = "Border",
+                    description = "Draw high-contrast text outline around subtitles",
+                    icon = NextIcons.Subtitle,
+                    enabled = state.preferences.useSystemCaptionStyle.not(),
+                    isChecked = state.preferences.subtitleBorderEnabled,
+                    onClick = { onAction(SubtitlePreferencesUiEvent.ToggleSubtitleBorder) },
+                )
+                PreferenceSwitch(
+                    title = "Shadow",
+                    description = "Render soft drop shadow under subtitle text",
+                    icon = NextIcons.Appearance,
+                    enabled = state.preferences.useSystemCaptionStyle.not(),
+                    isChecked = state.preferences.subtitleShadowEnabled,
+                    onClick = { onAction(SubtitlePreferencesUiEvent.ToggleSubtitleShadow) },
+                )
+                PreferenceSwitch(
+                    title = "Fade Out",
+                    description = "Smoothly fade out subtitles when cue ends",
+                    icon = NextIcons.Animation,
+                    enabled = state.preferences.useSystemCaptionStyle.not(),
+                    isChecked = state.preferences.subtitleFadeOut,
+                    onClick = { onAction(SubtitlePreferencesUiEvent.ToggleSubtitleFadeOut) },
+                )
                 PreferenceSwitch(
                     title = stringResource(id = R.string.subtitle_background),
                     description = stringResource(id = R.string.subtitle_background_desc),
@@ -231,6 +289,13 @@ private fun SubtitlePreferencesScreenContent(
                     icon = NextIcons.Style,
                     isChecked = state.preferences.applyEmbeddedStyles,
                     onClick = { onAction(SubtitlePreferencesUiEvent.ToggleApplyEmbeddedStyles) },
+                )
+                ClickablePreferenceItem(
+                    title = stringResource(id = R.string.reset_subtitle_position),
+                    description = stringResource(id = R.string.reset_subtitle_position_desc),
+                    icon = NextIcons.History,
+                    enabled = state.preferences.subtitleOffsetY != 0f,
+                    onClick = { onAction(SubtitlePreferencesUiEvent.ResetSubtitlePosition) },
                     isLastItem = true,
                 )
             }
@@ -313,6 +378,34 @@ private fun SubtitlePreferencesScreenContent(
                                     },
                                 )
                             }
+                        }
+                    }
+                }
+
+                SubtitlePreferenceDialog.SubtitleAlignmentDialog -> {
+                    OptionsDialog(
+                        text = "Alignment",
+                        onDismissClick = {
+                            onAction(SubtitlePreferencesUiEvent.ShowDialog(value = null))
+                        },
+                    ) {
+                        items(SubtitleAlignment.entries.toTypedArray()) { alignment ->
+                            RadioTextButton(
+                                text = when (alignment) {
+                                    SubtitleAlignment.LEFT -> "Left"
+                                    SubtitleAlignment.CENTER -> "Center"
+                                    SubtitleAlignment.RIGHT -> "Right"
+                                },
+                                selected = alignment == state.preferences.subtitleAlignment,
+                                onClick = {
+                                    onAction(
+                                        SubtitlePreferencesUiEvent.UpdateSubtitleAlignment(
+                                            alignment = alignment,
+                                        ),
+                                    )
+                                    onAction(SubtitlePreferencesUiEvent.ShowDialog(value = null))
+                                },
+                            )
                         }
                     }
                 }

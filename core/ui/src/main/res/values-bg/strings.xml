@@ -214,6 +214,10 @@
     <string name="github">Github</string>
     <string name="donate">Дарете</string>
     <string name="error_opening_link">Не е намерено приложение, което да обработва тази връзка</string>
+    <string name="support_the_developer_on">Подкрепете разработчика на %1$s</string>
+    <string name="kofi">Ko-fi</string>
+    <string name="paypal">PayPal</string>
+    <string name="upi">UPI</string>
     <string name="media_layout">Медийно оформление</string>
     <string name="list">Списък</string>
     <string name="grid">Решетка</string>

@@ -8,16 +8,7 @@ import androidx.compose.material.icons.automirrored.rounded.DriveFileMove
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Lan
-import androidx.compose.material.icons.outlined.VideoLibrary
-import androidx.compose.material.icons.rounded.CameraAlt
-import androidx.compose.material.icons.rounded.Code
-import androidx.compose.material.icons.rounded.Public
-import androidx.compose.material.icons.rounded.Security
-import androidx.compose.material.icons.rounded.VideoLibrary
-import androidx.compose.material.icons.rounded.Work
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AppSettingsAlt
 import androidx.compose.material.icons.rounded.ArrowDownward
@@ -195,13 +186,4 @@ object NextIcons {
     val Fingerprint = Icons.Rounded.Fingerprint
     val DragHandle = Icons.Rounded.DragHandle
     val Reorder = Icons.Rounded.SwapVert
-    val Camera = Icons.Rounded.CameraAlt
-    val Globe = Icons.Rounded.Public
-    val Code = Icons.Rounded.Code
-    val Security = Icons.Rounded.Security
-    val Work = Icons.Rounded.Work
-    val VideoLibrary = Icons.Rounded.VideoLibrary
-    val VideoLibraryOutline = Icons.Outlined.VideoLibrary
-    val NetworkOutline = Icons.Outlined.Lan
-    val DashBoardOutline = Icons.Outlined.Dashboard
 }

@@ -1,23 +1,26 @@
 package dev.xboyrex.darkplayer.navigation
 
+import android.os.Build
+import android.view.RoundedCorner
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Transition
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,19 +36,25 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -55,20 +64,25 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
@@ -78,54 +92,70 @@ import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.scene.Scene
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
+import dev.xboyrex.darkplayer.core.model.NovaNavBarStyle
 import dev.xboyrex.darkplayer.core.ui.R
 import dev.xboyrex.darkplayer.core.ui.components.TopLevelFabKey
 import dev.xboyrex.darkplayer.core.ui.components.TopLevelFabState
 import dev.xboyrex.darkplayer.core.ui.components.thenIf
 import dev.xboyrex.darkplayer.core.ui.components.tvFocusRing
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
-import dev.xboyrex.darkplayer.core.ui.glass.Motion
+import dev.xboyrex.darkplayer.core.ui.glass.LiquidBottomBar
+import dev.xboyrex.darkplayer.core.ui.glass.LiquidNavTabItem
+import dev.xboyrex.darkplayer.core.ui.glass.LocalNovaAccentColor
+import dev.xboyrex.darkplayer.core.ui.glass.LocalNovaHapticsEnabled
+import dev.xboyrex.darkplayer.core.ui.glass.LocalNovaNavBarStyle
+import dev.xboyrex.darkplayer.core.ui.glass.LocalYtxGlassBackdrop
+import dev.xboyrex.darkplayer.core.ui.glass.novaHaptic
 import dev.xboyrex.darkplayer.feature.more.navigation.MoreRoute
 import dev.xboyrex.darkplayer.feature.network.navigation.NetworkRoute
 import dev.xboyrex.darkplayer.feature.playlist.navigation.PlaylistListRoute
 import dev.xboyrex.darkplayer.feature.videopicker.navigation.MediaPickerRoute
 
+/**
+ * Top-level destinations shown in the bottom bar / nav rail.
+ * Labels are concise ("Home", "Playlists", "Network", "Hub") so they never truncate on any screen width.
+ */
 enum class TopLevelDestination(
     val route: NavKey,
     val icon: ImageVector,
-    val selectedIcon: ImageVector,
     @StringRes val labelRes: Int,
+    val shortLabel: String,
+    val sfSymbolName: String,
     val fabKey: String? = null,
 ) {
     MEDIA(
         MediaPickerRoute(),
-        NextIcons.HomeOutline,
         NextIcons.Home,
         R.string.home,
+        "Home",
+        "house.fill",
         TopLevelFabKey.MEDIA,
     ),
     PLAYLISTS(
         PlaylistListRoute,
-        NextIcons.VideoLibraryOutline,
-        NextIcons.VideoLibrary,
+        NextIcons.Playlist,
         R.string.playlists,
+        "Playlists",
+        "play.square.stack.fill",
         TopLevelFabKey.PLAYLISTS,
     ),
     NETWORK(
         NetworkRoute,
-        NextIcons.NetworkOutline,
         NextIcons.Network,
         R.string.network,
+        "Network",
+        "globe",
         TopLevelFabKey.NETWORK,
     ),
     MORE(
         MoreRoute,
-        NextIcons.DashBoardOutline,
         NextIcons.DashBoard,
         R.string.more,
+        "Hub",
+        "square.grid.2x2.fill",
         TopLevelFabKey.MORE,
     ),
 }
@@ -179,11 +209,7 @@ class TopLevelNavState(
     val topLevelContentKeys: Set<Any> = destinations.flatMap { dest ->
         listOf(
             dest.route,
-            dest.route.toString(),
-            Pair(
-                first = "${dest.route}",
-                second = "${dest.route::class}",
-            ),
+            NavEntry(key = dest.route) {}.contentKey,
         )
     }.toSet()
 
@@ -229,58 +255,150 @@ fun TopLevelNavState.isNavigationBetweenTopLevelDestinations(
         contains(targetState.entries.lastOrNull()?.contentKey)
 }
 
+private const val PUSH_DURATION_MILLIS = 320
+private const val POP_DURATION_MILLIS = 360
+private val PushEasing = CubicBezierEasing(
+    0.3f,
+    0.7f,
+    0.5f,
+    1f,
+)
+private val PopEasing = CubicBezierEasing(
+    0.3f,
+    0.3f,
+    0.3f,
+    1f,
+)
+private const val PARALLAX_FRACTION = 0.3f
+private const val PREDICTIVE_PARALLAX_FRACTION = 0.25f
+private const val MAX_SCRIM_ALPHA = 0.5f
+
+private fun Scene<NavKey>.isPoppingTo(targetState: Scene<NavKey>): Boolean = previousEntries.any {
+    it.contentKey == targetState.entries.lastOrNull()?.contentKey
+}
+
 internal fun TopLevelNavState.navigationTransition(
     initialState: Scene<NavKey>,
     targetState: Scene<NavKey>,
+    isPredictive: Boolean = false,
 ): ContentTransform {
     if (isNavigationBetweenTopLevelDestinations(
             initialState = initialState,
             targetState = targetState,
         )
     ) {
-        return (
-            fadeIn(
-                animationSpec = tween(
-                    durationMillis = Motion.PageEnterMs,
-                    easing = Motion.Emphasized,
-                ),
-            ) + slideInVertically(
-                animationSpec = tween(
-                    durationMillis = Motion.PageRiseMs,
-                    easing = Motion.Emphasized,
-                ),
-                initialOffsetY = { (it / 35).coerceIn(8, 24) },
-            )
-            ) togetherWith
-            fadeOut(
-                animationSpec = tween(
-                    durationMillis = Motion.PageExitMs,
-                ),
-            )
-    }
-
-    val isPop = initialState.previousEntries.any {
-        it.contentKey == targetState.entries.lastOrNull()?.contentKey
-    }
-    return (
-        slideInHorizontally(
-            initialOffsetX = { if (isPop) -(it * 0.28f).toInt() else it },
-            animationSpec = tween(
-                durationMillis = 240,
-                easing = Motion.Emphasized,
-            ),
-        ) + fadeIn(tween(110))
-        ) togetherWith (
-        slideOutHorizontally(
-            targetOffsetX = { if (isPop) it else -(it * 0.28f).toInt() },
+        return fadeIn(
             animationSpec = tween(
                 durationMillis = 200,
-                easing = Motion.Emphasized,
+                easing = LinearEasing,
             ),
-        ) + fadeOut(tween(150))
+        ) togetherWith
+            fadeOut(
+                animationSpec = tween(
+                    durationMillis = 200,
+                    easing = LinearEasing,
+                ),
+            )
+    }
+
+    val isPop = initialState.isPoppingTo(targetState)
+    val animationSpec = when {
+        isPredictive -> tween<IntOffset>(
+            durationMillis = POP_DURATION_MILLIS,
+            easing = LinearEasing,
         )
+
+        isPop -> tween(
+            durationMillis = POP_DURATION_MILLIS,
+            easing = PopEasing,
+        )
+
+        else -> tween(
+            durationMillis = PUSH_DURATION_MILLIS,
+            easing = PushEasing,
+        )
+    }
+    val parallax = if (isPredictive) PREDICTIVE_PARALLAX_FRACTION else PARALLAX_FRACTION
+    return slideInHorizontally(
+        initialOffsetX = { if (isPop) -(it * parallax).toInt() else it },
+        animationSpec = animationSpec,
+    ) togetherWith slideOutHorizontally(
+        targetOffsetX = { if (isPop) it else -(it * parallax).toInt() },
+        animationSpec = animationSpec,
+    )
 }
 
+@Composable
+internal fun TopLevelNavState.navigationTransitionModifier(entry: NavEntry<NavKey>): Modifier {
+    val visibility = LocalNavAnimatedContentScope.current.transition
+
+    @Suppress("UNCHECKED_CAST")
+    val scenes = visibility.parentTransition as? Transition<Scene<NavKey>> ?: return Modifier
+    val initialState = scenes.currentState
+    val targetState = scenes.targetState
+    val isPop = initialState.isPoppingTo(targetState)
+    val scrimAlpha = visibility.animateFloat(
+        transitionSpec = {
+            tween(
+                durationMillis = if (isPop) POP_DURATION_MILLIS else PUSH_DURATION_MILLIS,
+                easing = LinearEasing,
+            )
+        },
+        label = "navigation_scrim",
+    ) { if (it == EnterExitState.Visible) 0f else MAX_SCRIM_ALPHA }
+    val cornerShape = rememberDisplayCornerShape()
+
+    if (initialState == targetState ||
+        isNavigationBetweenTopLevelDestinations(
+            initialState,
+            targetState,
+        )
+    ) {
+        return Modifier
+    }
+    val bottomScene = if (isPop) targetState else initialState
+    return if (entry.contentKey == bottomScene.entries.lastOrNull()?.contentKey) {
+        Modifier.drawWithContent {
+            drawContent()
+            drawRect(
+                color = Color.Black,
+                alpha = scrimAlpha.value,
+            )
+        }
+    } else {
+        Modifier.thenIf(cornerShape != null) { clip(cornerShape!!) }
+    }
+}
+
+@Composable
+private fun rememberDisplayCornerShape(): Shape? {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
+    val insets = LocalView.current.rootWindowInsets ?: return null
+    return remember(insets) {
+        fun radius(position: Int) = insets.getRoundedCorner(position)?.radius?.toFloat() ?: 0f
+        val topLeft = radius(RoundedCorner.POSITION_TOP_LEFT)
+        val topRight = radius(RoundedCorner.POSITION_TOP_RIGHT)
+        val bottomRight = radius(RoundedCorner.POSITION_BOTTOM_RIGHT)
+        val bottomLeft = radius(RoundedCorner.POSITION_BOTTOM_LEFT)
+        if (topLeft + topRight + bottomRight + bottomLeft == 0f) {
+            null
+        } else {
+            AbsoluteRoundedCornerShape(
+                topLeft = topLeft,
+                topRight = topRight,
+                bottomRight = bottomRight,
+                bottomLeft = bottomLeft,
+            )
+        }
+    }
+}
+
+/**
+ * Nova Player's Bottom Navigation Bar with 3 live-selectable engines:
+ * 1. `YTXTUBE_LIQUID_GLASS` — Copy-pasted from YTXTube (`GlassNavBar.kt`) and lifted higher above the footer (`footerLiftDp`)
+ * 2. `GLASMIO_IOS27_MORPH` — Copy-pasted from Glasmio (`GlassBottomBar.kt`) iOS 27 Liquid Glass platter
+ * 3. `MX_PRO_CLASSIC` — Sleek MX Player Pro bottom bar
+ */
 @Composable
 fun NextNavigationBar(
     state: TopLevelNavState,
@@ -288,19 +406,13 @@ fun NextNavigationBar(
     contentFocusRequester: FocusRequester,
     fabFocusRequester: FocusRequester,
     showFabOnly: Boolean = false,
-    isCompact: Boolean = false,
-    onExpandCompact: () -> Unit = {},
-    backdrop: Backdrop = rememberLayerBackdrop(),
+    backdrop: Backdrop? = LocalYtxGlassBackdrop.current,
+    footerLiftDp: Int = 22,
 ) {
-    val context = LocalContext.current
-    androidx.compose.runtime.LaunchedEffect(context) {
-        dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences.init(context)
-    }
-    val isTv = context.isTelevision
-    val bgColor = MaterialTheme.colorScheme.background
-    val primaryColor = dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences.activeAccentColor
-    val onPrimaryColor = if (primaryColor.luminance() > 0.55f) Color.Black else Color.White
-    val bottomLiftDp = dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences.navBarBottomOffsetDp.dp
+    val isTv = LocalContext.current.isTelevision
+    val navBarStyle = LocalNovaNavBarStyle.current
+    val accentColor = LocalNovaAccentColor.current
+    val liftDp = footerLiftDp.coerceIn(8, 48).dp
 
     Box(
         modifier = Modifier
@@ -308,66 +420,94 @@ fun NextNavigationBar(
             .thenIf(condition = !showFabOnly) {
                 background(
                     brush = Brush.verticalGradient(
-                        0.00f to Color.Transparent,
-                        0.28f to bgColor.copy(alpha = 0.38f),
-                        0.60f to bgColor.copy(alpha = 0.78f),
-                        1.00f to bgColor,
+                        colors = listOf(
+                            Color.Transparent,
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.82f),
+                        ),
                     ),
                 )
             }
             .navigationBarsPadding()
             .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-            .padding(top = 24.dp, bottom = bottomLiftDp)
+            .padding(bottom = liftDp)
             .padding(horizontal = 16.dp)
             .thenIf(condition = !showFabOnly) { pointerInput(key1 = Unit) {} },
         contentAlignment = Alignment.BottomCenter,
     ) {
         Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .widthIn(max = 460.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             if (!showFabOnly) {
-                val destinations = state.destinations
-                val tabItems = destinations.map { destination ->
-                    NavTabItemData(
-                        label = stringResource(destination.labelRes),
-                        icon = destination.icon,
-                        selectedIcon = destination.selectedIcon,
-                        selected = destination.route == state.topLevelRoute,
-                        onClick = { state.switchTo(destination.route) },
-                    )
+                Box(modifier = Modifier.weight(1f)) {
+                    when (navBarStyle) {
+                        NovaNavBarStyle.YTXTUBE_LIQUID_GLASS -> {
+                            LiquidBottomBar(
+                                selectedTabIndex = { state.selectedIndex },
+                                onTabSelected = { index ->
+                                    state.destinations.getOrNull(index)?.let { dest ->
+                                        state.switchTo(dest.route)
+                                    }
+                                },
+                                backdrop = backdrop,
+                                tabsCount = state.destinations.size,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                state.destinations.forEachIndexed { index, dest ->
+                                    LiquidNavTabItem(
+                                        label = dest.shortLabel,
+                                        icon = dest.icon,
+                                        selected = state.selectedIndex == index,
+                                        onClick = { state.switchTo(dest.route) },
+                                    )
+                                }
+                            }
+                        }
+
+                        NovaNavBarStyle.GLASMIO_IOS27_MORPH -> {
+                            LiquidBottomBar(
+                                selectedTabIndex = { state.selectedIndex },
+                                onTabSelected = { index ->
+                                    state.destinations.getOrNull(index)?.let { dest ->
+                                        state.switchTo(dest.route)
+                                    }
+                                },
+                                backdrop = backdrop,
+                                tabsCount = state.destinations.size,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                state.destinations.forEachIndexed { index, dest ->
+                                    LiquidNavTabItem(
+                                        label = dest.shortLabel,
+                                        icon = dest.icon,
+                                        selected = state.selectedIndex == index,
+                                        onClick = { state.switchTo(dest.route) },
+                                    )
+                                }
+                            }
+                        }
+
+                        NovaNavBarStyle.MX_PRO_CLASSIC -> {
+                            NavigationView(
+                                destinations = state.destinations,
+                                isSelected = { it.route == state.topLevelRoute },
+                                onDestinationClick = { state.switchTo(it.route) },
+                            )
+                        }
+                    }
                 }
-                NovaMultiStyleBottomBar(
-                    tabs = tabItems,
-                    selectedTabIndex = { state.selectedIndex },
-                    onTabSelected = { index ->
-                        destinations.getOrNull(index)?.let { state.switchTo(it.route) }
-                    },
-                    backdrop = backdrop,
-                    modifier = Modifier
-                        .weight(1f)
-                        .shadow(
-                            elevation = 20.dp,
-                            shape = RoundedCornerShape(999.dp),
-                            ambientColor = Color.Black,
-                            spotColor = Color.Black,
-                        ),
-                )
             } else {
                 Spacer(Modifier.weight(weight = 1f))
             }
 
             fabState?.let { fab ->
-                Box(
+                FloatingActionButton(
+                    onClick = fab.onClick,
                     modifier = Modifier
-                        .size(58.dp)
-                        .shadow(
-                            elevation = 14.dp,
-                            shape = CircleShape,
-                            ambientColor = primaryColor.copy(alpha = 0.55f),
-                            spotColor = primaryColor.copy(alpha = 0.65f),
-                        )
+                        .size(56.dp)
                         .testTag(tag = "top_level_fab")
                         .focusRequester(focusRequester = fabFocusRequester)
                         .tvFocusRing(shape = CircleShape)
@@ -377,57 +517,119 @@ fun NextNavigationBar(
                                     fab.upFocusRequester.takeUnless { it == FocusRequester.Default }
                                         ?: contentFocusRequester
                             }
-                        }
-                        .clip(CircleShape)
-                        .background(primaryColor)
-                        .border(
-                            width = 1.dp,
-                            color = Color.White.copy(alpha = 0.28f),
-                            shape = CircleShape,
-                        )
-                        .clickable(onClick = fab.onClick),
-                    contentAlignment = Alignment.Center,
+                        },
+                    shape = CircleShape,
+                    containerColor = accentColor,
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp),
                 ) {
                     AnimatedContent(
                         targetState = fab,
                         transitionSpec = {
                             fadeIn(
                                 animationSpec = tween(
-                                    durationMillis = 220,
+                                    durationMillis = 250,
                                     easing = FastOutSlowInEasing,
                                 ),
                             ) +
                                 scaleIn(
                                     animationSpec = tween(
-                                        durationMillis = 220,
+                                        durationMillis = 250,
                                         easing = FastOutSlowInEasing,
                                     ),
                                     initialScale = 0.25f,
                                 ) togetherWith
                                 fadeOut(
                                     animationSpec = tween(
-                                        durationMillis = 220,
+                                        durationMillis = 250,
                                         easing = FastOutSlowInEasing,
                                     ),
                                 ) +
                                 scaleOut(
                                     animationSpec = tween(
-                                        durationMillis = 220,
+                                        durationMillis = 250,
                                         easing = FastOutSlowInEasing,
                                     ),
                                     targetScale = 0.25f,
                                 )
                         },
                         label = "fab_icon_swap",
-                    ) { fabItem ->
+                    ) { currentFab ->
                         Icon(
-                            imageVector = fabItem.icon,
+                            imageVector = currentFab.icon,
                             contentDescription = null,
-                            tint = onPrimaryColor,
-                            modifier = Modifier.size(26.dp),
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * MX Player Pro Classic Navigation Bar option (with high-contrast non-truncated labels).
+ */
+@Composable
+fun NavigationView(
+    modifier: Modifier = Modifier,
+    destinations: List<TopLevelDestination>,
+    isSelected: (TopLevelDestination) -> Boolean,
+    onDestinationClick: (TopLevelDestination) -> Unit,
+) {
+    val accentColor = LocalNovaAccentColor.current
+    val view = LocalView.current
+    val hapticsEnabled = LocalNovaHapticsEnabled.current
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(62.dp)
+            .clip(shape = CircleShape)
+            .background(Color(0xFF161922).copy(alpha = 0.94f))
+            .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape)
+            .padding(horizontal = 6.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceEvenly,
+    ) {
+        destinations.forEach { destination ->
+            val selected = isSelected(destination)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .tvFocusRing(shape = RoundedCornerShape(99.dp))
+                    .clip(shape = CircleShape)
+                    .background(
+                        if (selected) accentColor.copy(alpha = 0.20f) else Color.Transparent,
+                    )
+                    .selectable(
+                        selected = selected,
+                        onClick = {
+                            view.novaHaptic(12L, 125, hapticsEnabled)
+                            onDestinationClick(destination)
+                        },
+                        role = Role.Tab,
+                        indication = null,
+                        interactionSource = null,
+                    )
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    imageVector = destination.icon,
+                    contentDescription = destination.shortLabel,
+                    tint = if (selected) accentColor else Color(0xFFD5DAE5),
+                    modifier = Modifier.size(21.dp),
+                )
+                Text(
+                    text = destination.shortLabel,
+                    fontSize = 11.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (selected) Color.White else Color(0xFFD5DAE5),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -477,8 +679,8 @@ fun NextNavigationRail(state: TopLevelNavState, modifier: Modifier = Modifier) {
                         },
                     ) {
                         Icon(
-                            imageVector = if (selected) dest.selectedIcon else dest.icon,
-                            contentDescription = null,
+                            imageVector = dest.icon,
+                            contentDescription = dest.shortLabel,
                             modifier = Modifier.size(24.dp),
                         )
                     }

@@ -292,3 +292,109 @@ suspend fun PointerInputScope.detectCustomVerticalDragGestures(
         }
     }
 }
+
+
+/**
+ * Unified Smart Axis-Locked Drag Detector for Nova Player.
+ * Prevents horizontal seek/skip gestures from ever accidentally triggering vertical Volume or Brightness:
+ * - Evaluates the initial gesture vector (dx, dy) as soon as finger movement passes touchSlop * 0.78f.
+ * - If |dx| >= |dy| * 1.05f (or if a double-tap skip session is active), locks 100% to HORIZONTAL SEEK.
+ * - Only locks to VERTICAL VOLUME / BRIGHTNESS when |dy| > |dx| * 1.65f AND no double-tap skip is active
+ *   AND the touch started in the left 32% (Brightness) or right 32% (Volume) edge zones.
+ */
+suspend fun PointerInputScope.detectSmartPlayerDragGestures(
+    shouldStartGesture: (Offset) -> Boolean = { true },
+    isSkipActive: () -> Boolean = { false },
+    onHorizontalDragStart: (Offset) -> Unit = {},
+    onHorizontalDrag: (change: PointerInputChange, dragAmount: Float) -> Unit = { _, _ -> },
+    onHorizontalDragEnd: () -> Unit = {},
+    onHorizontalDragCancel: () -> Unit = {},
+    onVerticalDragStart: (Offset) -> Unit = {},
+    onVerticalDrag: (change: PointerInputChange, dragAmount: Float) -> Unit = { _, _ -> },
+    onVerticalDragEnd: () -> Unit = {},
+    onVerticalDragCancel: () -> Unit = {},
+) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false)
+        if (!shouldStartGesture(down.position)) return@awaitEachGesture
+
+        val slop = viewConfiguration.touchSlop * 0.78f
+        var lockedAxis = 0 // 0 = undecided, 1 = horizontal seek, 2 = vertical volume/brightness
+        var firstDragChange: PointerInputChange? = null
+        var initialOverSlop = 0f
+
+        while (lockedAxis == 0) {
+            val event = awaitPointerEvent()
+            if (event.changes.count { it.pressed } > 1) return@awaitEachGesture
+            val change = event.changes.firstOrNull { it.id == down.id } ?: return@awaitEachGesture
+            if (!change.pressed || change.isConsumed) return@awaitEachGesture
+
+            val dx = change.position.x - down.position.x
+            val dy = change.position.y - down.position.y
+            val absDx = abs(dx)
+            val absDy = abs(dy)
+
+            if (absDx > slop || absDy > slop) {
+                val width = size.width.toFloat().coerceAtLeast(1f)
+                val inEdgeZone = down.position.x <= width * 0.34f || down.position.x >= width * 0.66f
+                if (absDx >= absDy * 1.05f || isSkipActive()) {
+                    lockedAxis = 1
+                    initialOverSlop = dx
+                    firstDragChange = change
+                    change.consume()
+                } else if (absDy > absDx * 1.65f && inEdgeZone && !isSkipActive()) {
+                    lockedAxis = 2
+                    initialOverSlop = dy
+                    firstDragChange = change
+                    change.consume()
+                } else if (absDx > slop * 1.4f) {
+                    lockedAxis = 1
+                    initialOverSlop = dx
+                    firstDragChange = change
+                    change.consume()
+                } else {
+                    return@awaitEachGesture
+                }
+            }
+        }
+
+        val startChange = firstDragChange ?: return@awaitEachGesture
+        if (lockedAxis == 1) {
+            onHorizontalDragStart(down.position)
+            try {
+                onHorizontalDrag(startChange, initialOverSlop)
+                if (
+                    horizontalDrag(down.id) {
+                        onHorizontalDrag(it, it.positionChange().x)
+                        it.consume()
+                    }
+                ) {
+                    onHorizontalDragEnd()
+                } else {
+                    onHorizontalDragCancel()
+                }
+            } catch (e: CancellationException) {
+                onHorizontalDragCancel()
+                throw e
+            }
+        } else if (lockedAxis == 2) {
+            onVerticalDragStart(down.position)
+            try {
+                onVerticalDrag(startChange, initialOverSlop)
+                if (
+                    verticalDrag(down.id) {
+                        onVerticalDrag(it, it.positionChange().y)
+                        it.consume()
+                    }
+                ) {
+                    onVerticalDragEnd()
+                } else {
+                    onVerticalDragCancel()
+                }
+            } catch (e: CancellationException) {
+                onVerticalDragCancel()
+                throw e
+            }
+        }
+    }
+}

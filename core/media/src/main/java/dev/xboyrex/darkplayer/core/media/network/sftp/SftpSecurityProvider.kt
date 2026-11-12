@@ -6,7 +6,7 @@ import net.schmizz.sshj.common.SecurityUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 internal object SftpSecurityProvider {
-    const val NAME = "DarkPlayerBC"
+    const val NAME = "NextPlayerBC"
 
     @Synchronized
     fun install() {
@@ -35,5 +35,5 @@ internal object SftpSecurityProvider {
     }
 
     private const val VERSION = 1.0
-    private const val DESCRIPTION = "Dark Player bundled Bouncy Castle provider"
+    private const val DESCRIPTION = "Next Player bundled Bouncy Castle provider"
 }

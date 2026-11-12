@@ -1,5 +1,7 @@
 package dev.xboyrex.darkplayer.settings.screens.general
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,14 +13,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import dev.xboyrex.darkplayer.core.ui.glass.popupBackgroundBlur
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -29,10 +34,14 @@ import dev.xboyrex.darkplayer.core.ui.components.ClickablePreferenceItem
 import dev.xboyrex.darkplayer.core.ui.components.ListSectionTitle
 import dev.xboyrex.darkplayer.core.ui.components.NextDialog
 import dev.xboyrex.darkplayer.core.ui.components.NextTopAppBar
+import dev.xboyrex.darkplayer.core.ui.components.PreferenceSwitch
 import dev.xboyrex.darkplayer.core.ui.components.rememberTvListFocusRequester
 import dev.xboyrex.darkplayer.core.ui.components.tvFocusDown
 import dev.xboyrex.darkplayer.core.ui.components.tvListFocus
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun GeneralPreferencesScreen(viewModel: GeneralPreferencesViewModel) {
@@ -53,9 +62,25 @@ private fun GeneralPreferencesScreenContent(
     state: GeneralPreferencesUiState,
     onAction: (GeneralPreferencesUiEvent) -> Unit,
 ) {
+    var includeNetworkConnections by rememberSaveable { mutableStateOf(false) }
+    val exportDocument = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        uri?.let {
+            onAction(
+                GeneralPreferencesUiEvent.ExportSettings(
+                    it,
+                    includeNetworkConnections,
+                ),
+            )
+        }
+    }
+    val importDocument =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            uri?.let { onAction(GeneralPreferencesUiEvent.PrepareImport(it)) }
+        }
     val listFocusRequester = rememberTvListFocusRequester()
     Scaffold(
-        modifier = Modifier.popupBackgroundBlur(),
         topBar = {
             NextTopAppBar(
                 title = stringResource(id = R.string.general_name),
@@ -79,19 +104,75 @@ private fun GeneralPreferencesScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues = innerPadding)
                 .verticalScroll(state = rememberScrollState())
                 .tvListFocus(focusRequester = listFocusRequester)
-                .padding(horizontal = 16.dp),
+                .padding(paddingValues = innerPadding)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
         ) {
+            if (state.isBusy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+
+            ListSectionTitle(text = "Nova Player General")
+            Column(
+                verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+            ) {
+                PreferenceSwitch(
+                    title = "Edit Access",
+                    description = "Allow renaming, editing and deleting media files",
+                    icon = NextIcons.Edit,
+                    isChecked = state.preferences.allowEditing,
+                    onClick = { onAction(GeneralPreferencesUiEvent.ToggleAllowEditing) },
+                    isFirstItem = true,
+                )
+                PreferenceSwitch(
+                    title = "Clear History on Exit",
+                    description = "Automatically clear recent playback positions when closing app",
+                    icon = NextIcons.History,
+                    isChecked = state.preferences.clearPlaybackHistoryOnExit,
+                    onClick = { onAction(GeneralPreferencesUiEvent.ToggleClearHistoryOnExit) },
+                    isLastItem = true,
+                )
+            }
+
             ListSectionTitle(text = stringResource(id = R.string.user_data))
             Column(
                 verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
             ) {
                 ClickablePreferenceItem(
+                    title = stringResource(R.string.settings_export),
+                    description = stringResource(R.string.settings_export_description),
+                    icon = NextIcons.ArrowUpward,
+                    enabled = !state.isBusy,
+                    onClick = {
+                        includeNetworkConnections = false
+                        onAction(
+                            GeneralPreferencesUiEvent.ShowDialog(
+                                GeneralPreferencesDialog.ExportSettingsDialog,
+                            ),
+                        )
+                    },
+                    isFirstItem = true,
+                )
+                ClickablePreferenceItem(
+                    title = stringResource(R.string.settings_import),
+                    description = stringResource(R.string.settings_import_description),
+                    icon = NextIcons.ArrowDownward,
+                    enabled = !state.isBusy,
+                    onClick = {
+                        importDocument.launch(
+                            arrayOf(
+                                "application/json",
+                                "text/plain",
+                                "application/octet-stream",
+                            ),
+                        )
+                    },
+                )
+                ClickablePreferenceItem(
                     title = stringResource(R.string.delete_thumbnail_cache),
                     description = stringResource(R.string.delete_thumbnail_cache_description),
                     icon = NextIcons.DeleteSweep,
+                    enabled = !state.isBusy,
                     onClick = {
                         onAction(
                             GeneralPreferencesUiEvent.ShowDialog(
@@ -99,12 +180,12 @@ private fun GeneralPreferencesScreenContent(
                             ),
                         )
                     },
-                    isFirstItem = true,
                 )
                 ClickablePreferenceItem(
                     title = stringResource(R.string.reset_settings),
                     description = stringResource(R.string.reset_settings_description),
                     icon = NextIcons.History,
+                    enabled = !state.isBusy,
                     onClick = {
                         onAction(
                             GeneralPreferencesUiEvent.ShowDialog(
@@ -119,6 +200,25 @@ private fun GeneralPreferencesScreenContent(
 
         state.showDialog?.let { dialog ->
             when (dialog) {
+                GeneralPreferencesDialog.ExportSettingsDialog -> ExportSettingsDialog(
+                    includeNetworkConnections = includeNetworkConnections,
+                    onIncludeNetworkConnectionsChanged = { includeNetworkConnections = it },
+                    onDismiss = { onAction(GeneralPreferencesUiEvent.ShowDialog(null)) },
+                    onConfirm = {
+                        onAction(GeneralPreferencesUiEvent.ShowDialog(null))
+                        val timestamp = SimpleDateFormat(
+                            "yyyyMMdd-HHmmss-SSS",
+                            Locale.ROOT,
+                        ).format(Date())
+                        exportDocument.launch("novaplayer-settings-$timestamp.json")
+                    },
+                )
+
+                GeneralPreferencesDialog.ImportSettingsDialog -> ImportSettingsDialog(
+                    onConfirm = { onAction(GeneralPreferencesUiEvent.ImportSettings) },
+                    onDismiss = { onAction(GeneralPreferencesUiEvent.ShowDialog(null)) },
+                )
+
                 GeneralPreferencesDialog.ClearThumbnailCacheDialog -> {
                     NextDialog(
                         onDismissRequest = {

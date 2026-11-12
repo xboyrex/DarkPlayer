@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dev.xboyrex.darkplayer.core.data.repository.PreferencesRepository
 import dev.xboyrex.darkplayer.core.model.Font
 import dev.xboyrex.darkplayer.core.model.PlayerPreferences
+import dev.xboyrex.darkplayer.core.model.SubtitleAlignment
 import dev.xboyrex.darkplayer.core.ui.base.MviViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -67,6 +68,48 @@ class SubtitlePreferencesViewModel(
 
             is SubtitlePreferencesUiEvent.ToggleUseSystemCaptionStyle ->
                 toggleUseSystemCaptionStyle()
+
+            is SubtitlePreferencesUiEvent.ResetSubtitlePosition -> resetSubtitlePosition()
+
+            is SubtitlePreferencesUiEvent.UpdateSubtitleAlignment -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences {
+                        it.copy(subtitleAlignment = action.alignment)
+                    }
+                }
+            }
+
+            is SubtitlePreferencesUiEvent.UpdateSubtitleScale -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences {
+                        it.copy(subtitleScale = action.scale.coerceIn(0.5f, 2.0f))
+                    }
+                }
+            }
+
+            is SubtitlePreferencesUiEvent.ToggleSubtitleBorder -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences {
+                        it.copy(subtitleBorderEnabled = !it.subtitleBorderEnabled)
+                    }
+                }
+            }
+
+            is SubtitlePreferencesUiEvent.ToggleSubtitleShadow -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences {
+                        it.copy(subtitleShadowEnabled = !it.subtitleShadowEnabled)
+                    }
+                }
+            }
+
+            is SubtitlePreferencesUiEvent.ToggleSubtitleFadeOut -> {
+                viewModelScope.launch {
+                    preferencesRepository.updatePlayerPreferences {
+                        it.copy(subtitleFadeOut = !it.subtitleFadeOut)
+                    }
+                }
+            }
         }
     }
 
@@ -124,6 +167,12 @@ class SubtitlePreferencesViewModel(
         }
     }
 
+    private fun resetSubtitlePosition() {
+        viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences { it.copy(subtitleOffsetY = 0f) }
+        }
+    }
+
     private fun toggleUseSystemCaptionStyle() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
@@ -143,6 +192,7 @@ sealed interface SubtitlePreferenceDialog {
     data object SubtitleLanguageDialog : SubtitlePreferenceDialog
     data object SubtitleFontDialog : SubtitlePreferenceDialog
     data object SubtitleEncodingDialog : SubtitlePreferenceDialog
+    data object SubtitleAlignmentDialog : SubtitlePreferenceDialog
 }
 
 sealed interface SubtitlePreferencesUiEvent {
@@ -157,4 +207,10 @@ sealed interface SubtitlePreferencesUiEvent {
     data object ToggleApplyEmbeddedStyles : SubtitlePreferencesUiEvent
     data class UpdateSubtitleEncoding(val value: String) : SubtitlePreferencesUiEvent
     data object ToggleUseSystemCaptionStyle : SubtitlePreferencesUiEvent
+    data object ResetSubtitlePosition : SubtitlePreferencesUiEvent
+    data class UpdateSubtitleAlignment(val alignment: SubtitleAlignment) : SubtitlePreferencesUiEvent
+    data class UpdateSubtitleScale(val scale: Float) : SubtitlePreferencesUiEvent
+    data object ToggleSubtitleBorder : SubtitlePreferencesUiEvent
+    data object ToggleSubtitleShadow : SubtitlePreferencesUiEvent
+    data object ToggleSubtitleFadeOut : SubtitlePreferencesUiEvent
 }

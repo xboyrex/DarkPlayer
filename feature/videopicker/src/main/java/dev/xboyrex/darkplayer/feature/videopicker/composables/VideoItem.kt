@@ -1,6 +1,5 @@
 package dev.xboyrex.darkplayer.feature.videopicker.composables
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -10,22 +9,22 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -50,24 +50,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
-import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import dev.xboyrex.darkplayer.core.model.ApplicationPreferences
 import dev.xboyrex.darkplayer.core.model.MediaLayoutMode
+import dev.xboyrex.darkplayer.core.model.MediaListCardStyle
 import dev.xboyrex.darkplayer.core.model.Video
 import dev.xboyrex.darkplayer.core.model.isNew
 import dev.xboyrex.darkplayer.core.ui.R
+import dev.xboyrex.darkplayer.core.ui.components.NextSegmentedListItem
 import dev.xboyrex.darkplayer.core.ui.designsystem.NextIcons
-import dev.xboyrex.darkplayer.core.ui.glass.UiStylePreferences
+import dev.xboyrex.darkplayer.core.ui.glass.LocalNovaAccentColor
+import dev.xboyrex.darkplayer.core.ui.glass.LocalNovaHapticsEnabled
+import dev.xboyrex.darkplayer.core.ui.glass.novaHaptic
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
-
-private val NewBadgeYellow = Color(0xFF38BDF8)
-private val NewBadgeDarkText = Color(0xFF06090F)
 
 @Composable
 fun VideoItem(
@@ -82,17 +82,32 @@ fun VideoItem(
     onLongClick: (() -> Unit)? = null,
 ) {
     when (preferences.mediaLayoutMode) {
-        MediaLayoutMode.LIST -> VideoListItem(
-            video = video,
-            isRecentlyPlayedVideo = isRecentlyPlayedVideo,
-            preferences = preferences,
-            modifier = modifier,
-            isFirstItem = isFirstItem,
-            isLastItem = isLastItem,
-            selected = selected,
-            onClick = onClick,
-            onLongClick = onLongClick,
-        )
+        MediaLayoutMode.LIST -> when (preferences.mediaListCardStyle) {
+            MediaListCardStyle.MX_PRO_CLEAN -> MxVideoListItem(
+                video = video,
+                isRecentlyPlayedVideo = isRecentlyPlayedVideo,
+                preferences = preferences,
+                modifier = modifier,
+                isLastItem = isLastItem,
+                selected = selected,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
+
+            MediaListCardStyle.LIQUID_GLASS_CARD,
+            MediaListCardStyle.SEGMENTED_CARD,
+            -> VideoListItem(
+                video = video,
+                isRecentlyPlayedVideo = isRecentlyPlayedVideo,
+                preferences = preferences,
+                modifier = modifier,
+                isFirstItem = isFirstItem,
+                isLastItem = isLastItem,
+                selected = selected,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
+        }
 
         MediaLayoutMode.GRID -> VideoGridItem(
             video = video,
@@ -108,7 +123,136 @@ fun VideoItem(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+/**
+ * MX Player Pro Clean Video Row (Fixes Bug #11 `153809_Nova Player.png`):
+ * Clean unboxed row with crisp 16:9 thumbnail, duration badge, smooth progress indicator,
+ * full-legibility title, and clean metadata subtitle without cluttered box borders.
+ */
+@Composable
+fun MxVideoListItem(
+    video: Video,
+    isRecentlyPlayedVideo: Boolean,
+    preferences: ApplicationPreferences,
+    modifier: Modifier = Modifier,
+    isLastItem: Boolean = false,
+    selected: Boolean = false,
+    onClick: () -> Unit = {},
+    onLongClick: (() -> Unit)? = null,
+) {
+    val accent = LocalNovaAccentColor.current
+    val view = LocalView.current
+    val hapticsEnabled = LocalNovaHapticsEnabled.current
+    val shape = RoundedCornerShape(14.dp)
+    val isHighlighted = isRecentlyPlayedVideo && preferences.markLastPlayedMedia
+    val path = video.path.substringBeforeLast(delimiter = "/")
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(if (selected) accent.copy(alpha = 0.20f) else Color.Transparent)
+                .then(
+                    if (selected) {
+                        Modifier.border(1.5.dp, accent.copy(alpha = 0.65f), shape)
+                    } else {
+                        Modifier
+                    },
+                )
+                .combinedClickable(
+                    onClick = {
+                        view.novaHaptic(10L, 90, hapticsEnabled)
+                        onClick()
+                    },
+                    onLongClick = onLongClick?.let { long ->
+                        {
+                            view.novaHaptic(22L, 180, hapticsEnabled)
+                            long()
+                        }
+                    },
+                )
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ThumbnailView(
+                video = video,
+                preferences = preferences,
+                modifier = Modifier.width(
+                    min(132.dp, LocalConfiguration.current.screenWidthDp.dp * 0.34f),
+                ),
+            )
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = if (preferences.showExtensionField) {
+                        video.nameWithExtension
+                    } else {
+                        video.displayName
+                    },
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        lineBreak = LineBreak.Heading,
+                        color = when {
+                            selected || isHighlighted -> accent
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                    ),
+                )
+
+                val metaParts = buildList {
+                    if (preferences.showSizeField && video.size > 0 && video.formattedFileSize.isNotBlank()) {
+                        add(video.formattedFileSize)
+                    }
+                    if (preferences.showResolutionField && video.height > 0) {
+                        add("${video.height}p")
+                    }
+                    if (isHighlighted || (video.playedPercentage != null && video.playedPercentage!! > 0.02f)) {
+                        add("RESUME")
+                    }
+                }
+                if (metaParts.isNotEmpty()) {
+                    Text(
+                        text = metaParts.joinToString("  •  "),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isHighlighted) accent.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                if (preferences.showPathField && path.isNotBlank()) {
+                    Text(
+                        text = path,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    )
+                }
+            }
+        }
+
+        if (!isLastItem && !selected) {
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 158.dp, end = 12.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+            )
+        }
+    }
+}
+
+@OptIn(
+    ExperimentalLayoutApi::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+)
 @Composable
 fun VideoListItem(
     video: Video,
@@ -121,62 +265,48 @@ fun VideoListItem(
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
-    val accent = UiStylePreferences.activeAccentColor
     val path = video.path.substringBeforeLast(delimiter = "/")
     val showPath = preferences.showPathField && path.isNotBlank()
-    val showSize = preferences.showSizeField && video.size > 0 && video.formattedFileSize.isNotBlank()
+    val showSize =
+        preferences.showSizeField && video.size > 0 && video.formattedFileSize.isNotBlank()
     val showResolution = preferences.showResolutionField && video.height > 0
-    val cardShape = RoundedCornerShape(16.dp)
-    val bgColor = if (selected) accent.copy(alpha = 0.16f) else Color(0xFF12151C)
-    val borderColor = if (selected) accent.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.06f)
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 3.dp)
-            .clip(cardShape)
-            .background(bgColor)
-            .border(0.8.dp, borderColor, cardShape)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-            )
-            .padding(horizontal = 10.dp, vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box {
+    NextSegmentedListItem(
+        modifier = modifier,
+        selected = selected,
+        contentPadding = PaddingValues(8.dp),
+        colors = ListItemDefaults.segmentedColors(
+            contentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                ListItemDefaults.segmentedColors().contentColor
+            },
+            supportingContentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                ListItemDefaults.colors().supportingContentColor
+            },
+            selectedContainerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f),
+        ),
+        isFirstItem = isFirstItem,
+        isLastItem = isLastItem,
+        onClick = onClick,
+        onLongClick = onLongClick,
+        leadingContent = {
             ThumbnailView(
                 video = video,
                 preferences = preferences,
-                modifier = Modifier.width(
-                    min(126.dp, LocalConfiguration.current.screenWidthDp.dp * 0.32f),
-                ),
+                modifier = Modifier
+                    .width(
+                        width = min(
+                            150.dp,
+                            b =
+                                LocalConfiguration.current.screenWidthDp.dp * 0.35f,
+                        ),
+                    ),
             )
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.CheckCircle,
-                        contentDescription = null,
-                        tint = accent,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-        }
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+        },
+        content = {
             Text(
                 text = if (preferences.showExtensionField) {
                     video.nameWithExtension
@@ -184,70 +314,46 @@ fun VideoListItem(
                     video.displayName
                 },
                 maxLines = 2,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    lineBreak = LineBreak.Heading,
-                    fontSize = 14.5.sp,
-                    lineHeight = 19.sp,
-                ),
-                fontWeight = FontWeight.SemiBold,
-                color = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
-                    accent
-                } else {
-                    Color.White
-                },
+                style = MaterialTheme.typography.titleMedium.copy(lineBreak = LineBreak.Heading),
                 overflow = TextOverflow.Ellipsis,
             )
-
-            if (showPath) {
-                Text(
-                    text = path,
-                    maxLines = 1,
-                    fontSize = 11.sp,
-                    color = Color.White.copy(alpha = 0.45f),
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-
-            if (showSize || showResolution || (isRecentlyPlayedVideo && preferences.markLastPlayedMedia)) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+        },
+        supportingContent = if (showPath || showSize || showResolution) {
+            {
+                Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    if (showSize) {
-                        InfoChip(text = video.formattedFileSize)
-                    }
-                    if (showResolution) {
-                        InfoChip(text = "${video.height}p")
-                    }
-                    if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
-                        InfoChip(
-                            text = "RESUME",
-                            backgroundColor = accent.copy(alpha = 0.22f),
-                            contentColor = accent,
+                    if (showPath) {
+                        Text(
+                            text = path,
+                            maxLines = 1,
+                            style = MaterialTheme.typography.bodySmall,
+                            overflow = TextOverflow.Ellipsis,
                         )
+                    }
+                    if (showSize || showResolution) {
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            if (showSize) {
+                                InfoChip(text = video.formattedFileSize)
+                            }
+                            if (showResolution) {
+                                InfoChip(text = "${video.height}p")
+                            }
+                        }
                     }
                 }
             }
-        }
-
-        if (onLongClick != null) {
-            IconButton(
-                onClick = onLongClick,
-                modifier = Modifier.size(32.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.MoreVert,
-                    contentDescription = "Video options",
-                    tint = Color.White.copy(alpha = 0.55f),
-                    modifier = Modifier.size(19.dp),
-                )
-            }
-        }
-    }
+        } else {
+            null
+        },
+    )
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun VideoGridItem(
     modifier: Modifier = Modifier,
@@ -261,53 +367,67 @@ fun VideoGridItem(
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
-    val accent = UiStylePreferences.activeAccentColor
-    val cardShape = RoundedCornerShape(16.dp)
-    Column(
-        modifier = modifier
-            .width(IntrinsicSize.Min)
-            .clip(cardShape)
-            .background(if (selected) accent.copy(alpha = 0.16f) else Color(0xFF12151C))
-            .border(
-                width = 0.8.dp,
-                color = if (selected) accent.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.06f),
-                shape = cardShape,
-            )
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-            )
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        ThumbnailView(
-            video = video,
-            preferences = preferences,
-        )
-        Text(
-            text = if (preferences.showExtensionField) {
-                video.nameWithExtension
+    NextSegmentedListItem(
+        modifier = modifier.width(IntrinsicSize.Min),
+        selected = selected,
+        contentPadding = PaddingValues(8.dp),
+        colors = ListItemDefaults.segmentedColors(
+            contentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+                MaterialTheme.colorScheme.primary
             } else {
-                video.displayName
+                ListItemDefaults.segmentedColors().contentColor
             },
-            maxLines = 2,
-            style = textStyle.copy(lineBreak = LineBreak.Heading, fontSize = 13.5.sp),
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            color = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
-                accent
+            supportingContentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+                MaterialTheme.colorScheme.primary
             } else {
-                Color.White
+                ListItemDefaults.colors().supportingContentColor
             },
-        )
-    }
+            selectedContainerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f),
+        ),
+        isFirstItem = isFirstItem,
+        isLastItem = isLastItem,
+        onClick = onClick,
+        onLongClick = onLongClick,
+        content = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                ThumbnailView(
+                    video = video,
+                    preferences = preferences,
+                )
+                Text(
+                    text = if (preferences.showExtensionField) {
+                        video.nameWithExtension
+                    } else {
+                        video.displayName
+                    },
+                    maxLines = 2,
+                    style = textStyle.copy(lineBreak = LineBreak.Heading),
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    color = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        ListItemDefaults.colors().contentColor
+                    },
+                )
+            }
+        },
+    )
 }
 
 private fun Video.isLocalUri(): Boolean {
     val scheme = uriString.toUri().scheme
-    return scheme.equals("content", ignoreCase = true) ||
-        scheme.equals("file", ignoreCase = true)
+    return scheme.equals(
+        other = "content",
+        ignoreCase = true,
+    ) ||
+        scheme.equals(
+            other = "file",
+            ignoreCase = true,
+        )
 }
 
 @Composable
@@ -317,6 +437,7 @@ private fun ThumbnailView(
     preferences: ApplicationPreferences,
 ) {
     val context = LocalContext.current
+    val accent = LocalNovaAccentColor.current
     val isLocalVideo = remember(video.uriString) { video.isLocalUri() }
     val isNew by produceState(
         initialValue = video.isNew(thresholdDays = preferences.newVideoThresholdDays),
@@ -331,8 +452,8 @@ private fun ThumbnailView(
     }
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp))
             .aspectRatio(ratio = 16f / 10f),
     ) {
         Icon(
@@ -341,14 +462,13 @@ private fun ThumbnailView(
             tint = MaterialTheme.colorScheme.surfaceColorAtElevation(100.dp),
             modifier = Modifier
                 .align(Alignment.Center)
-                .fillMaxSize(fraction = 0.5f),
+                .fillMaxSize(fraction = 0.45f),
         )
         if (preferences.showThumbnailField && isLocalVideo) {
             AsyncImage(
                 model = ImageRequest.Builder(context = context)
                     .data(video.uriString)
-                    .size(480, 300)
-                    .crossfade(100)
+                    .crossfade(enable = true)
                     .build(),
                 contentDescription = null,
                 alignment = Alignment.Center,
@@ -364,9 +484,9 @@ private fun ThumbnailView(
                 modifier = Modifier
                     .padding(5.dp)
                     .align(Alignment.BottomEnd),
-                backgroundColor = Color.Black.copy(alpha = 0.78f),
+                backgroundColor = Color.Black.copy(alpha = 0.72f),
                 contentColor = Color.White,
-                shape = RoundedCornerShape(5.dp),
+                shape = RoundedCornerShape(4.dp),
             )
         }
 
@@ -376,9 +496,9 @@ private fun ThumbnailView(
                 modifier = Modifier
                     .padding(5.dp)
                     .align(Alignment.TopStart),
-                backgroundColor = NewBadgeYellow,
-                contentColor = NewBadgeDarkText,
-                shape = RoundedCornerShape(5.dp),
+                backgroundColor = accent,
+                contentColor = Color.White,
+                shape = RoundedCornerShape(4.dp),
             )
         }
 
@@ -392,14 +512,14 @@ private fun ThumbnailView(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White.copy(alpha = 0.2f)),
+                        .background(Color.Black.copy(alpha = 0.45f)),
                 )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(fraction = video.playedPercentage!!)
                         .fillMaxHeight()
                         .clip(shape = CircleShape)
-                        .background(Color(0xFF38BDF8)),
+                        .background(accent),
                 )
             }
         }

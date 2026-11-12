@@ -7,8 +7,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.media3.common.Player
 import androidx.media3.extractor.metadata.Chapter
+import dev.xboyrex.darkplayer.core.model.PlayerPreferences
 import dev.xboyrex.darkplayer.core.model.VideoContentScale
-import dev.xboyrex.darkplayer.core.ui.audio.EqualizerAndDolbyStudioContent
 import dev.xboyrex.darkplayer.feature.player.extensions.noRippleClickable
 import dev.xboyrex.darkplayer.feature.player.state.SubtitleOptionsEvent
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
@@ -20,10 +20,11 @@ fun BoxScope.OverlayShowView(
     videoDecoderMode: DecoderMode?,
     audioDecoderMode: DecoderMode?,
     videoContentScale: VideoContentScale,
+    playerPreferences: PlayerPreferences = PlayerPreferences(),
+    sleepTimerMinutes: Int = 0,
     chapters: List<Chapter>,
     currentChapterIndex: Int,
     onChapterSelected: (Chapter) -> Unit,
-    onShowOverlay: (OverlayView) -> Unit = {},
     onDismiss: () -> Unit = {},
     onVideoDecoderModeSelected: (DecoderMode) -> Unit = {},
     onAudioDecoderModeSelected: (DecoderMode) -> Unit = {},
@@ -31,6 +32,12 @@ fun BoxScope.OverlayShowView(
     onSelectAudioClick: () -> Unit = {},
     onSubtitleOptionEvent: (SubtitleOptionsEvent) -> Unit = {},
     onVideoContentScaleChanged: (VideoContentScale) -> Unit = {},
+    onUpdatePlayerPreferences: ((PlayerPreferences) -> PlayerPreferences) -> Unit = {},
+    onShowOverlay: (OverlayView) -> Unit = {},
+    onCutAbRepeatClick: () -> Unit = {},
+    onBookmarkClick: () -> Unit = {},
+    onSelectSleepTimerMinutes: (Int) -> Unit = {},
+    onShareVideo: () -> Unit = {},
 ) {
     Box(
         modifier = Modifier
@@ -94,29 +101,54 @@ fun BoxScope.OverlayShowView(
         onChapterSelected = onChapterSelected,
     )
 
-    SleepTimerSelectorView(
-        show = overlayView == OverlayView.SLEEP_TIMER,
-        player = player,
-        onDismiss = onDismiss,
-    )
-
-    MxMoreDrawerView(
-        show = overlayView == OverlayView.MX_MORE_DRAWER,
-        player = player,
+    MxPlayerMorePanel(
+        show = overlayView == OverlayView.MORE_MENU,
+        playerPreferences = playerPreferences,
+        onUpdatePreferences = onUpdatePlayerPreferences,
         onAspectRatioClick = { onShowOverlay(OverlayView.VIDEO_CONTENT_SCALE) },
-        onPlaybackSpeedClick = { onShowOverlay(OverlayView.PLAYBACK_SPEED) },
-        onPlaylistClick = { onShowOverlay(OverlayView.PLAYLIST) },
+        onLongPressSpeedClick = { onShowOverlay(OverlayView.PLAYBACK_SPEED) },
+        onDisplaySettingsClick = { onShowOverlay(OverlayView.DISPLAY_SETTINGS) },
+        onPlaylistsClick = { onShowOverlay(OverlayView.PLAYLIST) },
+        onInformationClick = { onShowOverlay(OverlayView.MEDIA_INFORMATION) },
+        onShareClick = {
+            onDismiss()
+            onShareVideo()
+        },
+        onCutAbRepeatClick = {
+            onDismiss()
+            onCutAbRepeatClick()
+        },
+        onBookmarkClick = {
+            onDismiss()
+            onBookmarkClick()
+        },
         onChaptersClick = { onShowOverlay(OverlayView.CHAPTERS) },
-        onEqualizerClick = { onShowOverlay(OverlayView.EQUALIZER_AND_DOLBY) },
+        onEqualizerClick = { onShowOverlay(OverlayView.EQUALIZER) },
+    )
+
+    MxEqualizerOverlayView(
+        show = overlayView == OverlayView.EQUALIZER,
+        playerPreferences = playerPreferences,
+        onUpdatePreferences = onUpdatePlayerPreferences,
+    )
+
+    MxDisplaySettingsOverlayView(
+        show = overlayView == OverlayView.DISPLAY_SETTINGS,
+        playerPreferences = playerPreferences,
+        onUpdatePreferences = onUpdatePlayerPreferences,
+    )
+
+    MxSleepTimerOverlayView(
+        show = overlayView == OverlayView.SLEEP_TIMER,
+        selectedMinutes = sleepTimerMinutes,
+        onSelectMinutes = onSelectSleepTimerMinutes,
         onDismiss = onDismiss,
     )
 
-    OverlayView(
-        show = overlayView == OverlayView.EQUALIZER_AND_DOLBY,
-        title = "Equalizer & Dolby Atmos",
-    ) {
-        EqualizerAndDolbyStudioContent()
-    }
+    MxMediaInformationOverlayView(
+        show = overlayView == OverlayView.MEDIA_INFORMATION,
+        player = player,
+    )
 }
 
 val Configuration.isPortrait: Boolean
@@ -130,7 +162,9 @@ enum class OverlayView {
     VIDEO_CONTENT_SCALE,
     PLAYLIST,
     CHAPTERS,
+    MORE_MENU,
+    EQUALIZER,
+    DISPLAY_SETTINGS,
     SLEEP_TIMER,
-    EQUALIZER_AND_DOLBY,
-    MX_MORE_DRAWER,
+    MEDIA_INFORMATION,
 }

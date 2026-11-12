@@ -211,9 +211,13 @@
     <string name="loop_mode">Режим повтору</string>
     <string name="libraries">Бібліотеки</string>
     <string name="error_opening_link">Не знайдено застосунку для оброблення цього посилання</string>
+    <string name="paypal">PayPal</string>
+    <string name="upi">UPI</string>
     <string name="by">від %1$s</string>
     <string name="donate">Задонатити</string>
     <string name="github">Github</string>
+    <string name="support_the_developer_on">Підтримати розробника на %1$s</string>
+    <string name="kofi">Ko-fi</string>
     <string name="media_layout">Розміщення медіафайлів</string>
     <string name="list">Список</string>
     <string name="grid">Сітка</string>
@@ -548,4 +552,7 @@
     <string name="watch_history_desc">Ведіть облік відео, які ви переглядаєте</string>
     <string name="network_watch_history">Історія переглядів у мережі</string>
     <string name="network_watch_history_desc">Додавати відео, відтворені через мережу, до історії переглядів.</string>
+    <string name="add_to_home_screen">Додати на головний екран</string>
+    <string name="playlist_shortcut_failed">Не вдалося додати ярлик добірки. Спробуйте ще раз.</string>
+    <string name="github_sponsors">Спонсори GitHub</string>
 </resources>

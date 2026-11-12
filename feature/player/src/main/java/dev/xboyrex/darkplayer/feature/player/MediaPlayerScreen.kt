@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -19,12 +20,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.graphics.toColorInt
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import dev.xboyrex.darkplayer.core.ui.R
+import dev.xboyrex.darkplayer.core.ui.glass.LocalNovaAccentColor
 import dev.xboyrex.darkplayer.core.ui.theme.NextPlayerTheme
 import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
 import dev.xboyrex.darkplayer.feature.player.state.PlayerOrientationEffect
@@ -46,6 +49,7 @@ import dev.xboyrex.darkplayer.feature.player.ui.SubtitleConfiguration
 import dev.xboyrex.darkplayer.feature.player.ui.preview.rememberPreviewPlayer
 import dev.xboyrex.darkplayer.feature.player.utils.PlayerApi
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
 
 val LocalControlsVisibilityState = compositionLocalOf<ControlsVisibilityState?> { null }
 val LocalUseMaterialYouControls = compositionLocalOf { false }
@@ -73,7 +77,6 @@ internal fun MediaPlayerContent(
 ) {
     val playerPreferences = state.playerPreferences
     val isPreview = LocalInspectionMode.current
-    // Layout previews have neither a PlayerActivity nor a live video/audio session.
     val volumeState = if (!isPreview) {
         rememberVolumeState(
             player = player,
@@ -146,6 +149,26 @@ internal fun MediaPlayerContent(
     )
     val hapticFeedback = LocalHapticFeedback.current
     var wasDraggingSubtitle by remember { mutableStateOf(false) }
+
+    // Smooth Play/Pause & Seek Audio Volume Fade (Fixes Bug #3, #9, #15 & MX #14 Fade on Start/Seek!)
+    LaunchedEffect(
+        state.playWhenReady,
+        playerPreferences.smoothPlayPauseAudioFade,
+        playerPreferences.fadeOnStart,
+    ) {
+        if ((playerPreferences.smoothPlayPauseAudioFade || playerPreferences.fadeOnStart) &&
+            state.playWhenReady && player.volume > 0f
+        ) {
+            val steps = 8
+            val stepDelay = (playerPreferences.audioFadeDurationMs / steps).coerceIn(15, 60).toLong()
+            for (i in 1..steps) {
+                player.volume = (i.toFloat() / steps.toFloat()).coerceIn(0.1f, 1f)
+                delay(stepDelay)
+            }
+            player.volume = 1f
+        }
+    }
+
     LaunchedEffect(subtitlePositionState.isDragging) {
         if (subtitlePositionState.isDragging) {
             wasDraggingSubtitle = true
@@ -178,80 +201,94 @@ internal fun MediaPlayerContent(
         }
     }
 
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
-        if (pictureInPictureState != null) {
-            PlayerContentFrame(
-                player = player,
-                pictureInPictureState = pictureInPictureState,
-                videoZoomAndContentScaleState = videoZoomAndContentScaleState,
-                videoVisible = api?.videoVisible ?: true,
-                displayAspectRatio = api?.displayAspectRatio,
-                cuesState = cuesState,
-                subtitlePositionState = subtitlePositionState,
-                subtitleConfiguration = SubtitleConfiguration(
-                    useSystemCaptionStyle = playerPreferences.useSystemCaptionStyle,
-                    showBackground = playerPreferences.subtitleBackground,
-                    font = playerPreferences.subtitleFont,
-                    textSize = playerPreferences.subtitleTextSize,
-                    textBold = playerPreferences.subtitleTextBold,
-                    applyEmbeddedStyles = playerPreferences.applyEmbeddedStyles,
-                    useMaterialYouControls = playerPreferences.useMaterialYouControls,
-                    controlsVisible = controlsVisibilityState.controlsVisible &&
-                        !controlsVisibilityState.controlsLocked,
-                ),
-            )
-            if (volumeAndBrightnessGestureState != null) {
-                PlayerGestures(
-                    controlsVisibilityState = controlsVisibilityState,
-                    tapGestureState = tapGestureState,
-                    pictureInPictureState = pictureInPictureState,
-                    seekGestureState = seekGestureState,
-                    videoZoomAndContentScaleState = videoZoomAndContentScaleState,
-                    volumeAndBrightnessGestureState = volumeAndBrightnessGestureState,
-                    subtitlePositionState = subtitlePositionState,
-                    hasSubtitles = cuesState.currentCues?.cues?.isNotEmpty() == true,
-                    canRepositionSubtitles = cuesState.canReposition,
-                )
-            }
-        }
-        MediaPlayerControls(
-            player = player,
-            state = state,
-            onAction = onAction,
-            controlsVisibilityState = controlsVisibilityState,
-            tapGestureState = tapGestureState,
-            seekGestureState = seekGestureState,
-            videoZoomAndContentScaleState = videoZoomAndContentScaleState,
-            dpadUpDown = api?.dpadUpDown,
-            isPipSupported = pictureInPictureState?.isPipSupported == true,
-            onPictureInPictureClick = {
-                pictureInPictureState?.let {
-                    if (!it.hasPipPermission) {
-                        Toast.makeText(
-                            context,
-                            R.string.enable_pip_from_settings,
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                        it.openPictureInPictureSettings()
-                    } else {
-                        it.enterPictureInPictureMode()
+    val playerAccentColor = remember(playerPreferences.playerAccentHex) {
+        runCatching {
+            Color(playerPreferences.playerAccentHex.toColorInt())
+        }.getOrDefault(Color(0xFF0091FF))
+    }
+
+    CompositionLocalProvider(
+        LocalNovaAccentColor provides playerAccentColor,
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxSize().background(Color.Black)) {
+                if (pictureInPictureState != null) {
+                    PlayerContentFrame(
+                        player = player,
+                        pictureInPictureState = pictureInPictureState,
+                        videoZoomAndContentScaleState = videoZoomAndContentScaleState,
+                        videoVisible = api?.videoVisible ?: true,
+                        displayAspectRatio = api?.displayAspectRatio,
+                        cuesState = cuesState,
+                        subtitlePositionState = subtitlePositionState,
+                        subtitleConfiguration = SubtitleConfiguration(
+                            useSystemCaptionStyle = playerPreferences.useSystemCaptionStyle,
+                            showBackground = playerPreferences.subtitleBackground,
+                            font = playerPreferences.subtitleFont,
+                            textSize = playerPreferences.subtitleTextSize,
+                            textBold = playerPreferences.subtitleTextBold,
+                            applyEmbeddedStyles = playerPreferences.applyEmbeddedStyles,
+                            useMaterialYouControls = playerPreferences.useMaterialYouControls,
+                            controlsVisible = controlsVisibilityState.controlsVisible &&
+                                !controlsVisibilityState.controlsLocked,
+                        ),
+                    )
+                    if (volumeAndBrightnessGestureState != null) {
+                        PlayerGestures(
+                            controlsVisibilityState = controlsVisibilityState,
+                            tapGestureState = tapGestureState,
+                            pictureInPictureState = pictureInPictureState,
+                            seekGestureState = seekGestureState,
+                            videoZoomAndContentScaleState = videoZoomAndContentScaleState,
+                            volumeAndBrightnessGestureState = volumeAndBrightnessGestureState,
+                            subtitlePositionState = subtitlePositionState,
+                            hasSubtitles = cuesState.currentCues?.cues?.isNotEmpty() == true,
+                            canRepositionSubtitles = cuesState.canReposition,
+                        )
                     }
                 }
-            },
-        )
-        if (volumeAndBrightnessGestureState != null && volumeState != null &&
-            brightnessState != null
-        ) {
-            PlayerVerticalGestureIndicators(
-                activeGesture = volumeAndBrightnessGestureState.activeGesture,
-                volumePercentage = volumeState.volumePercentage,
-                maxVolumePercentage = volumeState.maxVolumePercentage,
-                brightnessPercentage = brightnessState.brightnessPercentage,
-            )
+                MediaPlayerControls(
+                    player = player,
+                    state = state,
+                    onAction = onAction,
+                    controlsVisibilityState = controlsVisibilityState,
+                    tapGestureState = tapGestureState,
+                    seekGestureState = seekGestureState,
+                    videoZoomAndContentScaleState = videoZoomAndContentScaleState,
+                    dpadUpDown = api?.dpadUpDown,
+                    isPipSupported = pictureInPictureState?.isPipSupported == true,
+                    onPictureInPictureClick = {
+                        pictureInPictureState?.let {
+                            if (!it.hasPipPermission) {
+                                Toast.makeText(
+                                    context,
+                                    R.string.enable_pip_from_settings,
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                                it.openPictureInPictureSettings()
+                            } else {
+                                it.enterPictureInPictureMode()
+                            }
+                        }
+                    },
+                )
+                if (volumeAndBrightnessGestureState != null && volumeState != null &&
+                    brightnessState != null
+                ) {
+                    PlayerVerticalGestureIndicators(
+                        activeGesture = volumeAndBrightnessGestureState.activeGesture,
+                        volumePercentage = volumeState.volumePercentage,
+                        maxVolumePercentage = volumeState.maxVolumePercentage,
+                        brightnessPercentage = brightnessState.brightnessPercentage,
+                        barStyle = playerPreferences.volumeBrightnessBarStyle,
+                        swapSides = playerPreferences.swapVolumeBrightnessSides,
+                    )
+                }
+            }
         }
     }
 
-    if (api?.suppressErrorMessage != true) {
+    if (api?.suppressErrorMessage != true && !playerPreferences.suppressErrorMessage) {
         PlayerErrorDialogs(
             decoderRecoveryState = state.decoderServiceState.recoveryState,
             playbackError = errorState.playbackError,

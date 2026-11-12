@@ -32,7 +32,11 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.mozilla.universalchardet.UniversalDetector
 
-val VIDEO_COLLECTION_URI: Uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+val VIDEO_COLLECTION_URI: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+    MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+} else {
+    MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+}
 
 private var isTelevisionCache: Boolean? = null
 
@@ -69,15 +73,32 @@ fun Context.getPath(uri: Uri): String? {
                     .dropLastWhile { it.isEmpty() }
                     .toTypedArray()
                 val type = split[0]
+                val relativePath = split.getOrElse(1) { "" }
                 if ("primary".equals(
                         other = type,
                         ignoreCase = true,
                     )
                 ) {
-                    return Environment.getExternalStorageDirectory().path + "/" + split[1]
+                    return if (relativePath.isEmpty()) {
+                        Environment.getExternalStorageDirectory().path
+                    } else {
+                        Environment.getExternalStorageDirectory().path + "/" + relativePath
+                    }
                 }
-
-                // TODO handle non-primary volumes
+                val matchingVolume = getStorageVolumes().firstOrNull { vol ->
+                    vol.name.equals(type, ignoreCase = true)
+                }
+                if (matchingVolume != null) {
+                    return if (relativePath.isEmpty()) {
+                        matchingVolume.path
+                    } else {
+                        matchingVolume.path + "/" + relativePath
+                    }
+                }
+                val directStorage = File("/storage/$type")
+                if (directStorage.exists()) {
+                    return if (relativePath.isEmpty()) directStorage.path else "${directStorage.path}/$relativePath"
+                }
             }
 
             uri.isDownloadsDocument -> {
@@ -286,7 +307,7 @@ suspend fun Context.scanPaths(paths: List<String>): Boolean =
             MediaScannerConnection.scanFile(
                 this@scanPaths,
                 paths.toTypedArray(),
-                arrayOf("video/*"),
+                null,
             ) { path, uri ->
                 Log.d(
                     "ScanPath",
@@ -311,11 +332,18 @@ suspend fun Context.scanStorage(
     storagePath: String? = Environment.getExternalStorageDirectory()?.path,
 ): Boolean = withContext(Dispatchers.IO) {
     if (storagePath != null) {
-        return@withContext if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            scanPaths(paths = listOf(element = storagePath))
-        } else {
-            scanPath(file = File(storagePath))
+        val rootFile = File(storagePath)
+        if (!rootFile.exists()) return@withContext false
+        val videoExts = setOf("mp4", "mkv", "webm", "avi", "mov", "m4v", "ts", "3gp", "flv", "wmv", "mpg", "mpeg")
+        val collected = mutableListOf(storagePath)
+        runCatching {
+            rootFile.walkTopDown()
+                .onEnter { dir -> !dir.name.startsWith(".") && !dir.path.contains("/Android/data") && !dir.path.contains("/Android/obb") }
+                .filter { it.isFile && it.extension.lowercase() in videoExts }
+                .take(2500)
+                .forEach { collected.add(it.path) }
         }
+        return@withContext scanPaths(paths = collected.distinct())
     } else {
         false
     }
@@ -393,7 +421,7 @@ private fun detectCharsetFromStream(inputStream: InputStream): Charset {
             handleData(
                 data,
                 0,
-                data.size,
+                bytesRead,
             )
             dataEnd()
             Charset.forName(detectedCharset ?: StandardCharsets.UTF_8.name())

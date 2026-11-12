@@ -1,18 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.DarkPlayer.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@android:color/black</item>
+    <style name="Theme.NextPlayer.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
-        <item name="postSplashScreenTheme">@style/Theme.DarkPlayer</item>
-        <item name="android:windowBackground">@android:color/black</item>
+        <item name="windowSplashScreenBackground">#171B1C</item>
+        <item name="postSplashScreenTheme">@style/Theme.NextPlayer</item>
     </style>
 
-    <style name="Theme.DarkPlayer" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar">
-        <item name="android:windowBackground">@android:color/black</item>
-        <item name="android:colorBackground">@android:color/black</item>
-    </style>
-
-    <style name="Theme.NextPlayer.Splash" parent="Theme.DarkPlayer.Splash" />
-    <style name="Theme.NextPlayer" parent="Theme.DarkPlayer" />
+    <style name="Theme.NextPlayer" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar" />
 </resources>

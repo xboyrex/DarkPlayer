@@ -52,7 +52,6 @@ import dev.xboyrex.darkplayer.feature.player.service.startBackgroundPlayback
 import dev.xboyrex.darkplayer.feature.player.service.stopPlayerSession
 import dev.xboyrex.darkplayer.feature.player.service.tryDecoderFallback
 import dev.xboyrex.darkplayer.feature.player.state.rememberMediaController
-import dev.xboyrex.darkplayer.feature.player.utils.DisplaySyncEngine
 import dev.xboyrex.darkplayer.feature.player.utils.PlayerApi
 import dev.xboyrex.darkplayer.feature.player.utils.PlaylistPlaybackContract
 import dev.xboyrex.darkplayer.feature.player.utils.toMediaQueue
@@ -204,7 +203,6 @@ class PlayerActivity : ComponentActivity() {
         lastDecoder = savedInstanceState?.getString("lastDecoder")?.let { name ->
             DecoderMode.entries.find { it.name == name }
         }
-        DisplaySyncEngine.enableHighRefreshWindow(this)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),

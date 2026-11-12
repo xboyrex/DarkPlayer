@@ -1,105 +1,88 @@
 <div align="center">
-  <img src="docs/assets/dark-player/dark-player-mark.svg" width="112" height="112" alt="Dark Player logo" />
-  <h1>Dark Player</h1>
-  <p><strong>A high-control Android video player for local libraries, network media, and deeply configurable playback.</strong></p>
-  <p>Crafted by <strong>ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (<code>@xboyrex</code>)</strong> · Media3 / FFmpeg engine · 3-Layer Liquid Glass Nav & Player UI</p>
-  <p>
-    <a href="https://github.com/xboyrex/DarkPlayer/releases"><img alt="GitHub releases" src="https://img.shields.io/github/v/release/xboyrex/DarkPlayer?style=for-the-badge&logo=github&label=release" /></a>
-    <a href="https://github.com/xboyrex/DarkPlayer/releases"><img alt="GitHub downloads" src="https://img.shields.io/github/downloads/xboyrex/DarkPlayer/total?style=for-the-badge&logo=android&label=downloads" /></a>
-    <a href="https://github.com/xboyrex/DarkPlayer/commits"><img alt="Last commit" src="https://img.shields.io/github/last-commit/xboyrex/DarkPlayer?style=for-the-badge&logo=git" /></a>
-    <img alt="Platform Android" src="https://img.shields.io/badge/platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
-  </p>
-  <p>
-    <a href="#features">Features</a> &nbsp;·&nbsp;
-    <a href="#interface-preview">Interface preview</a> &nbsp;·&nbsp;
-    <a href="#screenshots">Screenshots</a> &nbsp;·&nbsp;
-    <a href="#installation">Installation</a> &nbsp;·&nbsp;
-    <a href="#developer-links">Developer links</a>
-  </p>
+
+<img src="docs/nova_banner.png" alt="Nova Player Banner" width="100%" />
+
+<br />
+
+<img src="fastlane/metadata/android/en-US/images/icon.png" alt="Nova Player Circular Logo" width="110" height="110" />
+
+# Nova Player
+
+**Next-Generation Native Android Video Player — AMOLED Pitch Black, Fluid Glass UI & Hardware-Accelerated Media3 Engine**
+
+[![Android CI](https://img.shields.io/github/actions/workflow/status/xboyrex/DarkPlayer/build.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=Build%20%26%20Release)](https://github.com/xboyrex/DarkPlayer/actions)
+[![Latest Release](https://img.shields.io/github/v/release/xboyrex/DarkPlayer?style=for-the-badge&logo=android&color=7C3AED&label=Latest%20APK)](https://github.com/xboyrex/DarkPlayer/releases/latest)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-4A90FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Media3](https://img.shields.io/badge/Media3-1.9.2-EC4899?style=for-the-badge&logo=googleplay&logoColor=white)](https://developer.android.com/media/media3)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-10B981?style=for-the-badge)](LICENSE)
+
 </div>
 
 ---
 
-## Interface preview
+## Highlights
 
-<div align="center">
-  <img src="docs/assets/dark-player/dark-player-showcase.gif" alt="Animated preview made from Dark Player interface screenshots" width="960" />
-</div>
+| Pillar | Capabilities |
+| :--- | :--- |
+| **Smart Player HUD & Gestures** | Single center transport (`Prev \| Play/Pause \| Next`), axis-locked horizontal seek vs. vertical volume/brightness gestures, instant `0ms` consecutive `10s` double-tap skips, minimal `2x` hold capsule, and an in-player **UI Switcher** popup. |
+| **Dual Theme & Accent Engine** | Strictly **AMOLED Pitch Black (`#000000`)** and **Pure White (`#FFFFFF`)** surfaces paired with either the **Nova Logo Gradient (`#4A90FF → #7C3AED → #EC4899`)** or **Device Dynamic Accent (Material You)**. |
+| **Hardware + FFmpeg Playback** | Media3 ExoPlayer `1.9.2` with bundled FFmpeg software audio/video decoders (`HW` / `HW+` / `SW`), 5-band Studio Equalizer, Bass Boost, Virtualizer, and up to `200%` Volume Boost (`0–30` scale). |
+| **Security & Storage Integrity** | Hardware-backed **Android Keystore AES-256-GCM** encryption for SMB/SFTP/WebDAV credentials, **PBKDF2-HMAC-SHA256 (`120,000` iterations)** Private Vault PIN with exponential lockout, Android 14+ selected-photos playlist protection, and multi-volume SD/USB discovery. |
+| **Silent Verified OTA Updater** | Non-intrusive background update checker on launch with strict ABI matching, byte-length validation, and `SHA-256` digest verification before package installation. |
 
-## Overview
+---
 
-**Dark Player** is an Android video player built on Media3 and FFmpeg (`nextlib`), featuring a 3-layer refractive **Liquid Glass** navigation bar and video player UI, a clean **0–200% Hardware LoudnessEnhancer Volume Booster**, an interactive haptic speed ruler (`0.25×–4.0×`), conflict-free angle-locked playback gestures, and an in-app GitHub Releases OTA auto-updater.
+## Project Architecture
 
-## Features
+```text
+NovaPlayer (dev.xboyrex.darkplayer)
+├── app/                        # Main entry point, adaptive navigation & silent OTA updater
+├── core/
+│   ├── common/                 # Multi-volume storage scanner, charset detector & extensions
+│   ├── data/                   # Repositories, Keystore AES-256-GCM store & PBKDF2 Vault PIN
+│   ├── database/               # Room database, DAOs & entity schemas
+│   ├── datastore/              # Proto/JSON DataStore preferences
+│   ├── domain/                 # Media sorting, grouping & synchronization use cases
+│   ├── media/                  # LocalMediaSynchronizer, SMB/SFTP/WebDAV & thumbnail decoders
+│   ├── model/                  # Immutable domain models & UI configuration enums
+│   └── ui/                     # AMOLED/Pure White theme engine, fluid switches & glass bars
+└── feature/
+    ├── network/                # SMB, SFTP & WebDAV network streaming browser
+    ├── player/                 # Media3 video player, smart gestures, EQ & UI Switcher popup
+    ├── playlist/               # Custom playlists & watch history
+    ├── settings/               # Appearance, Player, Audio, Subtitle, Gesture & About screens
+    └── videopicker/            # Folders, Videos, Private Vault, Recycle Bin & Hub screens
+```
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/assets/dark-player/icons/library.svg" width="32" height="32" alt="Library icon" />
-      <h3>Local media library</h3>
-      Folder-first browsing, media counts, storage context, and instant hardware-accelerated thumbnails across Light, Dark, and AMOLED themes.
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/assets/dark-player/icons/video.svg" width="32" height="32" alt="Video icon" />
-      <h3>Liquid Glass player & controls</h3>
-      Refractive Liquid Glass controls, shape-morphing Play/Pause button, double-tap SeekBurstPill with particle sparks, 2× hold-speed pill, and interactive haptic speed ruler.
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/assets/dark-player/icons/network.svg" width="32" height="32" alt="Network icon" />
-      <h3>Network media</h3>
-      Direct SMB, FTP, SFTP, and WebDAV browsing and streaming plus external intent API support with custom HTTP headers.
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/assets/dark-player/icons/subtitles.svg" width="32" height="32" alt="Subtitle icon" />
-      <h3>200% Volume Boost & Subtitles</h3>
-      Clean 0–200% hardware LoudnessEnhancer volume boost (`2000 mB`), multi-track audio/subtitle switching, and embedded ASS/SSA styling.
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/assets/dark-player/icons/playlist.svg" width="32" height="32" alt="Playlist icon" />
-      <h3>Playlists & Background Play</h3>
-      Custom playlists, M3U import, Picture-in-Picture (PiP), and seamless background audio playback with URI permission retention.
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/assets/dark-player/icons/settings.svg" width="32" height="32" alt="Settings icon" />
-      <h3>Studio Settings & Auto-Updater</h3>
-      Floating blurred studio sheets for Theme Mode (System / Dark / Light / AMOLED), Color Palette Picker, real-time Storage Analyzer, and automatic GitHub OTA updates.
-    </td>
-  </tr>
-</table>
+---
 
-## Screenshots
+## Building from Source
 
-<table>
-  <tr>
-    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-library-home.png" width="220" alt="Dark Player library home" /><br /><sub>Library home</sub></td>
-    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-library-main.png" width="220" alt="Dark Player main library list" /><br /><sub>Main library</sub></td>
-    <td align="center" width="33%"><img src="docs/assets/dark-player/screenshots/dark-player-library-compact.png" width="220" alt="Dark Player compact library view" /><br /><sub>Compact library view</sub></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-player-landscape.png" width="220" alt="Dark Player landscape video playback" /><br /><sub>Landscape playback</sub></td>
-    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-decoder-picker.png" width="220" alt="Dark Player decoder selection overlay" /><br /><sub>Decoder selection</sub></td>
-    <td align="center"><img src="docs/assets/dark-player/screenshots/dark-player-settings.png" width="220" alt="Dark Player Settings screen" /><br /><sub>Settings</sub></td>
-  </tr>
-</table>
+```bash
+# Clone the repository
+git clone https://github.com/xboyrex/DarkPlayer.git
+cd DarkPlayer
 
-## Installation
+# Run unit tests and assemble FOSS release APKs
+chmod +x ./gradlew
+./gradlew testFossDebugUnitTest assembleFossRelease
+```
 
-1. Open the [latest GitHub release](https://github.com/xboyrex/DarkPlayer/releases/latest).
-2. Download the APK matching your device architecture (`arm64-v8a` for modern phones, `armeabi-v7a` for 32-bit devices, or `universal`).
-3. Once installed, Dark Player automatically checks GitHub Releases and can download and install future updates directly inside the app.
+### Custom Release Signing (Optional)
 
-## Developer links
+Provide your release keystore credentials via environment variables or `~/.gradle/gradle.properties`:
 
-- **Developer:** ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (`@xboyrex`)
-- **Source & Releases:** [github.com/xboyrex/DarkPlayer](https://github.com/xboyrex/DarkPlayer)
-- **GitHub Profile:** [github.com/xboyrex](https://github.com/xboyrex)
-- **Instagram:** [instagram.com/mayank.zx7](https://www.instagram.com/mayank.zx7)
-- **YouTube (Mayank Droid):** [youtube.com/@mayankdroid](https://youtube.com/@mayankdroid)
-- **YouTube (Onyx Droid):** [youtube.com/@onyxdroid89](https://youtube.com/@onyxdroid89)
-- **Telegram (MayankDroid7):** [t.me/MayankDroid7](https://t.me/MayankDroid7)
-- **Telegram (OnyxHub7):** [t.me/OnyxHub7](https://t.me/OnyxHub7)
-- **Email:** [xboyrex496@gmail.com](mailto:xboyrex496@gmail.com)
+```bash
+export RELEASE_STORE_FILE="/path/to/release.jks"
+export RELEASE_STORE_PASSWORD="your_store_password"
+export RELEASE_KEY_ALIAS="your_key_alias"
+export RELEASE_KEY_PASSWORD="your_key_password"
+./gradlew assembleFossRelease
+```
+
+---
+
+## Credits & Maintainer
+
+Crafted and maintained by **Mayank ([@xboyrex](https://github.com/xboyrex))**.  
+Licensed under the [GNU General Public License v3.0](LICENSE).

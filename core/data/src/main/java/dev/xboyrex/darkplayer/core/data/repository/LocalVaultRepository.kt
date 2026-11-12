@@ -48,9 +48,8 @@ class LocalVaultRepository(
     private val pendingVaultPaths = MutableStateFlow<Set<String>>(value = emptySet())
 
     private val vaultDir: File by lazy {
-        val base = context.getExternalFilesDir(null) ?: context.filesDir
         File(
-            base,
+            context.noBackupFilesDir,
             VAULT_DIR_NAME,
         ).apply { if (!exists()) mkdirs() }
     }

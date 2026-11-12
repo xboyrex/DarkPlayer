@@ -22,19 +22,9 @@ fun EntryProviderScope<NavKey>.playlistNavGraph(
     context: Context,
     backStack: NavBackStack<NavKey>,
 ) {
-    playlistNavGraph(
-        context = context,
-        backStackProvider = { backStack },
-    )
-}
-
-fun EntryProviderScope<NavKey>.playlistNavGraph(
-    context: Context,
-    backStackProvider: () -> NavBackStack<NavKey>,
-) {
     playlistListEntry(
-        onPlaylistClick = { id -> backStackProvider().navigateToPlaylistDetail(id) },
-        onSettingsClick = { backStackProvider().navigateToSettings() },
+        onPlaylistClick = backStack::navigateToPlaylistDetail,
+        onSettingsClick = backStack::navigateToSettings,
         onAddToHomeScreen = if (PlaylistShortcut.isSupported(context = context)) {
             { playlist ->
                 if (!PlaylistShortcut.requestPin(
@@ -55,7 +45,7 @@ fun EntryProviderScope<NavKey>.playlistNavGraph(
     )
 
     playlistDetailEntry(
-        onNavigateUp = { backStackProvider().removeLastIfNotRoot() },
+        onNavigateUp = { backStack.removeLastIfNotRoot() },
         onPlayPlaylist = { playlistId, startUri ->
             context.startPlaylistPlayback(
                 playlistId = playlistId,

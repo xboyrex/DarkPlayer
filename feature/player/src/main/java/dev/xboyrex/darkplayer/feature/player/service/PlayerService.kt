@@ -1,11 +1,13 @@
 package dev.xboyrex.darkplayer.feature.player.service
 
-import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
-
 import android.app.PendingIntent
 import android.content.ContentResolver
 import android.content.Intent
+import android.media.audiofx.BassBoost
+import android.media.audiofx.Equalizer
 import android.media.audiofx.LoudnessEnhancer
+import android.media.audiofx.PresetReverb
+import android.media.audiofx.Virtualizer
 import android.net.Uri
 import android.os.Bundle
 import androidx.annotation.OptIn
@@ -93,6 +95,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.guava.future
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
@@ -110,6 +113,7 @@ class PlayerService : MediaSessionService() {
     private val applicationScope: CoroutineScope by inject(named(DiQualifiers.APPLICATION_SCOPE))
     private var mediaSession: MediaSession? = null
     private var artworkLoadJob: Job? = null
+    private var audioFadeJob: Job? = null
 
     private val preferencesRepository: PreferencesRepository by inject()
 
@@ -131,6 +135,11 @@ class PlayerService : MediaSessionService() {
     private var pendingAudioSelection: Pair<String, Uri>? = null
 
     private var loudnessEnhancer: LoudnessEnhancer? = null
+    private var audioEqualizer: Equalizer? = null
+    private var bassBoostEffect: BassBoost? = null
+    private var virtualizerEffect: Virtualizer? = null
+    private var presetReverbEffect: PresetReverb? = null
+    private var activeAudioSessionId: Int = C.AUDIO_SESSION_ID_UNSET
     private var currentVolumeGain: Int = 0
 
     private lateinit var decoderManager: DecoderManager
@@ -168,11 +177,6 @@ class PlayerService : MediaSessionService() {
                     "as ${decoderManager.activeAudioMode}: $decoderName",
             )
             decoderRecoveryManager.onDecoderInitialized(DecoderTrackType.AUDIO)
-            mediaSession?.player?.let { p ->
-                if (p is ExoPlayer && p.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
-                    runCatching { HardwareDolbyAndEqualizerEngine.attachSession(p.audioSessionId) }
-                }
-            }
         }
 
         override fun onTracksChanged(eventTime: AnalyticsListener.EventTime, tracks: Tracks) {
@@ -257,6 +261,9 @@ class PlayerService : MediaSessionService() {
                 newPosition,
                 reason,
             )
+            if (reason == DISCONTINUITY_REASON_SEEK && playerPreferences.fadeOnSeek) {
+                triggerSmoothAudioRamp()
+            }
             val oldMediaItem = oldPosition.mediaItem ?: return
 
             when (reason) {
@@ -452,12 +459,8 @@ class PlayerService : MediaSessionService() {
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             super.onIsPlayingChanged(isPlaying)
-            if (isPlaying) {
-                (mediaSession?.player as? ExoPlayer)?.let { exo ->
-                    if (exo.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
-                        runCatching { HardwareDolbyAndEqualizerEngine.attachSession(exo.audioSessionId) }
-                    }
-                }
+            if (isPlaying && (playerPreferences.smoothPlayPauseAudioFade || playerPreferences.fadeOnStart)) {
+                triggerSmoothAudioRamp()
             }
             mediaSession?.run {
                 serviceScope.launch {
@@ -487,8 +490,31 @@ class PlayerService : MediaSessionService() {
 
         override fun onAudioSessionIdChanged(audioSessionId: Int) {
             super.onAudioSessionIdChanged(audioSessionId)
-            if (!playerPreferences.enableVolumeBoost) return
+            activeAudioSessionId = audioSessionId
             if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
+            attachAudioEffects(audioSessionId)
+        }
+    }
+
+    private fun triggerSmoothAudioRamp() {
+        val player = mediaSession?.player as? ExoPlayer ?: return
+        audioFadeJob?.cancel()
+        audioFadeJob = serviceScope.launch {
+            runCatching {
+                player.volume = 0.2f
+                val steps = 8
+                for (step in 1..steps) {
+                    delay(22L)
+                    player.volume = (0.2f + (0.8f * step / steps.toFloat())).coerceIn(0f, 1f)
+                }
+                player.volume = 1f
+            }
+        }
+    }
+
+    private fun attachAudioEffects(audioSessionId: Int) {
+        if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
+        if (playerPreferences.enableVolumeBoost) {
             try {
                 loudnessEnhancer?.release()
                 loudnessEnhancer = LoudnessEnhancer(audioSessionId)
@@ -500,6 +526,69 @@ class PlayerService : MediaSessionService() {
                 loudnessEnhancer = null
             }
         }
+        try {
+            audioEqualizer?.release()
+            audioEqualizer = Equalizer(0, audioSessionId)
+            bassBoostEffect?.release()
+            bassBoostEffect = BassBoost(0, audioSessionId)
+            virtualizerEffect?.release()
+            virtualizerEffect = Virtualizer(0, audioSessionId)
+            presetReverbEffect?.release()
+            presetReverbEffect = PresetReverb(0, audioSessionId)
+            applyDspPreferences(playerPreferences)
+        } catch (e: Exception) {
+            Logger.logError(DECODER_LOG_TAG, "Audio DSP initialization skipped: ${e.message}")
+        }
+    }
+
+    private fun applyDspPreferences(prefs: PlayerPreferences) {
+        runCatching {
+            val eq = audioEqualizer
+            if (eq != null) {
+                eq.enabled = prefs.equalizerEnabled
+                val bands = prefs.equalizerBands.split(",")
+                    .mapNotNull { it.trim().toIntOrNull() }
+                val numBands = eq.numberOfBands.toInt().coerceAtMost(bands.size)
+                val range = eq.bandLevelRange
+                val minLevel = range.getOrNull(0) ?: -1500
+                val maxLevel = range.getOrNull(1) ?: 1500
+                for (i in 0 until numBands) {
+                    val targetMb = (bands[i] * 100 + prefs.equalizerPreampDb * 100)
+                        .coerceIn(minLevel.toInt(), maxLevel.toInt())
+                        .toShort()
+                    eq.setBandLevel(i.toShort(), targetMb)
+                }
+            }
+            bassBoostEffect?.apply {
+                enabled = prefs.equalizerEnabled && prefs.bassBoostStrength > 0
+                if (strengthSupported) {
+                    setStrength(prefs.bassBoostStrength.coerceIn(0, 1000).toShort())
+                }
+            }
+            virtualizerEffect?.apply {
+                enabled = prefs.equalizerEnabled && prefs.surroundVirtualizerStrength > 0
+                if (strengthSupported) {
+                    setStrength(prefs.surroundVirtualizerStrength.coerceIn(0, 1000).toShort())
+                }
+            }
+            presetReverbEffect?.apply {
+                enabled = prefs.equalizerEnabled && prefs.reverbPreset > 0
+                preset = prefs.reverbPreset.coerceIn(0, 6).toShort()
+            }
+        }
+    }
+
+    private fun releaseAudioEffects() {
+        runCatching { loudnessEnhancer?.release() }
+        loudnessEnhancer = null
+        runCatching { audioEqualizer?.release() }
+        audioEqualizer = null
+        runCatching { bassBoostEffect?.release() }
+        bassBoostEffect = null
+        runCatching { virtualizerEffect?.release() }
+        virtualizerEffect = null
+        runCatching { presetReverbEffect?.release() }
+        presetReverbEffect = null
     }
 
     private fun setEnhancerTargetGain(gain: Int) {
@@ -981,6 +1070,16 @@ class PlayerService : MediaSessionService() {
         decoderManager.attach(player = player)
         player.addAnalyticsListener(decoderAnalyticsListener)
 
+        serviceScope.launch {
+            preferencesRepository.playerPreferences.collect { prefs ->
+                if (activeAudioSessionId != C.AUDIO_SESSION_ID_UNSET && audioEqualizer == null) {
+                    attachAudioEffects(activeAudioSessionId)
+                } else {
+                    applyDspPreferences(prefs)
+                }
+            }
+        }
+
         try {
             mediaSession = MediaSession.Builder(
                 this,
@@ -1054,8 +1153,8 @@ class PlayerService : MediaSessionService() {
         cancelPendingMediaItems()
         super.onDestroy()
         artworkLoadJob?.cancel()
-        loudnessEnhancer?.release()
-        loudnessEnhancer = null
+        audioFadeJob?.cancel()
+        releaseAudioEffects()
         mediaSession?.run {
             player.clearMediaItems()
             player.stop()

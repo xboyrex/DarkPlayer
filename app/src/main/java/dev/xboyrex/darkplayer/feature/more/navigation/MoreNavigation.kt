@@ -1,8 +1,6 @@
 package dev.xboyrex.darkplayer.feature.more.navigation
 
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -33,27 +31,18 @@ fun EntryProviderScope<NavKey>.moreEntry(
     onVaultClick: () -> Unit,
 ) {
     entry<MoreRoute> {
-        val currentHistoryClick by rememberUpdatedState(onHistoryClick)
-        val currentPlayVideo by rememberUpdatedState(onPlayVideo)
-        val currentSettingsClick by rememberUpdatedState(onSettingsClick)
-        val currentTrashClick by rememberUpdatedState(onTrashClick)
-        val currentVaultClick by rememberUpdatedState(onVaultClick)
-
         val output = MoreViewModel.Output(
-            openHistory = { currentHistoryClick() },
-            playVideo = { uri -> currentPlayVideo(uri) },
-            openSettings = { currentSettingsClick() },
-            openTrash = { currentTrashClick() },
-            openVault = { currentVaultClick() },
+            openHistory = onHistoryClick,
+            playVideo = onPlayVideo,
+            openSettings = onSettingsClick,
+            openTrash = onTrashClick,
+            openVault = onVaultClick,
         )
         val viewModel = koinViewModel<MoreViewModel>(
             parameters = { parametersOf(output) },
         )
         SideEffect { viewModel.output = output }
-        MoreScreen(
-            viewModel = viewModel,
-            directOutput = output,
-        )
+        MoreScreen(viewModel = viewModel)
     }
 }
 
@@ -62,11 +51,9 @@ fun EntryProviderScope<NavKey>.historyEntry(
     onPlayVideo: (String) -> Unit,
 ) {
     entry<HistoryRoute> {
-        val currentNavigateUp by rememberUpdatedState(onNavigateUp)
-        val currentPlayVideo by rememberUpdatedState(onPlayVideo)
         val output = HistoryViewModel.Output(
-            navigateUp = { currentNavigateUp() },
-            playVideo = { uri -> currentPlayVideo(uri) },
+            navigateUp = onNavigateUp,
+            playVideo = onPlayVideo,
         )
         val viewModel = koinViewModel<HistoryViewModel>(
             parameters = { parametersOf(output) },
@@ -81,11 +68,9 @@ fun EntryProviderScope<NavKey>.trashEntry(
     onPlayVideo: (String) -> Unit,
 ) {
     entry<TrashRoute> {
-        val currentNavigateUp by rememberUpdatedState(onNavigateUp)
-        val currentPlayVideo by rememberUpdatedState(onPlayVideo)
         val output = TrashViewModel.Output(
-            navigateUp = { currentNavigateUp() },
-            playVideo = { uri -> currentPlayVideo(uri) },
+            navigateUp = onNavigateUp,
+            playVideo = onPlayVideo,
         )
         val viewModel = koinViewModel<TrashViewModel>(
             parameters = { parametersOf(output) },

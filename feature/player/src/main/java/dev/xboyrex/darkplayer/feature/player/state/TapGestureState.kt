@@ -42,8 +42,8 @@ fun rememberTapGestureState(
             player = player,
             doubleTapGesture = doubleTapGesture,
             seekIncrementMillis = seekIncrementMillis,
-            useLongPressGesture = true,
-            longPressSpeed = longPressSpeed.takeIf { it > 0.5f } ?: 2.0f,
+            useLongPressGesture = useLongPressGesture,
+            longPressSpeed = longPressSpeed,
             coroutineScope = coroutineScope,
         )
     }
@@ -66,6 +66,39 @@ class TapGestureState(
     private var resetJob: Job? = null
     private var currentSpeed: Float = player.playbackParameters.speed
 
+    /**
+     * When a double-tap skip session is already active (`seekMillis != 0L`), any subsequent single tap
+     * on the left or right zone immediately adds another `-10s` / `+10s` step without waiting for a second double-tap!
+     */
+    fun tryHandleContinuationTap(offset: Offset, size: IntSize): Boolean {
+        if (seekMillis == 0L || !player.isCurrentMediaItemSeekable) return false
+        if (doubleTapGesture == DoubleTapGesture.NONE || doubleTapGesture == DoubleTapGesture.PLAY_PAUSE) return false
+
+        val fractionX = offset.x / size.width.toFloat().coerceAtLeast(1f)
+        return when {
+            fractionX < 0.42f -> {
+                val target = (player.currentPosition - seekIncrementMillis).coerceAtLeast(0L)
+                player.seekTo(target)
+                if (seekMillis > 0L) seekMillis = 0L
+                seekMillis -= seekIncrementMillis
+                interactionSource.tryEmit(PressInteraction.Press(pressPosition = offset))
+                resetDoubleTapSeekState()
+                true
+            }
+            fractionX > 0.58f -> {
+                val dur = player.duration.takeIf { it > 0L } ?: Long.MAX_VALUE
+                val target = (player.currentPosition + seekIncrementMillis).coerceAtMost(dur)
+                player.seekTo(target)
+                if (seekMillis < 0L) seekMillis = 0L
+                seekMillis += seekIncrementMillis
+                interactionSource.tryEmit(PressInteraction.Press(pressPosition = offset))
+                resetDoubleTapSeekState()
+                true
+            }
+            else -> false
+        }
+    }
+
     fun handleDoubleTap(offset: Offset, size: IntSize) {
         if (!player.isCurrentMediaItemSeekable) return
 
@@ -79,10 +112,10 @@ class TapGestureState(
             }
 
             DoubleTapGesture.BOTH -> {
-                val eventPositionX = offset.x / size.width
+                val eventPositionX = offset.x / size.width.toFloat().coerceAtLeast(1f)
                 when {
-                    eventPositionX < 0.35 -> DoubleTapAction.SEEK_BACKWARD
-                    eventPositionX > 0.65 -> DoubleTapAction.SEEK_FORWARD
+                    eventPositionX < 0.40f -> DoubleTapAction.SEEK_BACKWARD
+                    eventPositionX > 0.60f -> DoubleTapAction.SEEK_FORWARD
                     else -> DoubleTapAction.PLAY_PAUSE
                 }
             }
@@ -94,7 +127,8 @@ class TapGestureState(
 
         when (action) {
             DoubleTapAction.SEEK_BACKWARD -> {
-                player.seekTo(player.currentPosition - seekIncrementMillis)
+                val target = (player.currentPosition - seekIncrementMillis).coerceAtLeast(0L)
+                player.seekTo(target)
                 if (seekMillis > 0L) {
                     seekMillis = 0L
                 }
@@ -103,7 +137,9 @@ class TapGestureState(
             }
 
             DoubleTapAction.SEEK_FORWARD -> {
-                player.seekTo(player.currentPosition + seekIncrementMillis)
+                val dur = player.duration.takeIf { it > 0L } ?: Long.MAX_VALUE
+                val target = (player.currentPosition + seekIncrementMillis).coerceAtMost(dur)
+                player.seekTo(target)
                 if (seekMillis < 0L) {
                     seekMillis = 0L
                 }
@@ -140,7 +176,7 @@ class TapGestureState(
     private fun resetDoubleTapSeekState() {
         resetJob?.cancel()
         resetJob = coroutineScope.launch {
-            delay(750.milliseconds)
+            delay(850.milliseconds)
             seekMillis = 0L
         }
     }

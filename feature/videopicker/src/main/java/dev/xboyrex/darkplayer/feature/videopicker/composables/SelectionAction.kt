@@ -3,6 +3,7 @@ package dev.xboyrex.darkplayer.feature.videopicker.composables
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -14,54 +15,49 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.xboyrex.darkplayer.core.ui.components.tvFocusRing
 
 @Composable
 internal fun SelectionAction(
-    modifier: Modifier = Modifier,
-    isTv: Boolean = false,
     imageVector: ImageVector,
     title: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isTv: Boolean = false,
 ) {
     Column(
         modifier = modifier
-            .defaultMinSize(minWidth = 58.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .defaultMinSize(
+                minWidth = 75.dp,
+                minHeight = 64.dp,
+            )
             .tvFocusRing(
                 isTv = isTv,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
             )
+            .clip(shape = RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(
-                horizontal = 10.dp,
+                horizontal = 16.dp,
                 vertical = 8.dp,
             ),
+        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Icon(
             imageVector = imageVector,
             contentDescription = title,
-            tint = Color.White,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Spacer(modifier = Modifier.size(4.dp))
         Text(
             text = title,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-            ),
-            color = Color.White.copy(alpha = 0.9f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
     }
