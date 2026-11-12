@@ -37,6 +37,27 @@ jobs:
           validate-wrappers: true
           cache-cleanup: on-success
 
+      - name: Validate AutoEQ catalog initialization order
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          FILE="core/ui/src/main/java/dev/xboyrex/novaplayer/core/ui/dolby/NovaDolbyController.kt"
+
+          DECL="$(grep -nF 'private val BUILTIN_AUTOEQ_ENTRIES = listOf(' "$FILE" | head -n 1 | cut -d: -f1)"
+          USE="$(grep -nF 'var autoEqCatalog by mutableStateOf<List<NovaAutoEqEntry>>(BUILTIN_AUTOEQ_ENTRIES)' "$FILE" | head -n 1 | cut -d: -f1)"
+
+          [[ -n "$DECL" && -n "$USE" ]] || {
+            echo "::error::AutoEQ catalog declaration or initializer missing."
+            exit 1
+          }
+
+          if (( DECL >= USE )); then
+            echo "::error::AutoEQ catalog must be declared before its state initializer."
+            exit 1
+          fi
+
+          echo "AutoEQ initialization order: PASSED"
       - name: Build Debug & Release APKs with Gradle
         run: ./gradlew assembleDebug assembleRelease --no-daemon
 

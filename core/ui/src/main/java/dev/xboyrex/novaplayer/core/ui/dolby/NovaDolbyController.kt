@@ -47,6 +47,73 @@ object NovaDolbyController {
     private const val PREF_PRESETS = "nova_dolby_presets"
     private const val PRESET_FILE_VERSION = 2
 
+    private val BUILTIN_AUTOEQ_ENTRIES = listOf(
+        NovaAutoEqEntry(
+            id = "sony_wh_1000xm5",
+            name = "Sony WH-1000XM5",
+            source = "Oratory1990",
+            measurementRig = "HMS II.3",
+            searchKey = "sonywh1000xm5",
+            builtinGraphicEq = "GraphicEQ: 32 -2.4; 64 -3.1; 125 -2.8; 250 -1.4; 500 0.8; 1000 1.9; 2000 3.2; 4000 2.5; 8000 1.2; 16000 0.6",
+        ),
+        NovaAutoEqEntry(
+            id = "sony_wf_1000xm5",
+            name = "Sony WF-1000XM5",
+            source = "Crinacle",
+            measurementRig = "711",
+            searchKey = "sonywf1000xm5",
+            builtinGraphicEq = "GraphicEQ: 32 1.2; 64 0.4; 125 -1.2; 250 -1.6; 500 0.2; 1000 1.5; 2000 2.8; 4000 3.4; 8000 1.8; 16000 1.0",
+        ),
+        NovaAutoEqEntry(
+            id = "apple_airpods_pro_2",
+            name = "Apple AirPods Pro (2nd Gen)",
+            source = "Oratory1990",
+            measurementRig = "711",
+            searchKey = "appleairpodspro2ndgen",
+            builtinGraphicEq = "GraphicEQ: 32 1.8; 64 1.1; 125 -0.4; 250 -0.9; 500 0.4; 1000 1.1; 2000 1.9; 4000 2.2; 8000 1.4; 16000 1.8",
+        ),
+        NovaAutoEqEntry(
+            id = "samsung_galaxy_buds2_pro",
+            name = "Samsung Galaxy Buds2 Pro",
+            source = "Crinacle",
+            measurementRig = "711",
+            searchKey = "samsunggalaxybuds2pro",
+            builtinGraphicEq = "GraphicEQ: 32 0.8; 64 -0.3; 125 -1.1; 250 -0.8; 500 0.5; 1000 1.2; 2000 0.6; 4000 -1.2; 8000 -1.8; 16000 0.4",
+        ),
+        NovaAutoEqEntry(
+            id = "sennheiser_hd_650",
+            name = "Sennheiser HD 650 / HD 6XX",
+            source = "Oratory1990",
+            measurementRig = "GRAS 43AG-7",
+            searchKey = "sennheiserhd650hd6xx",
+            builtinGraphicEq = "GraphicEQ: 32 5.4; 64 2.8; 125 -1.2; 250 -1.9; 500 -0.4; 1000 0.6; 2000 1.8; 4000 2.4; 8000 1.6; 16000 1.9",
+        ),
+        NovaAutoEqEntry(
+            id = "moondrop_chu_2",
+            name = "Moondrop Chu II",
+            source = "Crinacle",
+            measurementRig = "B&K 5128",
+            searchKey = "moondropchuii2",
+            builtinGraphicEq = "GraphicEQ: 32 0.6; 64 -0.4; 125 -1.1; 250 -0.5; 500 0.8; 1000 1.4; 2000 1.1; 4000 -0.8; 8000 -1.4; 16000 0.8",
+        ),
+        NovaAutoEqEntry(
+            id = "truthear_hexa",
+            name = "Truthear HEXA",
+            source = "Super Review",
+            measurementRig = "711",
+            searchKey = "truthearhexa",
+            builtinGraphicEq = "GraphicEQ: 32 2.2; 64 1.5; 125 0.4; 250 -0.3; 500 0.2; 1000 0.6; 2000 0.8; 4000 0.4; 8000 -0.9; 16000 1.2",
+        ),
+        NovaAutoEqEntry(
+            id = "nothing_ear_2024",
+            name = "Nothing Ear (2024)",
+            source = "SoundGuys",
+            measurementRig = "B&K 5128",
+            searchKey = "nothingear2024",
+            builtinGraphicEq = "GraphicEQ: 32 -1.2; 64 -1.8; 125 -1.0; 250 -0.4; 500 0.9; 1000 1.6; 2000 2.1; 4000 1.5; 8000 0.8; 16000 1.1",
+        ),
+    )
+
     private var appContext: Context? = null
     private var mainPrefs: SharedPreferences? = null
     private var presetsPrefs: SharedPreferences? = null
@@ -868,70 +935,4 @@ object NovaDolbyController {
         return result
     }
 
-    private val BUILTIN_AUTOEQ_ENTRIES = listOf(
-        NovaAutoEqEntry(
-            id = "sony_wh_1000xm5",
-            name = "Sony WH-1000XM5",
-            source = "Oratory1990",
-            measurementRig = "HMS II.3",
-            searchKey = "sonywh1000xm5",
-            builtinGraphicEq = "GraphicEQ: 32 -2.4; 64 -3.1; 125 -2.8; 250 -1.4; 500 0.8; 1000 1.9; 2000 3.2; 4000 2.5; 8000 1.2; 16000 0.6",
-        ),
-        NovaAutoEqEntry(
-            id = "sony_wf_1000xm5",
-            name = "Sony WF-1000XM5",
-            source = "Crinacle",
-            measurementRig = "711",
-            searchKey = "sonywf1000xm5",
-            builtinGraphicEq = "GraphicEQ: 32 1.2; 64 0.4; 125 -1.2; 250 -1.6; 500 0.2; 1000 1.5; 2000 2.8; 4000 3.4; 8000 1.8; 16000 1.0",
-        ),
-        NovaAutoEqEntry(
-            id = "apple_airpods_pro_2",
-            name = "Apple AirPods Pro (2nd Gen)",
-            source = "Oratory1990",
-            measurementRig = "711",
-            searchKey = "appleairpodspro2ndgen",
-            builtinGraphicEq = "GraphicEQ: 32 1.8; 64 1.1; 125 -0.4; 250 -0.9; 500 0.4; 1000 1.1; 2000 1.9; 4000 2.2; 8000 1.4; 16000 1.8",
-        ),
-        NovaAutoEqEntry(
-            id = "samsung_galaxy_buds2_pro",
-            name = "Samsung Galaxy Buds2 Pro",
-            source = "Crinacle",
-            measurementRig = "711",
-            searchKey = "samsunggalaxybuds2pro",
-            builtinGraphicEq = "GraphicEQ: 32 0.8; 64 -0.3; 125 -1.1; 250 -0.8; 500 0.5; 1000 1.2; 2000 0.6; 4000 -1.2; 8000 -1.8; 16000 0.4",
-        ),
-        NovaAutoEqEntry(
-            id = "sennheiser_hd_650",
-            name = "Sennheiser HD 650 / HD 6XX",
-            source = "Oratory1990",
-            measurementRig = "GRAS 43AG-7",
-            searchKey = "sennheiserhd650hd6xx",
-            builtinGraphicEq = "GraphicEQ: 32 5.4; 64 2.8; 125 -1.2; 250 -1.9; 500 -0.4; 1000 0.6; 2000 1.8; 4000 2.4; 8000 1.6; 16000 1.9",
-        ),
-        NovaAutoEqEntry(
-            id = "moondrop_chu_2",
-            name = "Moondrop Chu II",
-            source = "Crinacle",
-            measurementRig = "B&K 5128",
-            searchKey = "moondropchuii2",
-            builtinGraphicEq = "GraphicEQ: 32 0.6; 64 -0.4; 125 -1.1; 250 -0.5; 500 0.8; 1000 1.4; 2000 1.1; 4000 -0.8; 8000 -1.4; 16000 0.8",
-        ),
-        NovaAutoEqEntry(
-            id = "truthear_hexa",
-            name = "Truthear HEXA",
-            source = "Super Review",
-            measurementRig = "711",
-            searchKey = "truthearhexa",
-            builtinGraphicEq = "GraphicEQ: 32 2.2; 64 1.5; 125 0.4; 250 -0.3; 500 0.2; 1000 0.6; 2000 0.8; 4000 0.4; 8000 -0.9; 16000 1.2",
-        ),
-        NovaAutoEqEntry(
-            id = "nothing_ear_2024",
-            name = "Nothing Ear (2024)",
-            source = "SoundGuys",
-            measurementRig = "B&K 5128",
-            searchKey = "nothingear2024",
-            builtinGraphicEq = "GraphicEQ: 32 -1.2; 64 -1.8; 125 -1.0; 250 -0.4; 500 0.9; 1000 1.6; 2000 2.1; 4000 1.5; 8000 0.8; 16000 1.1",
-        ),
-    )
 }
