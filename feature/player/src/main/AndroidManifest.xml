@@ -13,7 +13,7 @@
             android:launchMode="singleTop"
             android:supportsPictureInPicture="true"
             android:resizeableActivity="true"
-            android:theme="@style/NovaPlayer"
+            android:theme="@style/DarkPlayer"
             android:windowSoftInputMode="adjustResize"
             tools:targetApi="o">
 

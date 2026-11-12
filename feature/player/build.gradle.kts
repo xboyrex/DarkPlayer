@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.novaplayer.feature.player"
+    namespace = "dev.xboyrex.darkplayer.feature.player"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
@@ -37,11 +37,6 @@ kotlin {
 }
 
 dependencies {
-    api(libs.kyant.backdrop)
-    api(libs.kyant.shapes)
-    implementation(libs.okhttp.core)
-    implementation(libs.androidx.compose.material.iconsExtended)
-
 
     implementation(project(":core:common"))
     implementation(project(":core:ui"))
@@ -78,8 +73,8 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.ui.compose)
     implementation(libs.androidx.media3.session)
-    implementation(libs.ffmpeg.decoder.media3ext)
-    implementation(libs.ffmpeg.decoder.mediainfo)
+    implementation(libs.github.anilbeesetti.nextlib.media3ext)
+    implementation(libs.github.anilbeesetti.nextlib.mediainfo)
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.guava)
@@ -89,7 +84,6 @@ dependencies {
     implementation(libs.koin.annotations)
 
     testImplementation(libs.junit4)
-    testImplementation(libs.mockito.core)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.compose.ui.test)

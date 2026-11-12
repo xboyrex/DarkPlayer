@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.novaplayer.feature.playlist"
+    namespace = "dev.xboyrex.darkplayer.feature.playlist"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {

@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.NovaPlayer.Splash" parent="Theme.SplashScreen">
+    <style name="Theme.DarkPlayer.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
-        <item name="windowSplashScreenBackground">#000000</item>
-        <item name="postSplashScreenTheme">@style/Theme.NovaPlayer</item>
+        <item name="postSplashScreenTheme">@style/Theme.DarkPlayer</item>
     </style>
 
-    <style name="Theme.NovaPlayer" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar" />
+    <style name="Theme.DarkPlayer" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar" />
+
+    <style name="Theme.NextPlayer.Splash" parent="Theme.DarkPlayer.Splash" />
+    <style name="Theme.NextPlayer" parent="Theme.DarkPlayer" />
 </resources>

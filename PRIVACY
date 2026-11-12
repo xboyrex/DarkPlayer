@@ -1,7 +1,7 @@
-# Privacy Policy
+Privacy Policy for Dark Player
 
-Nova Player is an open-source offline and network media player developed by Mayank (@xboyrex).
+Dark Player does not collect, store, or transmit any personal information or telemetry. All media playback, playlists, network credentials, and biometric Vault files remain strictly on your local device.
 
-- Nova Player does not collect, store, or transmit any personal user data, analytics, or telemetry.
-- Media files, playlists, vault PINs, and network credentials remain strictly on your local device.
-- Network permissions are used solely for user-initiated network streaming (SMB, FTP, SFTP, WebDAV, HTTP/HTTPS, M3U) and checking GitHub Releases for optional in-app updates.
+Published and maintained by ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (Mayank · @xboyrex).
+GitHub: https://github.com/xboyrex/DarkPlayer
+Telegram: https://t.me/MayankDroid7

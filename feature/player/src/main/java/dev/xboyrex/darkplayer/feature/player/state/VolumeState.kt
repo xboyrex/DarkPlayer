@@ -1,0 +1,280 @@
+package dev.xboyrex.darkplayer.feature.player.state
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.media.AudioManager
+import androidx.activity.compose.LocalActivity
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.DisposableEffectResult
+import androidx.compose.runtime.DisposableEffectScope
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
+import dev.xboyrex.darkplayer.feature.player.service.getLoudnessGain
+import dev.xboyrex.darkplayer.feature.player.service.isLoudnessGainSupported
+import dev.xboyrex.darkplayer.feature.player.service.setLoudnessGain
+import kotlin.math.roundToInt
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+
+@Composable
+fun rememberVolumeState(
+    player: Player?,
+    showVolumePanelIfHeadsetIsOn: Boolean,
+    enableVolumeBoost: Boolean = true,
+): VolumeState {
+    val context = LocalActivity.current ?: LocalContext.current
+    val volumeState = remember(player) {
+        VolumeState(
+            player = player,
+            activity = context,
+            showVolumePanelIfHeadsetIsOn = showVolumePanelIfHeadsetIsOn,
+            enableVolumeBoost = enableVolumeBoost,
+        )
+    }
+    DisposableEffect(key1 = context) { volumeState.handleListeners(disposableEffectScope = this) }
+    LaunchedEffect(
+        key1 = player,
+        key2 = enableVolumeBoost,
+    ) { volumeState.initializeVolumeBoost() }
+    return volumeState
+}
+
+@Stable
+class VolumeState(
+    private val player: Player?,
+    private val activity: Context,
+    private val showVolumePanelIfHeadsetIsOn: Boolean,
+    private val enableVolumeBoost: Boolean = true,
+) {
+    private val audioManager = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+    private val systemVolume: Int
+        get() = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+
+    private val systemMaxVolume: Int =
+        audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+
+    private var isLoudnessGainSupported: Boolean by mutableStateOf(value = enableVolumeBoost)
+
+    var isDraggingVolume: Boolean = false
+
+    val maxVolume: Int
+        get() = if (isLoudnessGainSupported) systemMaxVolume * 4 else systemMaxVolume
+
+    val maxVolumePercentage: Int
+        get() = if (isLoudnessGainSupported) {
+            MAX_VOLUME_PERCENTAGE_BOOST
+        } else {
+            MAX_VOLUME_PERCENTAGE_NORMAL
+        }
+
+    var currentVolume: Int by mutableIntStateOf(value = systemVolume)
+        private set
+
+    var volumePercentage: Int by mutableIntStateOf(value = calculateVolumePercentage())
+        private set
+
+    fun syncWithSystem() {
+        if (currentVolume > systemMaxVolume) return
+        val sysVol = systemVolume
+        if (sysVol != currentVolume) {
+            currentVolume = sysVol
+            volumePercentage = calculateVolumePercentage()
+        }
+    }
+
+    fun updateVolumePercentage(percentage: Int) {
+        val clampedPercentage = percentage.coerceIn(
+            minimumValue = 0,
+            maximumValue = maxVolumePercentage.coerceAtLeast(100),
+        )
+        volumePercentage = clampedPercentage
+
+        val newVolume = ((clampedPercentage * systemMaxVolume) / 100f).roundToInt()
+        setVolumeInternal(
+            volume = newVolume,
+            preserveExactPercentage = true,
+            showVolumePanel = false,
+        )
+    }
+
+    fun handleListeners(disposableEffectScope: DisposableEffectScope): DisposableEffectResult =
+        with(disposableEffectScope) {
+            val receiver = object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
+                    if (intent.action == VOLUME_CHANGED_ACTION && !isDraggingVolume) {
+                        val newSystemVolume = systemVolume
+                        if (currentVolume <= systemMaxVolume) {
+                            if (newSystemVolume != currentVolume) {
+                                currentVolume = newSystemVolume
+                                volumePercentage = calculateVolumePercentage()
+                            }
+                        } else if (newSystemVolume < systemMaxVolume) {
+                            currentVolume = newSystemVolume
+                            volumePercentage = calculateVolumePercentage()
+                            applyVolumeBoost(volume = 0)
+                        }
+                    }
+                }
+            }
+
+            activity.registerReceiver(
+                receiver,
+                IntentFilter(VOLUME_CHANGED_ACTION),
+            )
+
+            onDispose {
+                runCatching { activity.unregisterReceiver(receiver) }
+            }
+        }
+
+    suspend fun initializeVolumeBoost() = coroutineScope {
+        isLoudnessGainSupported = enableVolumeBoost
+        val player = player as? MediaController ?: return@coroutineScope
+        val scope = this
+        val listener = object : Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                scope.launch {
+                    updateVolumeBoostState(player = player)
+                }
+            }
+        }
+        player.addListener(listener)
+        try {
+            updateVolumeBoostState(player = player)
+            awaitCancellation()
+        } finally {
+            player.removeListener(listener)
+        }
+    }
+
+    private suspend fun updateVolumeBoostState(player: MediaController) {
+        if (!enableVolumeBoost) {
+            isLoudnessGainSupported = false
+            return
+        }
+
+        try {
+            isLoudnessGainSupported = player.isLoudnessGainSupported() || enableVolumeBoost
+            if (!isLoudnessGainSupported) return
+
+            val loudnessGain = player.getLoudnessGain()
+
+            if (systemVolume < systemMaxVolume) {
+                currentVolume = systemVolume
+                volumePercentage = calculateVolumePercentage()
+                player.setLoudnessGain(gain = 0)
+                HardwareDolbyAndEqualizerEngine.setVolumeBoostMb(0)
+            } else {
+                val boostVolume = (loudnessGain * (systemMaxVolume * 3)) / MAX_BOOST_GAIN_MB
+                currentVolume = systemMaxVolume + boostVolume
+                volumePercentage = calculateVolumePercentage()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            isLoudnessGainSupported = enableVolumeBoost
+        }
+    }
+
+    private fun calculateVolumePercentage(): Int =
+        ((currentVolume.toFloat() / systemMaxVolume) * 100f).roundToInt()
+
+    private fun setVolume(volume: Int) {
+        setVolumeInternal(
+            volume = volume,
+            preserveExactPercentage = false,
+            showVolumePanel = false,
+        )
+    }
+
+    private fun setVolumeInternal(
+        volume: Int,
+        preserveExactPercentage: Boolean,
+        showVolumePanel: Boolean,
+    ) {
+        val clampedVolume = volume.coerceIn(
+            minimumValue = 0,
+            maximumValue = maxVolume,
+        )
+        currentVolume = clampedVolume
+        if (!preserveExactPercentage) {
+            volumePercentage = calculateVolumePercentage()
+        }
+
+        if (clampedVolume <= systemMaxVolume) {
+            setSystemVolume(
+                volume = clampedVolume,
+                showVolumePanel = showVolumePanel,
+            )
+            applyVolumeBoost(volume = 0)
+        } else {
+            setSystemVolume(
+                volume = systemMaxVolume,
+                showVolumePanel = false,
+            )
+            applyVolumeBoost(volume = clampedVolume - systemMaxVolume)
+        }
+    }
+
+    private fun setSystemVolume(volume: Int, showVolumePanel: Boolean) {
+        audioManager.setStreamVolume(
+            AudioManager.STREAM_MUSIC,
+            volume.coerceIn(
+                minimumValue = 0,
+                maximumValue = systemMaxVolume,
+            ),
+            if (showVolumePanel) AudioManager.FLAG_SHOW_UI else 0,
+        )
+    }
+
+    private fun applyVolumeBoost(volume: Int) {
+        val maxExtraVolume = (systemMaxVolume * 3).coerceAtLeast(1)
+        val gainMillibels = (volume.toFloat() / maxExtraVolume * MAX_BOOST_GAIN_MB).roundToInt()
+            .coerceIn(0, MAX_BOOST_GAIN_MB)
+
+        HardwareDolbyAndEqualizerEngine.setVolumeBoostMb(gainMillibels)
+
+        val controller = player as? MediaController ?: return
+        try {
+            controller.setLoudnessGain(gain = gainMillibels)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun increaseVolume(showVolumePanel: Boolean = false) {
+        setVolumeInternal(
+            volume = currentVolume + 1,
+            preserveExactPercentage = false,
+            showVolumePanel = showVolumePanel && currentVolume + 1 <= systemMaxVolume,
+        )
+    }
+
+    fun decreaseVolume(showVolumePanel: Boolean = false) {
+        setVolumeInternal(
+            volume = currentVolume - 1,
+            preserveExactPercentage = false,
+            showVolumePanel = showVolumePanel && currentVolume - 1 <= systemMaxVolume,
+        )
+    }
+
+    companion object {
+        private const val VOLUME_CHANGED_ACTION = "android.media.VOLUME_CHANGED_ACTION"
+        private const val MAX_VOLUME_PERCENTAGE_NORMAL = 100
+        private const val MAX_VOLUME_PERCENTAGE_BOOST = 400
+        private const val MAX_BOOST_GAIN_MB = 4000
+    }
+}

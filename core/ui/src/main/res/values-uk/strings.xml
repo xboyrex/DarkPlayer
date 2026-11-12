@@ -6,7 +6,7 @@
     <string name="appearance_description">Налаштуйте застосунок на свій смак</string>
     <string name="ascending">За зростанням</string>
     <string name="double_tap">Подвійний дотик</string>
-    <string name="permission_info">Для доступу до медіафайлів та їх відтворення застосунку Nova Player потрібен дозвіл \"%1$s\". Без нього доступ до медіа та їх відтворення не працюватиме. Щоб повноцінно користуватися застосунком, надайте дозвіл.</string>
+    <string name="permission_info">Для доступу до медіафайлів та їх відтворення застосунку Dark Player потрібен дозвіл \"%1$s\". Без нього доступ до медіа та їх відтворення не працюватиме. Щоб повноцінно користуватися застосунком, надайте дозвіл.</string>
     <string name="permission_not_granted">Дозвіл не надано</string>
     <string name="player_controls_play_pause">Пауза у відтворенні плеєра</string>
     <string name="player_description">Зовнішній вигляд плеєра, керування відтворенням</string>
@@ -14,7 +14,7 @@
     <string name="resume_description">Виберіть, чи продовжувати відтворення відео з того місця, на якому ви зупинилися</string>
     <string name="size">Розмір</string>
     <string name="sort">Сортувати</string>
-    <string name="title_activity_player">Активність Nova Player</string>
+    <string name="title_activity_player">Активність Dark Player</string>
     <string name="unknown_error">Виникла невідома помилка</string>
     <string name="dynamic_theme_description">Застосувати кольори з системних шпалер до теми застосунку</string>
     <string name="controls_unlock">Розблокувати</string>
@@ -38,7 +38,7 @@
     <string name="permission_request">Запит на дозвіл</string>
     <string name="player_controls_previous">Грати попереднє</string>
     <string name="quick_settings">Швидкі налаштування</string>
-    <string name="permission_settings">Для доступу до медіафайлів та їх відтворення застосунку Nova Player потрібен дозвіл \"%1$s\". Без нього доступ до медіафайлів та їх відтворення не працюватиме. Щоб повноцінно користуватися застосунком, надайте дозвіл у налаштуваннях, оскільки він був постійно заборонений.</string>
+    <string name="permission_settings">Для доступу до медіафайлів та їх відтворення застосунку Dark Player потрібен дозвіл \"%1$s\". Без нього доступ до медіафайлів та їх відтворення не працюватиме. Щоб повноцінно користуватися застосунком, надайте дозвіл у налаштуваннях, оскільки він був постійно заборонений.</string>
     <string name="player_controls_exit">Перейти вгору</string>
     <string name="player_controls_next">Грати далі</string>
     <string name="a_z">А-Я</string>
@@ -211,13 +211,9 @@
     <string name="loop_mode">Режим повтору</string>
     <string name="libraries">Бібліотеки</string>
     <string name="error_opening_link">Не знайдено застосунку для оброблення цього посилання</string>
-    <string name="paypal">PayPal</string>
-    <string name="upi">UPI</string>
     <string name="by">від %1$s</string>
     <string name="donate">Задонатити</string>
     <string name="github">Github</string>
-    <string name="support_the_developer_on">Підтримати розробника на %1$s</string>
-    <string name="kofi">Ko-fi</string>
     <string name="media_layout">Розміщення медіафайлів</string>
     <string name="list">Список</string>
     <string name="grid">Сітка</string>
@@ -552,7 +548,4 @@
     <string name="watch_history_desc">Ведіть облік відео, які ви переглядаєте</string>
     <string name="network_watch_history">Історія переглядів у мережі</string>
     <string name="network_watch_history_desc">Додавати відео, відтворені через мережу, до історії переглядів.</string>
-    <string name="add_to_home_screen">Додати на головний екран</string>
-    <string name="playlist_shortcut_failed">Не вдалося додати ярлик добірки. Спробуйте ще раз.</string>
-    <string name="github_sponsors">Спонсори GitHub</string>
 </resources>

@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.novaplayer.feature.settings"
+    namespace = "dev.xboyrex.darkplayer.feature.settings"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
@@ -23,10 +23,6 @@ android {
     buildFeatures {
         compose = true
     }
-
-    testOptions {
-        unitTests.isIncludeAndroidResources = true
-    }
 }
 
 kotlin {
@@ -36,11 +32,6 @@ kotlin {
 }
 
 dependencies {
-    api(libs.kyant.backdrop)
-    api(libs.kyant.shapes)
-    implementation(libs.okhttp.core)
-    implementation(libs.androidx.compose.material.iconsExtended)
-
 
     implementation(project(":core:ui"))
     implementation(project(":core:data"))
@@ -50,13 +41,14 @@ dependencies {
     implementation(project(":core:media"))
 
     implementation(libs.androidx.core.ktx)
-    implementation(libs.kotlinx.serialization.json)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.icons)
+    implementation(libs.androidx.compose.material.iconsExtended)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtimeCompose)
@@ -72,7 +64,6 @@ dependencies {
     implementation(libs.koin.compose.viewmodel)
 
     testImplementation(libs.junit4)
-    testImplementation(libs.robolectric)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.test.ext)

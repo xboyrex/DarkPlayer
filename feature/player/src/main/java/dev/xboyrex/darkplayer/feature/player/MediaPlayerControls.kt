@@ -1,0 +1,268 @@
+package dev.xboyrex.darkplayer.feature.player
+
+import androidx.activity.compose.BackHandler
+import androidx.annotation.OptIn
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.compose.state.rememberProgressStateWithTickInterval
+import dev.xboyrex.darkplayer.core.common.extensions.isTelevision
+import dev.xboyrex.darkplayer.core.ui.audio.HardwareDolbyAndEqualizerEngine
+import dev.xboyrex.darkplayer.core.ui.components.requestFocusUntilLanded
+import dev.xboyrex.darkplayer.core.ui.components.thenIf
+import dev.xboyrex.darkplayer.feature.player.state.ControlsVisibilityState
+import dev.xboyrex.darkplayer.feature.player.state.SeekGestureState
+import dev.xboyrex.darkplayer.feature.player.state.TapGestureState
+import dev.xboyrex.darkplayer.feature.player.state.VideoZoomAndContentScaleState
+import dev.xboyrex.darkplayer.feature.player.state.VolumeState
+import dev.xboyrex.darkplayer.feature.player.state.rememberChaptersState
+import dev.xboyrex.darkplayer.feature.player.state.rememberMediaPresentationState
+import dev.xboyrex.darkplayer.feature.player.state.rememberMetadataState
+import dev.xboyrex.darkplayer.feature.player.state.rememberPlayerKeyInputState
+import dev.xboyrex.darkplayer.feature.player.ui.DpadSeekIndicator
+import dev.xboyrex.darkplayer.feature.player.ui.OverlayShowView
+import dev.xboyrex.darkplayer.feature.player.ui.OverlayView
+import dev.xboyrex.darkplayer.feature.player.ui.PlayerGestureIndicators
+import kotlin.time.Duration.Companion.seconds
+
+/** Controls and overlays shared by live playback and the previewable content. */
+@OptIn(UnstableApi::class)
+@Composable
+internal fun MediaPlayerControls(
+    player: Player,
+    state: PlayerUiState,
+    onAction: (PlayerAction) -> Unit,
+    controlsVisibilityState: ControlsVisibilityState,
+    tapGestureState: TapGestureState,
+    seekGestureState: SeekGestureState,
+    videoZoomAndContentScaleState: VideoZoomAndContentScaleState,
+    volumeState: VolumeState? = null,
+    dpadUpDown: Int? = null,
+    isPipSupported: Boolean,
+    onPictureInPictureClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val playerPreferences = state.playerPreferences
+    val metadataState = rememberMetadataState(player = player)
+    val mediaPresentationState = rememberMediaPresentationState(player = player)
+    val progressState = rememberProgressStateWithTickInterval(player = player)
+    val chaptersState = rememberChaptersState(
+        player = player,
+        progressState = progressState,
+    )
+    val keyInputState = rememberPlayerKeyInputState(
+        player = player,
+        controls = controlsVisibilityState,
+        seekIncrementMs = playerPreferences.seekIncrement.seconds.inWholeMilliseconds,
+        dpadUpDown = dpadUpDown,
+    )
+    var overlayView by remember { mutableStateOf<OverlayView?>(value = null) }
+    LaunchedEffect(metadataState.mediaId) {
+        if (overlayView == OverlayView.CHAPTERS) overlayView = null
+        HardwareDolbyAndEqualizerEngine.clearAbRepeat()
+    }
+
+    // Enforce A - B Repeat seamlessly during playback
+    val abStart = HardwareDolbyAndEqualizerEngine.abRepeatStartMs
+    val abEnd = HardwareDolbyAndEqualizerEngine.abRepeatEndMs
+    LaunchedEffect(progressState.currentPositionMs, abStart, abEnd) {
+        if (abStart != null && abEnd != null && progressState.currentPositionMs >= abEnd) {
+            player.seekTo(abStart)
+        }
+    }
+
+    fun showOverlay(overlay: OverlayView) {
+        controlsVisibilityState.hideControls()
+        overlayView = overlay
+    }
+
+    val context = LocalContext.current
+    LaunchedEffect(context) {
+        HardwareDolbyAndEqualizerEngine.init(context)
+    }
+
+    val isTv = remember { context.isTelevision }
+    val rootFocusRequester = remember { FocusRequester() }
+    val middleControlsFocusRequester = remember { FocusRequester() }
+    val unlockFocusRequester = remember { FocusRequester() }
+    var isMiddleControlsFocused by remember { mutableStateOf(value = false) }
+    var isUnlockFocused by remember { mutableStateOf(value = false) }
+    if (isTv) {
+        LaunchedEffect(
+            controlsVisibilityState.controlsVisible,
+            controlsVisibilityState.controlsLocked,
+            key3 = overlayView,
+        ) {
+            if (overlayView != null) return@LaunchedEffect
+            if (!controlsVisibilityState.controlsVisible) {
+                runCatching { rootFocusRequester.requestFocus() }
+                return@LaunchedEffect
+            }
+            val locked = controlsVisibilityState.controlsLocked
+            val target = if (locked) unlockFocusRequester else middleControlsFocusRequester
+            target.requestFocusUntilLanded(attempts = 20) {
+                if (locked) isUnlockFocused else isMiddleControlsFocused
+            }
+        }
+    }
+
+    CompositionLocalProvider(
+        LocalControlsVisibilityState provides controlsVisibilityState,
+        LocalUseMaterialYouControls provides playerPreferences.useMaterialYouControls,
+        LocalHidePlayerButtonsBackground provides playerPreferences.hidePlayerButtonsBackground,
+    ) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .thenIf(condition = isTv) {
+                    focusRequester(focusRequester = rootFocusRequester)
+                        .focusable()
+                        .onPreviewKeyEvent { keyEvent ->
+                            if (overlayView != null) {
+                                false
+                            } else {
+                                keyInputState.onKeyEvent(keyEvent = keyEvent)
+                            }
+                        }
+                },
+        ) {
+            // Eye-comfort Night Mode overlay when enabled from quick actions
+            if (HardwareDolbyAndEqualizerEngine.nightModeEnabled) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Color(0xFF140C00).copy(
+                                alpha = HardwareDolbyAndEqualizerEngine.nightModeAlpha,
+                            ),
+                        ),
+                )
+            }
+
+            AnimatedVisibility(
+                visible =
+                    controlsVisibilityState.controlsVisible &&
+                        !controlsVisibilityState.controlsLocked,
+                enter = fadeIn(),
+                exit = fadeOut(),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.28f)),
+                )
+            }
+            if (mediaPresentationState.isBuffering) {
+                CircularProgressIndicator(
+                    Modifier
+                        .align(Alignment.Center)
+                        .size(56.dp),
+                    color = Color.White,
+                )
+            }
+            PlayerGestureIndicators(tapGestureState = tapGestureState)
+            DpadSeekIndicator(
+                visible = keyInputState.isSeeking && keyInputState.seekOffsetMs != 0L,
+                offsetMs = keyInputState.seekOffsetMs,
+                positionMs = keyInputState.seekPositionMs,
+            )
+
+            if (controlsVisibilityState.controlsVisible && controlsVisibilityState.controlsLocked) {
+                PlayerLockedControls(
+                    onUnlockControls = controlsVisibilityState::unlockControls,
+                    unlockButtonModifier = Modifier.thenIf(condition = isTv) {
+                        focusRequester(focusRequester = unlockFocusRequester)
+                            .onFocusChanged { isUnlockFocused = it.hasFocus }
+                    },
+                )
+            } else {
+                PlayerControls(
+                    player = player,
+                    title = metadataState.title.orEmpty(),
+                    playerPreferences = playerPreferences,
+                    videoDecoderMode = state.decoderServiceState.videoMode,
+                    controlsVisibilityState = controlsVisibilityState,
+                    seekGestureState = seekGestureState,
+                    videoZoomAndContentScaleState = videoZoomAndContentScaleState,
+                    progressState = progressState,
+                    chaptersState = chaptersState,
+                    isPipSupported = isPipSupported,
+                    onShowOverlay = ::showOverlay,
+                    onBackClick = { onAction(PlayerAction.NavigateUp) },
+                    onPlayInBackgroundClick = { onAction(PlayerAction.PlayInBackground) },
+                    onToggleTimeDisplay = { onAction(PlayerAction.ToggleTimeDisplay) },
+                    onPictureInPictureClick = onPictureInPictureClick,
+                    middleControlsModifier = Modifier.thenIf(condition = isTv) {
+                        focusRequester(focusRequester = middleControlsFocusRequester)
+                            .onFocusChanged { isMiddleControlsFocused = it.hasFocus }
+                    },
+                )
+            }
+
+            OverlayShowView(
+                player = player,
+                overlayView = overlayView,
+                chapters = chaptersState.chapters,
+                currentChapterIndex = chaptersState.currentChapterIndex,
+                volumeState = volumeState,
+                onChapterSelected = { chapter ->
+                    player.seekTo(chapter.startTimeMs)
+                    overlayView = null
+                    controlsVisibilityState.showControls()
+                },
+                videoDecoderMode = state.decoderServiceState.videoMode,
+                audioDecoderMode = state.decoderServiceState.audioMode,
+                videoContentScale = videoZoomAndContentScaleState.videoContentScale,
+                onDismiss = { overlayView = null },
+                onVideoDecoderModeSelected = {
+                    onAction(PlayerAction.SetVideoDecoderMode(mode = it))
+                },
+                onAudioDecoderModeSelected = {
+                    onAction(PlayerAction.SetAudioDecoderMode(mode = it))
+                },
+                onSelectSubtitleClick = { onAction(PlayerAction.SelectSubtitle) },
+                onSelectAudioClick = { onAction(PlayerAction.SelectAudio) },
+                onSubtitleOptionEvent = {
+                    onAction(PlayerAction.OnSubtitleOptionEvent(event = it))
+                },
+                onVideoContentScaleChanged =
+                    videoZoomAndContentScaleState::onVideoContentScaleChanged,
+            )
+        }
+    }
+
+    BackHandler {
+        when {
+            overlayView != null -> overlayView = null
+
+            isTv && controlsVisibilityState.controlsVisible ->
+                controlsVisibilityState.hideControls()
+
+            else -> onAction(PlayerAction.NavigateUp)
+        }
+    }
+}

@@ -1,0 +1,110 @@
+name: DarkPlayer | Android CI & Auto-Release
+run-name: "DarkPlayer | Build & Release v2.0.${{ github.run_number }} (#${{ github.run_number }})"
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: darkplayer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Publish DarkPlayer Release APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Set Up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          validate-wrappers: false
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Inject Auto-Incrementing Release Version
+        run: |
+          BUILD_VER="2.0.${{ github.run_number }}"
+          BUILD_CODE=$((200 + ${{ github.run_number }}))
+          echo "RELEASE_VERSION=$BUILD_VER" >> $GITHUB_ENV
+          echo "RELEASE_CODE=$BUILD_CODE" >> $GITHUB_ENV
+          sed -i "s/versionCode = [0-9]\+/versionCode = $BUILD_CODE/g" app/build.gradle.kts
+          sed -i "s/versionName = \"[^\"]*\"/versionName = \"$BUILD_VER\"/g" app/build.gradle.kts
+          grep -E "versionCode|versionName" app/build.gradle.kts
+
+      - name: Build Signed Release APKs
+        run: ./gradlew assembleRelease -x lint -x lintVitalRelease -x lintVitalAnalyzeRelease --build-cache --parallel --max-workers=4 --stacktrace
+
+      - name: Prepare Release Artifacts & Checksums
+        run: |
+          mkdir -p release-apks
+          cp app/build/outputs/apk/release/app-universal-release.apk "release-apks/DarkPlayer-v${{ env.RELEASE_VERSION }}-universal.apk" || true
+          cp app/build/outputs/apk/release/app-arm64-v8a-release.apk "release-apks/DarkPlayer-v${{ env.RELEASE_VERSION }}-arm64-v8a.apk" || true
+          cp app/build/outputs/apk/release/app-armeabi-v7a-release.apk "release-apks/DarkPlayer-v${{ env.RELEASE_VERSION }}-armeabi-v7a.apk" || true
+          cp app/build/outputs/apk/release/app-x86_64-release.apk "release-apks/DarkPlayer-v${{ env.RELEASE_VERSION }}-x86_64.apk" || true
+          cd release-apks && sha256sum *.apk > SHA256SUMS.txt
+          ls -lh
+
+      - name: Upload APK Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: DarkPlayer-v${{ env.RELEASE_VERSION }}-APKs
+          path: |
+            release-apks/*.apk
+            release-apks/SHA256SUMS.txt
+
+      - name: Publish & Auto-Update Official GitHub Release
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ env.RELEASE_VERSION }}
+          name: "Dark Player v${{ env.RELEASE_VERSION }} — Liquid Glass & Studio Edition (Build #${{ github.run_number }})"
+          make_latest: true
+          body: |
+            <div align="center">
+              <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/docs/assets/dark-player/dark-player-logo.png" width="116" height="116" alt="Dark Player Logo" />
+              <h2>Dark Player v${{ env.RELEASE_VERSION }} (Build #${{ github.run_number }})</h2>
+              <p><strong>Crafted by ㅤᏞᴀᴢʏㅤᎷꫝʏᴀɴк まやんく (<code>@xboyrex</code>)</strong></p>
+              <img src="https://raw.githubusercontent.com/${{ github.repository }}/main/docs/assets/dark-player/dark-player-showcase.gif" width="100%" alt="Dark Player Banner" />
+            </div>
+
+            ### What's New in v${{ env.RELEASE_VERSION }}
+            - **3-Layer Liquid Glass Navigation Bar & Video Player UI**: Interactive damped drag physics (`DampedDragAnimation`), AGSL shader highlights (`InteractiveHighlight`), shape-morphing `PlayPauseButton`, and `SeekBurstPill` with particle sparks—strictly scoped to the Navigation Bar and Video Player UI.
+            - **200% Hardware LoudnessEnhancer Volume Boost & Interactive Haptic Speed Ruler**: Clean 0–200% hardware audio boost (`2000 mB`) plus a precision draggable speed ruler (`0.25×–4.0×`) with real primitive tick haptics.
+            - **Zero-Conflict Angle-Locked Player Gestures**: Strict directional ratio locking (`1.25×`), system gesture edge inset rejection, and mutual exclusion between horizontal seek scrubbing and vertical volume/brightness sliders.
+            - **Studio Settings & Real-Time Storage Analyzer**: Floating blurred studio modals for Theme Mode (`System` / `Dark` / `Light` / `AMOLED`), Color Palette Swatch Picker, and live Device & App Storage Analyzer with one-tap cache cleanup.
+            - **In-App OTA Auto-Updater**: Automatic GitHub Releases version check, ABI-matched APK download with live progress bar, and instant Package Installer handoff.
+
+            ### Direct APK Architecture Guide
+            | File | Architecture | Target Devices |
+            | :--- | :--- | :--- |
+            | `DarkPlayer-v${{ env.RELEASE_VERSION }}-arm64-v8a.apk` | **64-bit ARM (`arm64-v8a`)** | Recommended for all modern Android phones & tablets |
+            | `DarkPlayer-v${{ env.RELEASE_VERSION }}-armeabi-v7a.apk` | **32-bit ARM (`armeabi-v7a`)** | Older 32-bit Android phones & Android TV boxes |
+            | `DarkPlayer-v${{ env.RELEASE_VERSION }}-x86_64.apk` | **64-bit x86 (`x86_64`)** | Chromebooks & Android emulators |
+            | `DarkPlayer-v${{ env.RELEASE_VERSION }}-universal.apk` | **Universal (`All ABIs`)** | Works on every Android device |
+          files: |
+            release-apks/*.apk
+            release-apks/SHA256SUMS.txt
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

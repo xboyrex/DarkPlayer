@@ -1,0 +1,132 @@
+package dev.xboyrex.darkplayer.feature.player.ui
+
+import android.content.res.Configuration
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.media3.common.Player
+import androidx.media3.extractor.metadata.Chapter
+import dev.xboyrex.darkplayer.core.model.VideoContentScale
+import dev.xboyrex.darkplayer.core.ui.audio.EqualizerAndDolbyStudioContent
+import dev.xboyrex.darkplayer.feature.player.extensions.noRippleClickable
+import dev.xboyrex.darkplayer.feature.player.state.SubtitleOptionsEvent
+import dev.xboyrex.darkplayer.feature.player.state.VolumeState
+import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.DecoderMode
+
+@Composable
+fun BoxScope.OverlayShowView(
+    player: Player,
+    overlayView: OverlayView?,
+    videoDecoderMode: DecoderMode?,
+    audioDecoderMode: DecoderMode?,
+    videoContentScale: VideoContentScale,
+    chapters: List<Chapter>,
+    currentChapterIndex: Int,
+    onChapterSelected: (Chapter) -> Unit,
+    volumeState: VolumeState? = null,
+    onDismiss: () -> Unit = {},
+    onVideoDecoderModeSelected: (DecoderMode) -> Unit = {},
+    onAudioDecoderModeSelected: (DecoderMode) -> Unit = {},
+    onSelectSubtitleClick: () -> Unit = {},
+    onSelectAudioClick: () -> Unit = {},
+    onSubtitleOptionEvent: (SubtitleOptionsEvent) -> Unit = {},
+    onVideoContentScaleChanged: (VideoContentScale) -> Unit = {},
+) {
+    AnimatedVisibility(
+        visible = overlayView != null,
+        enter = fadeIn(tween(150)),
+        exit = fadeOut(tween(140)),
+        modifier = Modifier.matchParentSize(),
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(Color.Black.copy(alpha = 0.24f))
+                .noRippleClickable(onClick = onDismiss),
+        )
+    }
+
+    AudioTrackSelectorView(
+        show = overlayView == OverlayView.AUDIO_SELECTOR,
+        player = player,
+        audioMode = audioDecoderMode,
+        onAudioModeSelected = onAudioDecoderModeSelected,
+        onSelectAudioClick = onSelectAudioClick,
+        onDismiss = onDismiss,
+    )
+
+    DecoderSelectorView(
+        show = overlayView == OverlayView.DECODER_SELECTOR,
+        videoMode = videoDecoderMode,
+        audioMode = audioDecoderMode,
+        onVideoModeSelected = onVideoDecoderModeSelected,
+        onAudioModeSelected = onAudioDecoderModeSelected,
+    )
+
+    SubtitleSelectorView(
+        show = overlayView == OverlayView.SUBTITLE_SELECTOR,
+        player = player,
+        onSelectSubtitleClick = onSelectSubtitleClick,
+        onEvent = onSubtitleOptionEvent,
+        onDismiss = onDismiss,
+    )
+
+    PlaybackSpeedSelectorView(
+        show = overlayView == OverlayView.PLAYBACK_SPEED,
+        player = player,
+    )
+
+    VideoContentScaleSelectorView(
+        show = overlayView == OverlayView.VIDEO_CONTENT_SCALE,
+        videoContentScale = videoContentScale,
+        onVideoContentScaleChanged = onVideoContentScaleChanged,
+        onDismiss = onDismiss,
+    )
+
+    PlaylistView(
+        show = overlayView == OverlayView.PLAYLIST,
+        player = player,
+    )
+
+    ChaptersView(
+        show = overlayView == OverlayView.CHAPTERS,
+        chapters = chapters,
+        currentChapterIndex = currentChapterIndex,
+        onChapterSelected = onChapterSelected,
+    )
+
+    SleepTimerSelectorView(
+        show = overlayView == OverlayView.SLEEP_TIMER,
+        player = player,
+        onDismiss = onDismiss,
+    )
+
+    OverlayView(
+        show = overlayView == OverlayView.VOLUME_BOOSTER,
+        title = "Equalizer & Dolby Atmos",
+    ) {
+        EqualizerAndDolbyStudioContent()
+    }
+}
+
+val Configuration.isPortrait: Boolean
+    get() = orientation == Configuration.ORIENTATION_PORTRAIT
+
+enum class OverlayView {
+    DECODER_SELECTOR,
+    AUDIO_SELECTOR,
+    SUBTITLE_SELECTOR,
+    PLAYBACK_SPEED,
+    VIDEO_CONTENT_SCALE,
+    PLAYLIST,
+    CHAPTERS,
+    SLEEP_TIMER,
+    VOLUME_BOOSTER,
+}

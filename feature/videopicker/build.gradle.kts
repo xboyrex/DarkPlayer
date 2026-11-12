@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.novaplayer.feature.videopicker"
+    namespace = "dev.xboyrex.darkplayer.feature.videopicker"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {

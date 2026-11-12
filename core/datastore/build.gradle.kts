@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.xboyrex.novaplayer.core.datastore"
+    namespace = "dev.xboyrex.darkplayer.core.datastore"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {

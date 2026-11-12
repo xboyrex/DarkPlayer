@@ -25,9 +25,9 @@
     <string name="player_description">Meediamängija välimus ja juhtnupud</string>
     <string name="group_videos">Rühmita videoid kausta kaupa</string>
     <string name="location">Asukoht</string>
-    <string name="title_activity_player">Nova Playeri tegevus</string>
+    <string name="title_activity_player">Dark Playeri tegevus</string>
     <string name="file">Fail</string>
-    <string name="permission_info">Ligipääsuks meediale ja selle esitamiseks vajab rakendus Nova Player „%1$s“ õigust. Ilma selleta kumbagi toimingut teha ei saa. Rakenduse täisfunktsionaalseks kasutamiseks palun jaga need õigused.</string>
+    <string name="permission_info">Ligipääsuks meediale ja selle esitamiseks vajab rakendus Dark Player „%1$s“ õigust. Ilma selleta kumbagi toimingut teha ei saa. Rakenduse täisfunktsionaalseks kasutamiseks palun jaga need õigused.</string>
     <string name="resume">Jätka</string>
     <string name="controls_unlock">Eemalda juhtnuppude lukustus</string>
     <string name="interface_name">Kasutajaliides</string>
@@ -67,7 +67,7 @@
     <string name="player_controls_exit">Liigu üles</string>
     <string name="player_controls_next">Esita järgmisena</string>
     <string name="player_controls_play_pause">Esita või peata</string>
-    <string name="permission_settings">Ligipääsuks meediale ja selle esitamiseks vajab rakendus Nova Player „%1$s“ õigust. Ilma selleta kumbagi toimingut teha ei saa. Kuna hetkel need õigused üheselt puuduvad, siis rakenduse täisfunktsionaalseks kasutamiseks palun jaga need õigused seadistustest.</string>
+    <string name="permission_settings">Ligipääsuks meediale ja selle esitamiseks vajab rakendus Dark Player „%1$s“ õigust. Ilma selleta kumbagi toimingut teha ei saa. Kuna hetkel need õigused üheselt puuduvad, siis rakenduse täisfunktsionaalseks kasutamiseks palun jaga need õigused seadistustest.</string>
     <string name="player_controls_progress">Meediamängija edenemisriba</string>
     <string name="player_name">Meediamängija</string>
     <string name="quick_settings">Kiirseadistused</string>
@@ -209,14 +209,10 @@
     <string name="loop_mode_all">Kordus: korda kõiki</string>
     <string name="loop_mode">Korduse viis</string>
     <string name="loop_mode_one">Kordus: korda üht</string>
-    <string name="support_the_developer_on">Toeta arendajat rahaliselt: %1$s</string>
-    <string name="paypal">PayPal</string>
-    <string name="kofi">Ko-fi</string>
     <string name="github">Github</string>
     <string name="libraries">Teegid</string>
     <string name="donate">Toeta arendajat</string>
     <string name="error_opening_link">Selle lingi avamiseks ei leidu sobilikku rakendust</string>
-    <string name="upi">UPI</string>
     <string name="media_layout">Meedia paigutus</string>
     <string name="list">Loend</string>
     <string name="grid">Ruudustik</string>
@@ -532,7 +528,4 @@
     <string name="watch_history_desc">Sinu vaadatud videote nimed tähendatakse üles</string>
     <string name="network_watch_history">Võrgust vaatamiste ajalugu</string>
     <string name="network_watch_history_desc">Märgi üles ka sinu poolt võrgust vaadatud videote nimed.</string>
-    <string name="add_to_home_screen">Lisa avalehele</string>
-    <string name="playlist_shortcut_failed">Esitusloendi viite lisamine ei õnnestunud. Proovi uuesti.</string>
-    <string name="github_sponsors">Sponsorid GitHubis</string>
 </resources>
